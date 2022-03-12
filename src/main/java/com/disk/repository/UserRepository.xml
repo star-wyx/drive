@@ -1,0 +1,12 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.disk.repository.UserRepository">
+    <select id="findAll" resultType="User">
+        select * from netdisk.users
+    </select>
+
+    <select id="queryUser" parameterType="map" resultType="User">
+        select * from netdisk.users where user_id=#{username} and user_pwd=#{password};
+    </select>
+</mapper>
+
