@@ -6,7 +6,6 @@
     </select>
 
     <select id="queryUser" parameterType="map" resultType="User">
-        select * from netdisk.users where user_id=#{username} and user_pwd=#{password};
+        select * from netdisk.users where user_name=#{username} and user_pwd=#{password};
     </select>
 </mapper>
-
