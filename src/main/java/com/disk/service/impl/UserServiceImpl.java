@@ -21,8 +21,37 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User queryUser(Map<String, Object> map) {
-        return userRepository.queryUser(map);
+    public User queryUserNamePwd(Map<String, Object> map) {
+        return userRepository.queryUserNamePwd(map);
     }
 
+    @Override
+    public int signIn(Map<String, Object> map) {
+        User check = queryUserNamePwd(map);
+        if (check == null) {
+            return userRepository.signIn(map);
+        }else{
+            return 0;
+        }
+    }
+
+    @Override
+    public User queryUserByName(Map<String, Object> map) {
+        return userRepository.queryUserByName(map);
+    }
+
+    @Override
+    public User queryUserByEmail(Map<String, Object> map) {
+        return userRepository.queryUserByEmail(map);
+    }
+
+    @Override
+    public int insertUser(Map<String, Object> map) {
+        return userRepository.insertUser(map);
+    }
+
+    @Override
+    public List<String> queryDataByUserId(int userId) {
+        return userRepository.queryDataByUserId(userId);
+    }
 }

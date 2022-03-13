@@ -9,6 +9,20 @@ CREATE TABLE `users`(
     `user_name` char(20) NOT NULL COMMENT '用户名',
     `user_pwd` char(20) NOT NULL COMMENT '用户密码',
     `user_email` char(20) NOT NULL COMMENT '用户邮箱'
-) ENGINE = INNODB DEFAULT CHAR SET=utf8
+) ENGINE = INNODB DEFAULT CHAR SET=utf8;
 
-Insert into netdisk.users values(null,'张三','123','123@qq.com')
+Insert into netdisk.users values(null,'张三','123','123@qq.com');
+
+DROP TABLE IF EXISTS `users_data`;
+CREATE TABLE `users_data`(
+    `data_id` int primary key auto_increment comment '数据id',
+    `user_id` int not NULL comment '数据所属用户的id',
+    `content` char(200) NOT NULL comment '数据内容',
+    foreign key (user_id) references users(user_id)
+);
+
+insert into users_data values(null,1,'I am Zhangsan');
+insert into users_data values(null,2,'I am Mike');
+insert into users_data values(null,4,'I am Alice');
+insert into users_data values(null,8,'I am trump');
+insert into users_data values(null,8,'I win 2024');
