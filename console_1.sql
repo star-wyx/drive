@@ -26,3 +26,14 @@ insert into users_data values(null,2,'I am Mike');
 insert into users_data values(null,4,'I am Alice');
 insert into users_data values(null,8,'I am trump');
 insert into users_data values(null,8,'I win 2024');
+
+
+drop table if exists `file`;
+create table `file`(
+    `id` int(10) primary key auto_increment comment'文件id',
+    `file_name` char(100) not null comment '文件名称',
+    `file_path` char(100) not null comment '文件路径',
+    `upload_time` char(100) not null comment '上传时间',
+    `uid` int not null comment '上传用户的id',
+    foreign key (uid) references users(user_id)
+);
