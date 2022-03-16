@@ -24,7 +24,7 @@ import java.util.*;
 
 @Controller
 @RequestMapping("/file")
-@CrossOrigin("*")
+@CrossOrigin(origins="http://192.168.1.169:9070", allowCredentials = "true")
 public class FileController {
 
     @Autowired
@@ -45,7 +45,7 @@ public class FileController {
                 MultipartFile mFile = mRequest.getFile(files.next());
                 if(mFile!=null){
                     String fileName = UUID.randomUUID()+mFile.getOriginalFilename();
-                    String path = "/Users/star_wyx/Desktop/File/"+fileName;
+                    String path = "/Users/star_wyx/Desktop/File/"+fileName; //命名规则，后期如何查询。
                     File localFile = new File(path);
                     mFile.transferTo(localFile);
                     request.setAttribute("fileUrl",path);

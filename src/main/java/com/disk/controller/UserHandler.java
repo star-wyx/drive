@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 @Controller
-@CrossOrigin(origins="*")
+@CrossOrigin(origins="http://192.168.1.169:9070", allowCredentials = "true")
 @RequestMapping("/user")
 public class UserHandler {
     @Autowired
@@ -36,43 +36,51 @@ public class UserHandler {
     @PostMapping("/login")
     @ResponseBody
     public Response login(@RequestBody Map<String,Object> map){
-        User user = userService.queryUserNamePwd(map);
-        AssemblyResponse<User> assembly = new AssemblyResponse<>();
-        if(user==null){
-            return assembly.fail(201,null);
+        User user;
+        String u = (String) map.get("user");
+        AssemblyResponse<String> assembly = new AssemblyResponse<>();
+        if(u.contains("@")){
+            map.put("user_email",u);
+            user = userService.queryUserEmailPwd(map);
+            if(user == null){
+                if(userService.queryUserByEmail(map)==null){
+                    return assembly.fail(403,"登陆邮箱不存在");
+                }else{
+                    return assembly.fail(401,"登陆密码错误");
+                }
+            }
         }else{
-            return assembly.success(user);
+            map.put("user_name",u);
+            user = userService.queryUserNamePwd(map);
+            if(user == null){
+                if(userService.queryUserByName(map)==null){
+                    return assembly.fail(402,"登陆用户名不存在");
+                }else{
+                    return assembly.fail(401,"登陆密码错误");
+                }
+            }
         }
+        return assembly.success("login successful");
     }
 
-//    @ResponseBody
-//    public Response signin0(@RequestBody Map<String,Object> map){
-//        int row = userService.signIn(map);
-//        AssemblyResponse<Integer> assembly = new AssemblyResponse<Integer>();
-//        if(row!=0){
-//            return assembly.success(row);
-//        }else{
-//            return assembly.fail(100,row);
-//        }
-//    }
 
     @PostMapping("/signin")
     @ResponseBody
     public Response signin(@RequestBody Map<String, Object> map){
         User byName = userService.queryUserByName(map);
         User byEmail = userService.queryUserByEmail(map);
-        AssemblyResponse<Integer> assembly = new AssemblyResponse<>();
+        AssemblyResponse<String> assembly = new AssemblyResponse<>();
         if(byName==null && byEmail==null){
             int row = userService.insertUser(map);
             if(row!=0){
-                return assembly.success(row);
+                return assembly.success("注册成功");
             }else{
-                return assembly.fail(100,row);
+                return assembly.fail(100,"注册失败");
             }
         }else if(byName != null){
-            return assembly.fail(202,null);
+            return assembly.fail(404,"用户名被占用");
         }else {
-            return assembly.fail(203,null);
+            return assembly.fail(405,"邮箱被占用");
         }
     }
 

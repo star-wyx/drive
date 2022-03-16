@@ -26,6 +26,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public User queryUserEmailPwd(Map<String, Object> map) {
+        return userRepository.queryUserEmailPwd(map);
+    }
+
+    @Override
     public int signIn(Map<String, Object> map) {
         User check = queryUserNamePwd(map);
         if (check == null) {
