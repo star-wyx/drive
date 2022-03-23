@@ -16,11 +16,6 @@ public class UserServiceImpl implements UserService {
     private UserRepository userRepository;
 
     @Override
-    public List<User> findAll() {
-        return userRepository.findAll();
-    }
-
-    @Override
     public User queryUserNamePwd(Map<String, Object> map) {
         return userRepository.queryUserNamePwd(map);
     }
@@ -28,16 +23,6 @@ public class UserServiceImpl implements UserService {
     @Override
     public User queryUserEmailPwd(Map<String, Object> map) {
         return userRepository.queryUserEmailPwd(map);
-    }
-
-    @Override
-    public int signIn(Map<String, Object> map) {
-        User check = queryUserNamePwd(map);
-        if (check == null) {
-            return userRepository.signIn(map);
-        }else{
-            return 0;
-        }
     }
 
     @Override

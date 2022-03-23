@@ -1,6 +1,7 @@
 package com.disk.controller;
 
 import com.disk.entity.User;
+import com.disk.service.DirService;
 import com.disk.service.UserService;
 import com.disk.util.AssemblyResponse;
 import com.disk.util.Response;
@@ -8,6 +9,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -17,21 +23,8 @@ import java.util.Map;
 public class UserHandler {
     @Autowired
     private UserService userService;
-
-//    @Deprecated
-//    @GetMapping("/findAll")
-//    public ModelAndView findAll(){
-//        ModelAndView modelAndView = new ModelAndView();
-//        modelAndView.setViewName("index");
-//        modelAndView.addObject("list",userService.findAll());
-//        return modelAndView;
-//    }
-//
-//    @PostMapping("/queryUser")
-//    @ResponseBody
-//    public User queryUser(@RequestBody Map<String,Object> map){
-//        return userService.queryUser(map);
-//    }
+    @Autowired
+    private DirService dirService;
 
     @PostMapping("/login")
     @ResponseBody
@@ -66,13 +59,15 @@ public class UserHandler {
 
     @PostMapping("/signin")
     @ResponseBody
-    public Response signin(@RequestBody Map<String, Object> map){
+    public Response signin(@RequestBody Map<String, Object> map) throws IOException {
         User byName = userService.queryUserByName(map);
         User byEmail = userService.queryUserByEmail(map);
         AssemblyResponse<String> assembly = new AssemblyResponse<>();
         if(byName==null && byEmail==null){
             int row = userService.insertUser(map);
             if(row!=0){
+                User user = userService.queryUserByEmail(map);
+                dirForNew(user);
                 return assembly.success("注册成功");
             }else{
                 return assembly.fail(100,"注册失败");
@@ -94,5 +89,16 @@ public class UserHandler {
         }
         List<String> res = userService.queryDataByUserId(byName.getUserId());
         return assembly.success(res);
+    }
+
+    private void dirForNew(User user) throws IOException {
+        Map<String,Object> map = new HashMap<>();
+        map.put("dir_name",user.getUserName());
+        map.put("parent_id",1);
+        map.put("user_id", user.getUserId());
+        Path path = Paths.get("/Users/star_wyx/Desktop/File/"+user.getUserName());
+        Path pathCreate = Files.createDirectories(path);
+        map.put("dir_path", pathCreate.toString());
+        dirService.NewFolder(map);
     }
 }

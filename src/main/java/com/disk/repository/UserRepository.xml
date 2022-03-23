@@ -18,14 +18,9 @@
         select user_id, user_name, user_pwd, user_email from netdisk.users where user_email=#{user_email} limit 1;
     </select>
 
-
-
     <insert id="insertUser" parameterType="map">
         insert into netdisk.users values(null,#{user_name},#{user_pwd},#{user_email})
     </insert>
 
-    <select id="queryDataByUserId" parameterType="Integer" resultType="String">
-        select content from netdisk.users_data where user_id = #{user_id}
-    </select>
 
 </mapper>

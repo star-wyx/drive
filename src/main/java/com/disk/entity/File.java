@@ -8,6 +8,8 @@ import java.sql.Timestamp;
 public class File {
     private int id;
     private String fileName;
+    private String filePath;
     private Timestamp uploadTime;
     private int uid;
+    private int dirId;
 }
