@@ -24,4 +24,9 @@ public class FileServiceImpl implements FileService {
     public List<File> queryByDir(Map<String, Object> map) {
         return fileRepository.queryFileByDir(map);
     }
+
+    @Override
+    public File queryFileByDirAndName(int dir_id, String file_name) {
+        return fileRepository.queryFileByDirAndName(dir_id,file_name);
+    }
 }

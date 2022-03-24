@@ -9,4 +9,5 @@ public interface FileService {
 
     int uploadFile(Map<String,Object> map);
     List<File> queryByDir(Map<String,Object> map);
+    File queryFileByDirAndName(int dir_id, String file_name);
 }

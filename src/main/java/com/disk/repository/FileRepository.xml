@@ -10,5 +10,9 @@
         select id, file_name, file_path, upload_time, uid, dir_id from netdisk.file where dir_id=#{dir_id}
     </select>
 
+    <select id="queryFileByDirAndName" resultType="File">
+        select id, file_name, file_path, upload_time, uid, dir_id from netdisk.file where dir_id = #{dir_id} and file_name = #{file_name};
+    </select>
+
 
 </mapper>

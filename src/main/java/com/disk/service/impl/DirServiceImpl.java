@@ -31,6 +31,11 @@ public class DirServiceImpl implements DirService {
     }
 
     @Override
+    public Dir queryDir(int dir_id) {
+        return dirRepository.queryByDid(dir_id);
+    }
+
+    @Override
     public List<Dir> querySubDir(Map<String, Object> map) {
         return dirRepository.querySubDir(map);
     }

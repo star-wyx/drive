@@ -1,5 +1,7 @@
 package com.disk.controller;
 
+import com.disk.entity.Dir;
+import com.disk.service.DirService;
 import com.disk.service.FileService;
 import com.disk.util.AssemblyResponse;
 import com.disk.util.Response;
@@ -22,11 +24,13 @@ import java.util.*;
 
 @Controller
 @RequestMapping("/file")
-@CrossOrigin(origins="http://192.168.1.169:9070", allowCredentials = "true")
+@CrossOrigin(origins = "http://192.168.1.169:9070", allowCredentials = "true")
 public class FileController {
 
     @Autowired
     private FileService fileService;
+    @Autowired
+    private DirService dirService;
 
 //    @PostMapping("/upload")
 //    @ResponseBody
@@ -62,17 +66,26 @@ public class FileController {
 //        return assembly.fail(1,null);
 //    }
 
+    /**
+     * @param
+     * @throws IOException
+     */
     @PostMapping("/upload")
     @ResponseBody
-    public Response uploadFile(@RequestParam(value = "files") List<CommonsMultipartFile> files, @RequestParam("user_id") String user_id) throws IOException {
+    public Response uploadFile(@RequestParam(value = "files") List<CommonsMultipartFile> files, @RequestParam("user_id") int user_id, @RequestParam("dir_id") int dir_id) throws IOException {
         AssemblyResponse<String> assembly = new AssemblyResponse<>();
-        if(files.get(0).isEmpty()){
-            return assembly.fail(450,"empty file");
+        if (files.get(0).isEmpty()) {
+            return assembly.fail(450, "empty file");
         }
-        for(MultipartFile f:files){
-            if(!f.isEmpty()) {
-                String fileName = UUID.randomUUID() + f.getOriginalFilename();
-                String path = "/Users/star_wyx/Desktop/File/" + fileName; //todo 命名规则，后期如何查询。
+        for (MultipartFile f : files) {
+            if (!f.isEmpty()) {
+//                String fileName = UUID.randomUUID() + f.getOriginalFilename();
+                String fileName = f.getOriginalFilename();
+                if (fileService.queryFileByDirAndName(dir_id, fileName) != null) {
+                    return assembly.fail(500, "存在同名文件");
+                }
+                Dir dir = dirService.queryDir(dir_id);
+                String path = dir.getDirPath() + "/" + fileName; //todo 命名规则，后期如何查询。
                 File localFile = new File(path);
                 f.transferTo(localFile);
 
@@ -82,6 +95,7 @@ public class FileController {
                 map.put("file_path", path);
                 map.put("upload_time", Timestamp.valueOf(nowTime));
                 map.put("uid", user_id);
+                map.put("dir_id",dir_id);
                 fileService.uploadFile(map);
             }
         }
