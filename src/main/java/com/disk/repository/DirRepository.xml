@@ -3,15 +3,15 @@
 <mapper namespace="com.disk.repository.DirRepository">
 
     <insert id="NewFolder" parameterType="map">
-        insert into netdisk.dir values (null,#{dir_name},#{parent_id},#{user_id},#{dir_path});
+        insert into netdisk.dir values (null,#{dir_name},#{parent_id},#{user_id},#{dir_path},#{store_path});
     </insert>
 
     <select id="querySubDir" parameterType="map" resultType="Dir">
-        select dir_id, dir_name, parent_id, user_id, dir_path from netdisk.dir where parent_id = #{parent_id} and user_id = #{user_id};
+        select dir_id, dir_name, parent_id, user_id, dir_path, store_path from netdisk.dir where parent_id = #{parent_id} and user_id = #{user_id};
     </select>
 
     <select id="queryByDid" resultType="Dir">
-        select dir_id, dir_name, parent_id, user_id, dir_path from netdisk.dir where dir_id = #{dir_id};
+        select dir_id, dir_name, parent_id, user_id, dir_path, store_path from netdisk.dir where dir_id = #{dir_id};
     </select>
 
 </mapper>

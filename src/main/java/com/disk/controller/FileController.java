@@ -85,14 +85,15 @@ public class FileController {
                     return assembly.fail(500, "存在同名文件");
                 }
                 Dir dir = dirService.queryDir(dir_id);
-                String path = dir.getDirPath() + "/" + fileName; //todo 命名规则，后期如何查询。
-                File localFile = new File(path);
+                String store_path = dir.getStorePath() + "/" + fileName; //todo 命名规则，后期如何查询。
+                File localFile = new File(store_path);
                 f.transferTo(localFile);
 
                 Map<String, Object> map = new HashMap<>();
                 String nowTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
                 map.put("file_name", fileName);
-                map.put("file_path", path);
+                map.put("file_path", dir.getDirPath()+"/"+fileName);
+                map.put("store_path", store_path);
                 map.put("upload_time", Timestamp.valueOf(nowTime));
                 map.put("uid", user_id);
                 map.put("dir_id",dir_id);

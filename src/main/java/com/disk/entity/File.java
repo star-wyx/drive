@@ -1,5 +1,6 @@
 package com.disk.entity;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
 
 import java.sql.Timestamp;
@@ -9,7 +10,9 @@ public class File {
     private int id;
     private String fileName;
     private String filePath;
-    private Timestamp uploadTime;
+    private String storePath;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    private Timestamp uploadTime; //todo
     private int uid;
     private int dirId;
 }

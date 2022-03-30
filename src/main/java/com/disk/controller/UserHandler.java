@@ -67,7 +67,7 @@ public class UserHandler {
             int row = userService.insertUser(map);
             if(row!=0){
                 User user = userService.queryUserByEmail(map);
-                dirForNew(user);
+                dirService.NewFolderUser(user);
                 return assembly.success("注册成功");
             }else{
                 return assembly.fail(100,"注册失败");
@@ -89,16 +89,5 @@ public class UserHandler {
         }
         List<String> res = userService.queryDataByUserId(byName.getUserId());
         return assembly.success(res);
-    }
-
-    private void dirForNew(User user) throws IOException {
-        Map<String,Object> map = new HashMap<>();
-        map.put("dir_name",user.getUserName());
-        map.put("parent_id",1);
-        map.put("user_id", user.getUserId());
-        Path path = Paths.get("/Users/star_wyx/Desktop/File/"+user.getUserName());
-        Path pathCreate = Files.createDirectories(path);
-        map.put("dir_path", pathCreate.toString());
-        dirService.NewFolder(map);
     }
 }

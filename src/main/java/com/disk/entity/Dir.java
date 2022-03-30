@@ -17,4 +17,6 @@ public class Dir {
     private int userId;
     @JsonProperty("dir_path")
     private String dirPath;
+    @JsonProperty("store_path")
+    private String storePath;
 }

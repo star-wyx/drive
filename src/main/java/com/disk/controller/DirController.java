@@ -1,5 +1,7 @@
 package com.disk.controller;
 
+import com.disk.entity.DTO.DirDTO;
+import com.disk.entity.DTO.FileDTO;
 import com.disk.entity.Dir;
 import com.disk.entity.File;
 import com.disk.service.DirService;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -62,9 +65,17 @@ public class DirController {
         AssemblyResponse<List> assembly = new AssemblyResponse<>();
         List<Dir> dirList = dirService.querySubDir(map);
         List<File> fileList = fileService.queryByDir(map);
+        List<DirDTO> dirDTOS = new ArrayList<>();
+        List<FileDTO> fileDTOS = new ArrayList<>();
+        for(Dir dir:dirList){
+            dirDTOS.add(new DirDTO(dir));
+        }
+        for(File file:fileList){
+            fileDTOS.add(new FileDTO(file));
+        }
         List<Object> res = new LinkedList<>();
-        res.add(dirList);
-        res.add(fileList);
+        res.add(dirDTOS);
+        res.add(fileDTOS);
         return assembly.success(res);
     }
 }
