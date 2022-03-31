@@ -1,5 +1,6 @@
 package com.disk.controller;
 
+import com.disk.entity.DTO.UserDTO;
 import com.disk.entity.User;
 import com.disk.service.DirService;
 import com.disk.service.UserService;
@@ -31,15 +32,15 @@ public class UserHandler {
     public Response login(@RequestBody Map<String,Object> map){
         User user;
         String u = (String) map.get("user");
-        AssemblyResponse<String> assembly = new AssemblyResponse<>();
+        AssemblyResponse<String> assemblyFail = new AssemblyResponse<>();
         if(u.contains("@")){
             map.put("user_email",u);
             user = userService.queryUserEmailPwd(map);
             if(user == null){
                 if(userService.queryUserByEmail(map)==null){
-                    return assembly.fail(403,"登陆邮箱不存在");
+                    return assemblyFail.fail(403,"登陆邮箱不存在");
                 }else{
-                    return assembly.fail(401,"登陆密码错误");
+                    return assemblyFail.fail(401,"登陆密码错误");
                 }
             }
         }else{
@@ -47,13 +48,14 @@ public class UserHandler {
             user = userService.queryUserNamePwd(map);
             if(user == null){
                 if(userService.queryUserByName(map)==null){
-                    return assembly.fail(402,"登陆用户名不存在");
+                    return assemblyFail.fail(402,"登陆用户名不存在");
                 }else{
-                    return assembly.fail(401,"登陆密码错误");
+                    return assemblyFail.fail(401,"登陆密码错误");
                 }
             }
         }
-        return assembly.success("login successful");
+        AssemblyResponse<UserDTO> assemblySuccess = new AssemblyResponse<>();
+        return assemblySuccess.success(new UserDTO(user,"login successfully!"));
     }
 
 
