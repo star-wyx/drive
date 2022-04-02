@@ -1,0 +1,25 @@
+server:
+  port: 9090
+
+spring:
+  datasource:
+    username: root
+    password: wuyixing
+    url: jdbc:mysql://localhost:3306/netdisk?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    type: com.alibaba.druid.pool.DruidDataSource
+
+mybatis:
+  type-aliases-package: com.netdisk.pojo
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true
+
+
+logging:
+  config: classpath:logback-spring.xml
+  file:
+    path: /Users/star_wyx/coding/drive_springboot/log
+  level:
+    com.netdisk.mapper: debug
