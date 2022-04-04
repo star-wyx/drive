@@ -1,25 +1,20 @@
 package com.netdisk.controller;
 
-import com.netdisk.pojo.Dir;
-import com.netdisk.service.DirService;
+import com.netdisk.module.DTO.ParamDTO;
+import com.netdisk.module.FileNode;
 import com.netdisk.service.FileService;
+import com.netdisk.service.SeqService;
 import com.netdisk.util.AssemblyResponse;
 import com.netdisk.util.Response;
+import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.multipart.commons.CommonsMultipartFile;
 
-import java.io.File;
-import java.io.IOException;
-import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
+@Api(value = "文件管理")
 @Controller
 @RequestMapping("/file")
 @CrossOrigin(origins="http://192.168.1.169:9070", allowCredentials = "true")
@@ -27,8 +22,39 @@ public class FileController {
 
     @Autowired
     private FileService fileService;
+
     @Autowired
-    private DirService dirService;
+    private SeqService seqService;
+
+    /**
+     * 新建目录并记录在数据库 userName, nodeId, FileName
+     */
+    @PostMapping("/newdir")
+    @ResponseBody
+    public Response createDir(@RequestBody ParamDTO paramDTO){
+        AssemblyResponse<String> assembly = new AssemblyResponse<>();
+        if(fileService.createDir(paramDTO)){
+            return assembly.success("新目录创建成功");
+        }else{
+            return assembly.fail(451,"已存在同名文件夹");
+        }
+    }
+
+    /**
+     *
+     * 查询文件夹内容
+     * userName, nodeId
+     * @return
+     */
+    @PostMapping("/query")
+    @ResponseBody
+    public Response queryFolder(@RequestBody ParamDTO paramDTO){
+        AssemblyResponse<List<FileNode>> assembly = new AssemblyResponse<>();
+        return assembly.success(fileService.queryFolderContent(paramDTO));
+    }
+
+//    @Autowired
+//    private DirService dirService;
 
 //    @PostMapping("/upload")
 //    @ResponseBody
@@ -65,38 +91,22 @@ public class FileController {
 //    }
 
     /**
-     * @param
-     * @throws IOException
+     * 上传文件，并存储在相应位置
+     * @param files 文件
+     * userName, nodeId
      */
-    @PostMapping("/upload")
+    @PostMapping(value = "/upload")
     @ResponseBody
-    public Response uploadFile(@RequestParam(value = "files") List<MultipartFile> files, @RequestParam("user_id") int user_id, @RequestParam("dir_id") int dir_id) throws IOException {
+    public Response uploadFile(@RequestParam("files") MultipartFile[] files,
+                               @RequestParam("user_name") String userName,
+                               @RequestParam("node_id") Long nodeId
+                               ){
         AssemblyResponse<String> assembly = new AssemblyResponse<>();
-        if (files.get(0).isEmpty()) {
+        if (files[0].isEmpty()) {
             return assembly.fail(450, "empty file");
         }
-        for (MultipartFile f : files) {
-            if (!f.isEmpty()) {
-//                String fileName = UUID.randomUUID() + f.getOriginalFilename();
-                String fileName = f.getOriginalFilename();
-                if (fileService.queryFileByDirAndName(dir_id, fileName) != null) {
-                    return assembly.fail(500, "存在同名文件");
-                }
-                Dir dir = dirService.queryDir(dir_id);
-                String store_path = dir.getStorePath() + "/" + fileName; //todo 命名规则，后期如何查询。
-                File localFile = new File(store_path);
-                f.transferTo(localFile);
-
-                Map<String, Object> map = new HashMap<>();
-                String nowTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
-                map.put("file_name", fileName);
-                map.put("file_path", dir.getDirPath()+"/"+fileName);
-                map.put("store_path", store_path);
-                map.put("upload_time", Timestamp.valueOf(nowTime));
-                map.put("uid", user_id);
-                map.put("dir_id",dir_id);
-                fileService.uploadFile(map);
-            }
+        if(fileService.uploadFile(userName,nodeId,files) == 452){
+            return assembly.fail(452,"已存在同名文件");
         }
         return assembly.success("upload successfully");
     }

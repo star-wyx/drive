@@ -1,46 +1,86 @@
 package com.netdisk.service.impl;
 
-import com.netdisk.mapper.UserMapper;
-import com.netdisk.pojo.User;
+import com.netdisk.module.DTO.UserDTO;
+import com.netdisk.module.FileNode;
+import com.netdisk.module.User;
+import com.netdisk.service.FileService;
+import com.netdisk.service.SeqService;
 import com.netdisk.service.UserService;
+import com.netdisk.util.AssemblyResponse;
+import com.netdisk.util.Response;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Map;
 
 @Service
 public class UserServiceImpl implements UserService {
+
+    public static final String USER_COLLECTION = "user";
+
     @Autowired
-    private UserMapper userMapper;
+    private MongoTemplate mongoTemplate;
+
+    @Autowired
+    private SeqService seqService;
 
     @Override
-    public User queryUserNamePwd(Map<String, Object> map) {
-        return userMapper.queryUserNamePwd(map);
+    public Response<Object> login(UserDTO userDTO) {
+        User user;
+        AssemblyResponse<Object> assembly = new AssemblyResponse<>();
+        if (!userDTO.getUser().contains("@")) {
+            user = getUserByName(userDTO.getUser());
+            if (user == null) {
+                return assembly.fail(402, "登陆用户名不存在");
+            }
+        } else {
+            user = getUserByEmail(userDTO.getUser());
+            if (user == null) {
+                return assembly.fail(403, "登陆邮箱不存在");
+            }
+        }
+        if (!user.getUserPwd().equals(userDTO.getUserPwd())) {
+            return assembly.fail(401, "登陆密码错误");
+        }
+        UserDTO res = new UserDTO();
+        res.setUserName(user.getUserName());
+        res.setMessage("登陆成功");
+        return assembly.success(res);
     }
 
     @Override
-    public User queryUserEmailPwd(Map<String, Object> map) {
-        return userMapper.queryUserEmailPwd(map);
+    public Response add(UserDTO userDTO){
+        String userName = userDTO.getUserName()!=null? userDTO.getUserName(): userDTO.getUser();
+        String userEmail = userDTO.getUserEmail()!=null? userDTO.getUserEmail(): userDTO.getUser();
+        User byName = getUserByName(userName);
+        User byEmail = getUserByEmail(userEmail);
+        AssemblyResponse<String> assembly = new AssemblyResponse<>();
+        if (byName == null && byEmail == null) {
+            User user = userDTO.ToUser(seqService.getNextSeqId(USER_COLLECTION));
+            mongoTemplate.save(user, USER_COLLECTION);
+            seqService.insertUser(userDTO.getUserName());
+
+            return assembly.success("注册成功");
+        } else if (byName != null) {
+            return assembly.fail(404, "用户名被占用");
+        } else {
+            return assembly.fail(405, "邮箱被占用");
+        }
     }
 
     @Override
-    public User queryUserByName(Map<String, Object> map) {
-        return userMapper.queryUserByName(map);
+    public User getUserByName(String userName) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("userName").is(userName));
+        return mongoTemplate.findOne(query, User.class, USER_COLLECTION);
     }
 
     @Override
-    public User queryUserByEmail(Map<String, Object> map) {
-        return userMapper.queryUserByEmail(map);
-    }
-
-    @Override
-    public int insertUser(Map<String, Object> map) {
-        return userMapper.insertUser(map);
-    }
-
-    @Override
-    public List<String> queryDataByUserId(int userId) {
-        return userMapper.queryDataByUserId(userId);
+    public User getUserByEmail(String userEmail) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("userEmail").is(userEmail));
+        return mongoTemplate.findOne(query, User.class, USER_COLLECTION);
     }
 }

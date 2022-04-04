@@ -1,91 +1,58 @@
 package com.netdisk.controller;
 
-import com.netdisk.pojo.DTO.UserDTO;
-import com.netdisk.pojo.User;
-import com.netdisk.service.DirService;
+import com.netdisk.module.DTO.UserDTO;
+import com.netdisk.service.FileService;
+import com.netdisk.service.SeqService;
 import com.netdisk.service.UserService;
-import com.netdisk.util.AssemblyResponse;
 import com.netdisk.util.Response;
+import io.swagger.annotations.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 
+@Api(value = "用户接口")
 @Controller
 @RequestMapping("/user")
-@CrossOrigin(origins="http://192.168.1.169:9070", allowCredentials = "true")
+@CrossOrigin(origins = "http://192.168.1.169:9070", allowCredentials = "true")
 public class UserController {
     @Autowired
     private UserService userService;
-    @Autowired
-    private DirService dirService;
 
+    @Autowired
+    private FileService fileService;
+
+    @Autowired
+    private SeqService seqService;
+
+    /**
+     * 用户登陆
+     * @param userDTO
+     * user,用户名或邮箱
+     * user_pwd,密码
+     * @return
+     * user_name, message
+     */
     @PostMapping("/login")
     @ResponseBody
-    public Response login(@RequestBody Map<String,Object> map){
-        User user;
-        String u = (String) map.get("user");
-        AssemblyResponse<String> assemblyFail = new AssemblyResponse<>();
-        if(u.contains("@")){
-            map.put("user_email",u);
-            user = userService.queryUserEmailPwd(map);
-            if(user == null){
-                if(userService.queryUserByEmail(map)==null){
-                    return assemblyFail.fail(403,"登陆邮箱不存在");
-                }else{
-                    return assemblyFail.fail(401,"登陆密码错误");
-                }
-            }
-        }else{
-            map.put("user_name",u);
-            user = userService.queryUserNamePwd(map);
-            if(user == null){
-                if(userService.queryUserByName(map)==null){
-                    return assemblyFail.fail(402,"登陆用户名不存在");
-                }else{
-                    return assemblyFail.fail(401,"登陆密码错误");
-                }
-            }
-        }
-        AssemblyResponse<UserDTO> assemblySuccess = new AssemblyResponse<>();
-        return assemblySuccess.success(new UserDTO(user,"login successfully!"));
+    public Response login(@RequestBody UserDTO userDTO) {
+        return userService.login(userDTO);
     }
 
-
+    /**
+     * 用户注册
+     * @param userDTO
+     * user_name,用户名
+     * user_email,用户邮箱
+     * user_pwd,密码
+     */
     @PostMapping("/signin")
     @ResponseBody
-    public Response signin(@RequestBody Map<String, Object> map) throws IOException {
-        User byName = userService.queryUserByName(map);
-        User byEmail = userService.queryUserByEmail(map);
-        AssemblyResponse<String> assembly = new AssemblyResponse<>();
-        if(byName==null && byEmail==null){
-            int row = userService.insertUser(map);
-            if(row!=0){
-                User user = userService.queryUserByEmail(map);
-                dirService.NewFolderUser(user);
-                return assembly.success("注册成功");
-            }else{
-                return assembly.fail(100,"注册失败");
-            }
-        }else if(byName != null){
-            return assembly.fail(404,"用户名被占用");
-        }else {
-            return assembly.fail(405,"邮箱被占用");
+    public Response signin(@RequestBody UserDTO userDTO){
+        Response response = userService.add(userDTO);
+        if(response.getCode()==200){
+            fileService.createUserFile(userService.getUserByName(userDTO.getUserName()));
         }
-    }
-
-    @PostMapping("/data")
-    @ResponseBody
-    public Response queryData(@RequestBody Map<String,Object> map){
-        User byName = userService.queryUserByName(map);
-        AssemblyResponse<List<String>> assembly = new AssemblyResponse<>();
-        if(byName==null){
-            return assembly.fail(204,null);
-        }
-        List<String> res = userService.queryDataByUserId(byName.getUserId());
-        return assembly.success(res);
+        return response;
     }
 }

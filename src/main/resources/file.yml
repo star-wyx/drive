@@ -1,0 +1,89 @@
+file:
+  #文件存储根路径
+  rootDir: /Users/star_wyx/Desktop/File
+
+  #不同文件类型对应的不同图标
+  icon:
+    map:
+      folder: folder-fill
+        #    aac: filetype-aac
+        #    ai: filetype-ai
+        #    bmp: filetype-bmp
+      cs: filetype-cs
+      css: filetype-css
+      csv: filetype-csv
+      doc: filetype-doc
+      docx: filetype-docx
+      exe: filetype-exe
+      #    gif: filetype-gif
+      heic: filetype-heic
+      html: filetype-html
+      java: filetype-java
+      #    jpg: filetype-jpg
+      js: filetype-js
+      json: filetype-json
+      jsx: filetype-jsx
+      key: filetype-key
+      m4p: filetype-m4p
+      md: filetype-md
+      mdx: filetype-mdx
+      #    mov: filetype-mov
+      #    mp3: filetype-mp3
+      #    mp4: filetype-mp4
+      otf: filetype-otf
+      pdf: filetype-pdf
+      php: filetype-php
+      #    png: filetype-png
+      ppt: filetype-ppt
+      pptx: filetype-pptx
+      psd: filetype-psd
+      py: filetype-py
+      #    raw: filetype-raw
+      rb: filetype-rb
+      sass: filetype-sass
+      scss: filetype-scss
+      sh: filetype-sh
+      #    svg: filetype-svg
+      tiff: filetype-tiff
+      tsx: filetype-tsx
+      ttf: filetype-ttf
+      txt: filetype-txt
+      #    wav: filetype-wav
+      woff: filetype-woff
+      xlx: filetype-xlx
+      xlsx: filetype-xlsx
+      xml: filetype-xml
+      yml: filetype-yml
+      #电影
+      mkv: film
+      avi: film
+      mp4: film
+      mov: film
+      #音乐
+      mp3: music-note-beamed
+      wma: music-note-beamed
+      wav: music-note-beamed
+      ape: music-note-beamed
+      aac: music-note-beamed
+      #压缩文件
+      zip: file-earmark-zip-fill
+      rar: file-earmark-zip-fill
+      7z: file-earmark-zip-fill
+      tar: file-earmark-zip-fill
+      #bt种子
+      torrent: file-earmark-arrow-down
+      #图片格式
+      bmp: image
+      jpg: image
+      png: image
+      tif: image
+      gif: image
+      ai: image
+      raw: image
+      svg: image
+
+  other: file-earmark
+
+  test:
+    key1: string
+
