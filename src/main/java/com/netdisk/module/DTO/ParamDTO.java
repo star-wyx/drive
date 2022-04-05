@@ -3,6 +3,8 @@ package com.netdisk.module.DTO;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class ParamDTO {
     /**
@@ -28,6 +30,14 @@ public class ParamDTO {
      */
     @JsonProperty("user_name")
     String userName;
+
+    /**
+     * 用户Id
+     */
+    @JsonProperty("user_id")
+    Long userId;
+
+    List content;
 
     /**
      * FileNode id

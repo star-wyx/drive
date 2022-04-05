@@ -41,15 +41,11 @@ public class UserController {
     @PostMapping("/login")
     @ResponseBody
     public Response login(@RequestBody UserDTO userDTO) {
-        Response res = userService.login(userDTO);
+        Response res = userService.login(userDTO.getUser(),userDTO.getUserPwd());
         if(res.getCode()!=200){
             return res;
         }else{
-            AssemblyResponse<List> assemblyResponse = new AssemblyResponse();
-            ParamDTO paramDTO = new ParamDTO();
-            paramDTO.setNodeId(1L);
-            paramDTO.setUserName((String) res.getData());
-            return assemblyResponse.success(fileService.queryFolderContent(paramDTO));
+            return fileService.queryFolderRootContent((User) res.getData());
         }
     }
 

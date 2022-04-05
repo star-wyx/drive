@@ -1,9 +1,7 @@
 package com.netdisk.service.impl;
 
 import com.netdisk.module.DTO.UserDTO;
-import com.netdisk.module.FileNode;
 import com.netdisk.module.User;
-import com.netdisk.service.FileService;
 import com.netdisk.service.SeqService;
 import com.netdisk.service.UserService;
 import com.netdisk.util.AssemblyResponse;
@@ -27,30 +25,30 @@ public class UserServiceImpl implements UserService {
     private SeqService seqService;
 
     @Override
-    public Response<Object> login(UserDTO userDTO) {
+    public Response<Object> login(String userName, String pwd) {
         User user;
         AssemblyResponse<Object> assembly = new AssemblyResponse<>();
-        if (!userDTO.getUser().contains("@")) {
-            user = getUserByName(userDTO.getUser());
+        if (!userName.contains("@")) {
+            user = getUserByName(userName);
             if (user == null) {
                 return assembly.fail(402, "登陆用户名不存在");
             }
         } else {
-            user = getUserByEmail(userDTO.getUser());
+            user = getUserByEmail(userName);
             if (user == null) {
                 return assembly.fail(403, "登陆邮箱不存在");
             }
         }
-        if (!user.getUserPwd().equals(userDTO.getUserPwd())) {
+        if (!user.getUserPwd().equals(pwd)) {
             return assembly.fail(401, "登陆密码错误");
         }
-        return assembly.success(user.getUserName());
+        return assembly.success(user);
     }
 
     @Override
-    public Response add(UserDTO userDTO){
-        String userName = userDTO.getUserName()!=null? userDTO.getUserName(): userDTO.getUser();
-        String userEmail = userDTO.getUserEmail()!=null? userDTO.getUserEmail(): userDTO.getUser();
+    public Response add(UserDTO userDTO) {
+        String userName = userDTO.getUserName() != null ? userDTO.getUserName() : userDTO.getUser();
+        String userEmail = userDTO.getUserEmail() != null ? userDTO.getUserEmail() : userDTO.getUser();
         User byName = getUserByName(userName);
         User byEmail = getUserByEmail(userEmail);
         AssemblyResponse<String> assembly = new AssemblyResponse<>();

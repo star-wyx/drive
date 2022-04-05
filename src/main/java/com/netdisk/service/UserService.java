@@ -10,7 +10,7 @@ import java.util.Map;
 
 public interface UserService {
 
-    Response login(UserDTO userDTO);
+    Response login(String userName, String pwd);
 
     /**
      * 添加用户

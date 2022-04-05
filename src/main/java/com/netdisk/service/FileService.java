@@ -1,30 +1,27 @@
 package com.netdisk.service;
 
-import com.netdisk.module.DTO.ParamDTO;
 import com.netdisk.module.FileNode;
 import com.netdisk.module.User;
 import com.netdisk.util.Response;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 
 public interface FileService {
 
     /**
      * 上传文件
-     * userName, nodeId
+     * user, nodeId, fileList
      */
-    int uploadFile(String userName, Long nodeId,MultipartFile[] list);
+    int uploadFile(User user, Long nodeId,MultipartFile[] list);
 
     List<FileNode> sub(Long userId, Long nodeId, Long maxDepth);
 
     /**
      * 新建目录并记录在数据库
-     * userName, nodeId, FileName
+     * user, nodeId, FileName
      */
-    boolean createDir(ParamDTO paramDTO);
+    boolean createDir(User user, Long nodeId, String fileName);
 
     /**
      * 为新用户新建本地存储目录并记录在数据库
@@ -33,9 +30,16 @@ public interface FileService {
 
     /**
      * 查看某一文件夹下的所有目录及文件
-     * userName, nodeId
+     * user, nodeId
      */
-    List queryFolderContent(ParamDTO paramDTO);
+    List queryFolderContent(User user, Long nodeId);
+
+    /**
+     * 用户登陆时返回根目录内容
+     * @param user
+     * @return
+     */
+    Response queryFolderRootContent(User user);
 
     /**
      * 查找文件信息

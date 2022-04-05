@@ -23,5 +23,3 @@ logging:
   config: classpath:logback-spring.xml
   file:
     path: /Users/star_wyx/coding/drive_springboot/log
-  level:
-    org.springframework.data.mongodb.core.MongoTemplate: debug

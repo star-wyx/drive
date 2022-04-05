@@ -2,8 +2,10 @@ package com.netdisk.controller;
 
 import com.netdisk.module.DTO.ParamDTO;
 import com.netdisk.module.FileNode;
+import com.netdisk.module.User;
 import com.netdisk.service.FileService;
 import com.netdisk.service.SeqService;
+import com.netdisk.service.UserService;
 import com.netdisk.util.AssemblyResponse;
 import com.netdisk.util.Response;
 import io.swagger.annotations.Api;
@@ -21,6 +23,9 @@ import java.util.List;
 public class FileController {
 
     @Autowired
+    private UserService userService;
+
+    @Autowired
     private FileService fileService;
 
     @Autowired
@@ -33,7 +38,9 @@ public class FileController {
     @ResponseBody
     public Response createDir(@RequestBody ParamDTO paramDTO){
         AssemblyResponse<String> assembly = new AssemblyResponse<>();
-        if(fileService.createDir(paramDTO)){
+        User user = userService.getUserByName(paramDTO.getUserName());
+        boolean success = fileService.createDir(user, paramDTO.getNodeId(), paramDTO.getFilename());
+        if(success){
             return assembly.success("新目录创建成功");
         }else{
             return assembly.fail(451,"已存在同名文件夹");
@@ -50,7 +57,8 @@ public class FileController {
     @ResponseBody
     public Response queryFolder(@RequestBody ParamDTO paramDTO){
         AssemblyResponse<List> assembly = new AssemblyResponse<>();
-        return assembly.success(fileService.queryFolderContent(paramDTO));
+        User user = userService.getUserByName(paramDTO.getUserName());
+        return assembly.success(fileService.queryFolderContent(user,paramDTO.getNodeId()));
     }
 
     /**
@@ -65,10 +73,11 @@ public class FileController {
                                @RequestParam("node_id") Long nodeId
                                ){
         AssemblyResponse<String> assembly = new AssemblyResponse<>();
+        User user = userService.getUserByName(userName);
         if (files[0].isEmpty()) {
             return assembly.fail(450, "empty file");
         }
-        if(fileService.uploadFile(userName,nodeId,files) == 452){
+        if(fileService.uploadFile(user,nodeId,files) == 452){
             return assembly.fail(452,"已存在同名文件");
         }
         return assembly.success("upload successfully");

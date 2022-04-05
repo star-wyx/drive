@@ -3,14 +3,12 @@ package com.netdisk.service.impl;
 import com.netdisk.config.FileProperties;
 import com.netdisk.module.DTO.FileDTO;
 import com.netdisk.module.DTO.ParamDTO;
-import com.netdisk.module.DTO.UserDTO;
 import com.netdisk.module.FileNode;
 import com.netdisk.module.User;
 import com.netdisk.repository.NodeRepository;
-import com.netdisk.repository.NodeRepositoryImpl;
 import com.netdisk.service.FileService;
 import com.netdisk.service.SeqService;
-import com.netdisk.service.UserService;
+import com.netdisk.util.AssemblyResponse;
 import com.netdisk.util.MyFileUtils;
 import com.netdisk.util.Response;
 import org.apache.commons.io.FilenameUtils;
@@ -20,13 +18,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import org.w3c.dom.Node;
 
-import java.io.IOException;
-import java.lang.reflect.Array;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 
 
@@ -44,8 +36,6 @@ public class FileServiceImpl implements FileService {
     @Autowired
     FileProperties fileProperties;
 
-    @Autowired
-    UserService userService;
 
     @Autowired
     MyFileUtils myFileUtils;
@@ -57,8 +47,7 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public int uploadFile(String userName, Long nodeId,MultipartFile[] list) {
-        User user = userService.getUserByName(userName);
+    public int uploadFile(User user, Long nodeId,MultipartFile[] list) {
         FileNode folder = queryFolderById(user.getUserId(),nodeId);
         for(MultipartFile file:list){
             if(queryFileByNameId(user.getUserId(),nodeId,file.getOriginalFilename()) != null){
@@ -70,7 +59,7 @@ public class FileServiceImpl implements FileService {
             fileType = fileProperties.getIcon().containsKey(fileType)? fileProperties.getIcon().get(fileType):fileProperties.getOtherIcon();
             FileNode fileNode = new FileNode(null,
                     user.getUserId(),
-                    seqService.getNextSeqId(userName),
+                    seqService.getNextSeqId(user.getUserName()),
                     file.getOriginalFilename(),
                     folder.getFilePath()+"/"+file.getOriginalFilename(),
                     false,
@@ -91,17 +80,16 @@ public class FileServiceImpl implements FileService {
 
 
     @Override
-    public boolean createDir(ParamDTO paramDTO) {
-        User user = userService.getUserByName(paramDTO.getUserName());
-        if(queryFolderByNameId(user.getUserId(),paramDTO.getNodeId(), paramDTO.getFilename()) != null){
+    public boolean createDir(User user, Long nodeId, String fileName) {
+        if(queryFolderByNameId(user.getUserId(),nodeId, fileName) != null){
             return false;
         }
-        FileNode current = queryFolderById(user.getUserId(),paramDTO.getNodeId());
+        FileNode current = queryFolderById(user.getUserId(),nodeId);
         FileNode fileNode = new FileNode(null,
                 user.getUserId(),
                 seqService.getNextSeqId(user.getUserName()),
-                paramDTO.getFilename(),
-                current.getFilePath() + "/" + paramDTO.getFilename(),
+                fileName,
+                current.getFilePath() + "/" + fileName,
                 true,
                 null,
                 current.getNodeId(),
@@ -130,9 +118,8 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public List queryFolderContent(ParamDTO paramDTO) {
-        User user = userService.getUserByName(paramDTO.getUserName());
-        List<FileNode> list = nodeRepository.getSubTree(user.getUserId(), paramDTO.getNodeId(), 0L).get(0).getDescendants();
+    public List queryFolderContent(User user, Long nodeId) {
+        List<FileNode> list = nodeRepository.getSubTree(user.getUserId(), nodeId, 0L).get(0).getDescendants();
         List<FileDTO> files = new ArrayList<>();
         List<FileDTO> folders = new ArrayList<>();
         Collections.sort(list);
@@ -144,6 +131,20 @@ public class FileServiceImpl implements FileService {
             }
         }
         return Arrays.asList(folders,files);
+    }
+
+    @Override
+    public Response queryFolderRootContent(User user) {
+        AssemblyResponse<ParamDTO> assemblyResponse = new AssemblyResponse();
+        ParamDTO paramDTO = new ParamDTO();
+        paramDTO.setNodeId(1L);
+        paramDTO.setUserName(user.getUserName());
+        List content = queryFolderContent(user,1L);
+        ParamDTO res = new ParamDTO();
+        res.setUserName(user.getUserName());
+        res.setUserId(user.getUserId());
+        res.setContent(content);
+        return assemblyResponse.success(res);
     }
 
     @Override
