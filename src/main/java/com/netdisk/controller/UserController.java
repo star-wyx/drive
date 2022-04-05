@@ -1,14 +1,19 @@
 package com.netdisk.controller;
 
+import com.netdisk.module.DTO.ParamDTO;
 import com.netdisk.module.DTO.UserDTO;
+import com.netdisk.module.User;
 import com.netdisk.service.FileService;
 import com.netdisk.service.SeqService;
 import com.netdisk.service.UserService;
+import com.netdisk.util.AssemblyResponse;
 import com.netdisk.util.Response;
 import io.swagger.annotations.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 
 @Api(value = "用户接口")
@@ -26,7 +31,7 @@ public class UserController {
     private SeqService seqService;
 
     /**
-     * 用户登陆
+     * 用户登陆，成功则返回根目录
      * @param userDTO
      * user,用户名或邮箱
      * user_pwd,密码
@@ -36,7 +41,16 @@ public class UserController {
     @PostMapping("/login")
     @ResponseBody
     public Response login(@RequestBody UserDTO userDTO) {
-        return userService.login(userDTO);
+        Response res = userService.login(userDTO);
+        if(res.getCode()!=200){
+            return res;
+        }else{
+            AssemblyResponse<List> assemblyResponse = new AssemblyResponse();
+            ParamDTO paramDTO = new ParamDTO();
+            paramDTO.setNodeId(1L);
+            paramDTO.setUserName((String) res.getData());
+            return assemblyResponse.success(fileService.queryFolderContent(paramDTO));
+        }
     }
 
     /**

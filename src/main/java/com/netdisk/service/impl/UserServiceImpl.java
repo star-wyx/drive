@@ -44,10 +44,7 @@ public class UserServiceImpl implements UserService {
         if (!user.getUserPwd().equals(userDTO.getUserPwd())) {
             return assembly.fail(401, "登陆密码错误");
         }
-        UserDTO res = new UserDTO();
-        res.setUserName(user.getUserName());
-        res.setMessage("登陆成功");
-        return assembly.success(res);
+        return assembly.success(user.getUserName());
     }
 
     @Override

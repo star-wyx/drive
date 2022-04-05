@@ -49,46 +49,9 @@ public class FileController {
     @PostMapping("/query")
     @ResponseBody
     public Response queryFolder(@RequestBody ParamDTO paramDTO){
-        AssemblyResponse<List<FileNode>> assembly = new AssemblyResponse<>();
+        AssemblyResponse<List> assembly = new AssemblyResponse<>();
         return assembly.success(fileService.queryFolderContent(paramDTO));
     }
-
-//    @Autowired
-//    private DirService dirService;
-
-//    @PostMapping("/upload")
-//    @ResponseBody
-//    public Response uploadFile(HttpServletRequest request, HttpServletResponse response) throws IOException {
-//        CommonsMultipartResolver cmr = new CommonsMultipartResolver(request.getServletContext());
-//        AssemblyResponse<Integer> assembly = new AssemblyResponse<>();
-//        if(cmr.isMultipart(request)){
-//            MultipartHttpServletRequest mRequest = (MultipartHttpServletRequest) request;
-//            Iterator<String> files = mRequest.getFileNames();
-//            if(!files.hasNext()){
-//                return assembly.fail(1,null);
-//            }
-//            while(files.hasNext()){
-//                MultipartFile mFile = mRequest.getFile(files.next());
-//                if(mFile!=null){
-//                    String fileName = UUID.randomUUID()+mFile.getOriginalFilename();
-//                    String path = "/Users/star_wyx/Desktop/File/"+fileName; //命名规则，后期如何查询。
-//                    File localFile = new File(path);
-//                    mFile.transferTo(localFile);
-//                    request.setAttribute("fileUrl",path);
-//
-//                    Map<String,Object> map = new HashMap<>();
-//                    String nowTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
-//                    map.put("file_name",fileName);
-//                    map.put("file_path",path);
-//                    map.put("upload_time", Timestamp.valueOf(nowTime));
-//                    map.put("uid",request.getParameter("user_id"));
-//                    fileService.uploadFile(map);
-//                }
-//            }
-//            return assembly.success(null);
-//        }
-//        return assembly.fail(1,null);
-//    }
 
     /**
      * 上传文件，并存储在相应位置

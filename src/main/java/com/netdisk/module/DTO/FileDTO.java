@@ -14,8 +14,6 @@ public class FileDTO {
     private String fileName;
     @JsonProperty("file_path")
     private String filePath;
-    @JsonProperty("is_folder")
-    private boolean isFolder;
     @JsonProperty("content_type")
     private String contentType;
 
@@ -23,7 +21,6 @@ public class FileDTO {
         this.nodeId = fileNode.getNodeId();
         this.fileName = fileNode.getFileName();
         this.filePath = fileNode.getFilePath();
-        this.isFolder = fileNode.isFolder();
         this.contentType = fileNode.getContentType();
     }
 }
