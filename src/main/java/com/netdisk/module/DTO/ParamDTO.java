@@ -37,6 +37,11 @@ public class ParamDTO {
     @JsonProperty("user_id")
     Long userId;
 
+
+    /**
+     * 在登陆时用content来返回用户根目录内容
+     *
+     */
     List content;
 
     /**
@@ -44,4 +49,10 @@ public class ParamDTO {
      */
     @JsonProperty("node_id")
     Long nodeId;
+
+    /**
+     * 文件或文件夹的网盘路径
+     */
+    @JsonProperty("file_path")
+    String filePath;
 }

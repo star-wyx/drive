@@ -82,4 +82,22 @@ public class FileController {
         }
         return assembly.success("upload successfully");
     }
+
+
+    /**
+     * 根据浏览目录，返回各级目录的id和路径
+     * userId, content
+     */
+    @PostMapping(value = "browsePath")
+    @ResponseBody
+    public Response browsePath(@RequestBody ParamDTO paramDTO){
+        AssemblyResponse<List> assembly = new AssemblyResponse<>();
+        User user = userService.getUserById(paramDTO.getUserId());
+        List res = fileService.queryBrowsePath(user,paramDTO.getContent());
+        if(res == null){
+            return assembly.fail(453,null);
+        }else{
+            return assembly.success(res);
+        }
+    }
 }

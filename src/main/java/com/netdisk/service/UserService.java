@@ -29,4 +29,9 @@ public interface UserService {
      * user或userEmail
      */
     User getUserByEmail(String userEmail);
+
+    /**
+     * 根据用户id查询用户
+     */
+    User getUserById(Long userId);
 }

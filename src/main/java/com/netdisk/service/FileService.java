@@ -10,6 +10,11 @@ import java.util.List;
 public interface FileService {
 
     /**
+     * 返回浏览路径的每一层文件夹id
+     */
+    List queryBrowsePath(User user, List content);
+
+    /**
      * 上传文件
      * user, nodeId, fileList
      */

@@ -11,7 +11,7 @@ import java.util.Map;
 
 @Data
 @Component
-@PropertySource(value = "classpath:file.yml")
+@PropertySource(value = "classpath:file.properties")
 @ConfigurationProperties(prefix = "file")
 public class FileProperties {
 

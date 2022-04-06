@@ -78,4 +78,11 @@ public class UserServiceImpl implements UserService {
         query.addCriteria(Criteria.where("userEmail").is(userEmail));
         return mongoTemplate.findOne(query, User.class, USER_COLLECTION);
     }
+
+    @Override
+    public User getUserById(Long userId) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("userId").is(userId));
+        return mongoTemplate.findOne(query,User.class,USER_COLLECTION);
+    }
 }

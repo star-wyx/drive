@@ -47,6 +47,32 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
+    public List queryBrowsePath(User user, List content) {
+        List<ParamDTO> res = new ArrayList<>();
+        Long parentId = 1L;
+        for(int i=0;i<content.size();i++){
+            ParamDTO paramDTO = new ParamDTO();
+            if(i==0){
+                paramDTO.setFilename(user.getUserName());
+                paramDTO.setNodeId(1L);
+                paramDTO.setFilePath("/"+user.getUserName());
+                res.add(paramDTO);
+            }else{
+                FileNode fileNode = queryFolderByNameId(user.getUserId(), parentId, (String) content.get(i));
+                if(fileNode == null){
+                    return null;
+                }
+                paramDTO.setFilename(fileNode.getFileName());
+                paramDTO.setNodeId(fileNode.getNodeId());
+                paramDTO.setFilePath(fileNode.getFilePath());
+                parentId = fileNode.getNodeId();
+                res.add(paramDTO);
+            }
+        }
+        return res;
+    }
+
+    @Override
     public int uploadFile(User user, Long nodeId,MultipartFile[] list) {
         FileNode folder = queryFolderById(user.getUserId(),nodeId);
         for(MultipartFile file:list){

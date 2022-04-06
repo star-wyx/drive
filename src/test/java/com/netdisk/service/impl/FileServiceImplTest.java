@@ -20,4 +20,10 @@ class FileServiceImplTest {
         fileService.createUserFile(user);
     }
 
+    @Test
+    public void queryFolderTest(){
+        System.out.println(fileService.queryFileByNameId(2L,1L,"c"));
+
+    }
+
 }
