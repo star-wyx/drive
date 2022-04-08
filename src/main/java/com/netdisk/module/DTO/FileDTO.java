@@ -5,6 +5,8 @@ import com.netdisk.module.FileNode;
 import lombok.Data;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 public class FileDTO {
@@ -22,5 +24,14 @@ public class FileDTO {
         this.fileName = fileNode.getFileName();
         this.filePath = fileNode.getFilePath();
         this.contentType = fileNode.getContentType();
+    }
+
+    public static List<FileDTO> listConvert(List<FileNode> fileNodes){
+        List<FileDTO> res = new ArrayList<>();
+        for(FileNode fileNode:fileNodes){
+            FileDTO fileDTO = new FileDTO(fileNode);
+            res.add(fileDTO);
+        }
+        return res;
     }
 }

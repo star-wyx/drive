@@ -25,6 +25,9 @@ public class FileNode implements Comparable<FileNode> {
     private List<FileNode> descendants;
     private Long parentId;
     private String contentType;
+    private boolean isFavorites;
+
+
 
     @Override
     public int compareTo(FileNode fileNode){

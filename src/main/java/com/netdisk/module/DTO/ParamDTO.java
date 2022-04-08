@@ -55,4 +55,17 @@ public class ParamDTO {
      */
     @JsonProperty("file_path")
     String filePath;
+
+    /**
+     * 返回资源的数量
+     */
+    @JsonProperty("content_size")
+    Integer contentSize;
+
+
+    /**
+     * 是否收藏FileNode
+     */
+    @JsonProperty("is_favorites")
+    Boolean isFavorites;
 }

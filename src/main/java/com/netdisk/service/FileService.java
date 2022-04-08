@@ -1,5 +1,6 @@
 package com.netdisk.service;
 
+import com.netdisk.module.DTO.ParamDTO;
 import com.netdisk.module.FileNode;
 import com.netdisk.module.User;
 import com.netdisk.util.Response;
@@ -62,4 +63,19 @@ public interface FileService {
      * 根据用户id，父目录id，文件名称查找File
      */
     FileNode queryFileByNameId(Long userId, Long parentId, String fileName);
+
+    /**
+     * 根据userId,contentType,isFavorites,isFolder检索文件
+     */
+    ParamDTO queryAll(Long userId, String contentType);
+
+    /**
+     * 收藏或取消收藏文件夹
+     */
+    int favoriteFile(Long userId,Long nodeId,Boolean isFavorites);
+
+    /**
+     * 查找已收藏的FileNode
+     */
+    ParamDTO queryFavorites(Long userId);
 }

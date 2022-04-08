@@ -1,7 +1,9 @@
 package com.netdisk.service.impl;
 
+import com.netdisk.module.DTO.ParamDTO;
 import com.netdisk.module.User;
 import com.netdisk.service.FileService;
+import com.netdisk.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -14,16 +16,18 @@ class FileServiceImplTest {
     @Autowired
     FileService fileService;
 
+    @Autowired
+    UserService userService;
+
     @Test
-    public void test(){
-        User user = new User(null,"wyx","123","@qq.com");
+    public void test() {
+        User user = new User(null, "wyx", "123", "@qq.com");
         fileService.createUserFile(user);
     }
 
     @Test
-    public void queryFolderTest(){
-        System.out.println(fileService.queryFileByNameId(2L,1L,"c"));
+    public void queryFolderTest() {
+        System.out.println(fileService.queryFileByNameId(2L, 1L, "c"));
 
     }
-
 }

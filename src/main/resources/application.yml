@@ -14,9 +14,8 @@ spring:
     default-property-inclusion: non_null
   servlet:
     multipart:
-      max-file-size: 1000MB
-      max-request-size: 1000MB
-
+      max-file-size: 2000MB
+      max-request-size: 2000MB
 
 
 logging:

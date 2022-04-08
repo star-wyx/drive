@@ -1,5 +1,6 @@
 package com.netdisk.controller;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.netdisk.module.DTO.ParamDTO;
 import com.netdisk.module.FileNode;
 import com.netdisk.module.User;
@@ -88,7 +89,7 @@ public class FileController {
      * 根据浏览目录，返回各级目录的id和路径
      * userId, content
      */
-    @PostMapping(value = "browsePath")
+    @PostMapping(value = "/browsePath")
     @ResponseBody
     public Response browsePath(@RequestBody ParamDTO paramDTO){
         AssemblyResponse<List> assembly = new AssemblyResponse<>();
@@ -99,5 +100,61 @@ public class FileController {
         }else{
             return assembly.success(res);
         }
+    }
+
+    /**
+     * 返回用户的所有图片文件
+     * userId
+     */
+    @PostMapping(value = "/queryImage")
+    @ResponseBody
+    public Response queryAllImage(@RequestBody ParamDTO paramDTO){
+        AssemblyResponse<ParamDTO> assembly = new AssemblyResponse<>();
+        return assembly.success(fileService.queryAll(paramDTO.getUserId(),"image"));
+    }
+
+    /**
+     * 返回用户所有的视频文件
+     * userId
+     */
+    @PostMapping(value = "/queryFilm")
+    @ResponseBody
+    public Response queryAllFilm(@RequestBody ParamDTO paramDTO){
+        AssemblyResponse<ParamDTO> assembly = new AssemblyResponse<>();
+        return assembly.success(fileService.queryAll(paramDTO.getUserId(),"film"));
+    }
+
+    /**
+     * 返回用户所有的种子文件
+     * userId
+     */
+    @PostMapping(value = "/queryTorrent")
+    @ResponseBody
+    public Response queryAllTorrent(@RequestBody ParamDTO paramDTO){
+        AssemblyResponse<ParamDTO> assembly = new AssemblyResponse<>();
+        return assembly.success(fileService.queryAll(paramDTO.getUserId(),"file-earmark-arrow-down"));
+    }
+
+    /**
+     * 返回用户所有的收藏文件及文件夹
+     * userId
+     */
+    @PostMapping(value = "/queryFavorites")
+    @ResponseBody
+    public Response queryFavorites(@RequestBody ParamDTO paramDTO){
+        AssemblyResponse<ParamDTO> assembly = new AssemblyResponse<>();
+        return assembly.success(fileService.queryFavorites(paramDTO.getUserId()));
+    }
+
+    /**
+     * 收藏文件或文件夹
+     * userId, nodeId, isFavorites
+     */
+    @PostMapping(value = "/favoriteFile")
+    @ResponseBody
+    public Response favoriteFile(@RequestBody ParamDTO paramDTO){
+        AssemblyResponse<String> assembly = new AssemblyResponse<>();
+        fileService.favoriteFile(paramDTO.getUserId(),paramDTO.getNodeId(),paramDTO.getIsFavorites());
+        return assembly.success("update success!");
     }
 }
