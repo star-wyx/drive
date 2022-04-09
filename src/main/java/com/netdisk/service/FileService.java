@@ -78,4 +78,9 @@ public interface FileService {
      * 查找已收藏的FileNode
      */
     ParamDTO queryFavorites(Long userId);
+
+    /**
+     * 查找目录下的所有文件夹
+     */
+    ParamDTO queryAllFolder(Long userId, Long nodeId);
 }

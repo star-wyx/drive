@@ -15,4 +15,9 @@ public interface NodeGraphLookupRepository {
      */
     List<FileNode> getSubTree(Long userId, Long nodeId, Long maxDepth);
 
+    /**
+     * 根据isFolder过滤结果
+     */
+    List<FileNode> getSubTree(Long userId, Long nodeId, Long maxDepth, boolean isFolder);
+
 }

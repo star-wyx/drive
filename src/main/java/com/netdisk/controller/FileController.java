@@ -70,7 +70,7 @@ public class FileController {
     @PostMapping(value = "/upload")
     @ResponseBody
     public Response uploadFile(@RequestParam("files") MultipartFile[] files,
-                               @RequestParam("user_name") String userName,
+                               @RequestParam("user_id") String userName,
                                @RequestParam("node_id") Long nodeId
                                ){
         AssemblyResponse<String> assembly = new AssemblyResponse<>();
@@ -156,5 +156,15 @@ public class FileController {
         AssemblyResponse<String> assembly = new AssemblyResponse<>();
         fileService.favoriteFile(paramDTO.getUserId(),paramDTO.getNodeId(),paramDTO.getIsFavorites());
         return assembly.success("update success!");
+    }
+
+    /**
+     * 查询该目录下的所有文件夹
+     */
+    @PostMapping(value = "/queryAllFolder")
+    @ResponseBody
+    public Response queryAllFolder(@RequestBody ParamDTO paramDTO){
+        AssemblyResponse<ParamDTO> assembly = new AssemblyResponse<>();
+        return assembly.success(fileService.queryAllFolder(paramDTO.getUserId(), paramDTO.getNodeId()));
     }
 }

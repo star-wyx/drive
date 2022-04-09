@@ -79,18 +79,30 @@ public class FileServiceImpl implements FileService {
     public int uploadFile(User user, Long nodeId, MultipartFile[] list) {
         FileNode folder = queryFolderById(user.getUserId(), nodeId);
         for (MultipartFile file : list) {
-            if (queryFileByNameId(user.getUserId(), nodeId, file.getOriginalFilename()) != null) {
-                return 452;
+            String originalFilenameName = file.getOriginalFilename();
+            String suffix = originalFilenameName.substring(originalFilenameName.lastIndexOf("."));
+            String reallyName = originalFilenameName.substring(0,originalFilenameName.lastIndexOf("."));
+            StringBuilder sb = new StringBuilder();
+            sb.append(reallyName);
+            int i = 1;
+            while (true) {
+                FileNode fileNode = queryFileByNameId(user.getUserId(), nodeId, sb.toString());
+                if(fileNode == null){
+                    break;
+                }else{
+                    sb = new StringBuilder();
+                    sb.append(reallyName).append("(").append(i).append(")").append(suffix);
+                    i++;
+                }
             }
-        }
-        for (MultipartFile file : list) {
+            String fileName = sb.toString();
             String fileType = FilenameUtils.getExtension(file.getOriginalFilename());
             fileType = fileProperties.getIcon().containsKey(fileType) ? fileProperties.getIcon().get(fileType) : fileProperties.getOtherIcon();
             FileNode fileNode = new FileNode(null,
                     user.getUserId(),
                     seqService.getNextSeqId(user.getUserName()),
-                    file.getOriginalFilename(),
-                    folder.getFilePath() + "/" + file.getOriginalFilename(),
+                    fileName,
+                    folder.getFilePath() + "/" + fileName,
                     false,
                     null,
                     folder.getNodeId(),
@@ -235,6 +247,19 @@ public class FileServiceImpl implements FileService {
         ParamDTO paramDTO = new ParamDTO();
         paramDTO.setContent(fileDTOList);
         paramDTO.setContentSize(fileDTOList.size());
+        return paramDTO;
+    }
+
+    @Override
+    public ParamDTO queryAllFolder(Long userId, Long nodeId) {
+        ParamDTO paramDTO = new ParamDTO();
+        List<FileNode> fileNodes = nodeRepository.getSubTree(userId, nodeId, 0L, true).get(0).getDescendants();
+        List<FileDTO> res = new ArrayList<>();
+        for (FileNode fileNode : fileNodes) {
+            FileDTO fileDTO = new FileDTO(fileNode);
+            res.add(fileDTO);
+        }
+        paramDTO.setContent(res);
         return paramDTO;
     }
 }
