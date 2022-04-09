@@ -33,13 +33,13 @@ public class FileController {
     private SeqService seqService;
 
     /**
-     * 新建目录并记录在数据库 userName, nodeId, FileName
+     * 新建目录并记录在数据库 userId, nodeId, FileName
      */
     @PostMapping("/newdir")
     @ResponseBody
     public Response createDir(@RequestBody ParamDTO paramDTO){
         AssemblyResponse<String> assembly = new AssemblyResponse<>();
-        User user = userService.getUserByName(paramDTO.getUserName());
+        User user = userService.getUserById(paramDTO.getUserId());
         boolean success = fileService.createDir(user, paramDTO.getNodeId(), paramDTO.getFilename());
         if(success){
             return assembly.success("新目录创建成功");
@@ -51,36 +51,34 @@ public class FileController {
     /**
      *
      * 查询文件夹内容
-     * userName, nodeId
+     * userId, nodeId
      * @return
      */
     @PostMapping("/query")
     @ResponseBody
     public Response queryFolder(@RequestBody ParamDTO paramDTO){
         AssemblyResponse<List> assembly = new AssemblyResponse<>();
-        User user = userService.getUserByName(paramDTO.getUserName());
+        User user = userService.getUserById(paramDTO.getUserId());
         return assembly.success(fileService.queryFolderContent(user,paramDTO.getNodeId()));
     }
 
     /**
      * 上传文件，并存储在相应位置
      * @param files 文件
-     * userName, nodeId
+     * userId, nodeId
      */
     @PostMapping(value = "/upload")
     @ResponseBody
     public Response uploadFile(@RequestParam("files") MultipartFile[] files,
-                               @RequestParam("user_id") String userName,
+                               @RequestParam("user_id") Long userId,
                                @RequestParam("node_id") Long nodeId
                                ){
         AssemblyResponse<String> assembly = new AssemblyResponse<>();
-        User user = userService.getUserByName(userName);
+        User user = userService.getUserById(userId);
         if (files[0].isEmpty()) {
             return assembly.fail(450, "empty file");
         }
-        if(fileService.uploadFile(user,nodeId,files) == 452){
-            return assembly.fail(452,"已存在同名文件");
-        }
+        fileService.uploadFile(user,nodeId,files);
         return assembly.success("upload successfully");
     }
 
