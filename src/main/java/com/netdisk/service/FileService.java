@@ -38,7 +38,13 @@ public interface FileService {
      * 查看某一文件夹下的所有目录及文件
      * user, nodeId
      */
-    List queryFolderContent(User user, Long nodeId);
+    List<List> queryFolderContent(User user, Long nodeId);
+
+    /**
+     * 查看文件路径是否存在
+     * filePath
+     */
+    Long checkFilePath(Long userId, String filePath);
 
     /**
      * 用户登陆时返回根目录内容
@@ -82,5 +88,5 @@ public interface FileService {
     /**
      * 查找目录下的所有文件夹
      */
-    ParamDTO queryAllFolder(Long userId, Long nodeId);
+    ParamDTO queryAllFolder(User user, Long nodeId);
 }

@@ -3,12 +3,14 @@ package com.netdisk.module.DTO;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.netdisk.module.FileNode;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
 @Data
+@NoArgsConstructor
 public class FileDTO {
     @JsonProperty("node_id")
     private Long nodeId;
@@ -18,6 +20,8 @@ public class FileDTO {
     private String filePath;
     @JsonProperty("content_type")
     private String contentType;
+    @JsonProperty("is_Leaf")
+    private boolean isLeaf;
 
     public FileDTO(FileNode fileNode){
         this.nodeId = fileNode.getNodeId();

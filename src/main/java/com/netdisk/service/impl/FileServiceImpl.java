@@ -79,11 +79,11 @@ public class FileServiceImpl implements FileService {
     public int uploadFile(User user, Long nodeId, MultipartFile[] list) {
         FileNode folder = queryFolderById(user.getUserId(), nodeId);
         for (MultipartFile file : list) {
-            String originalFilenameName = file.getOriginalFilename();
-            String suffix = originalFilenameName.substring(originalFilenameName.lastIndexOf("."));
-            String reallyName = originalFilenameName.substring(0,originalFilenameName.lastIndexOf("."));
+            String fileName = file.getOriginalFilename();
+            String suffix = fileName.substring(fileName.lastIndexOf("."));
+            String reallyName = fileName.substring(0,fileName.lastIndexOf("."));
             StringBuilder sb = new StringBuilder();
-            sb.append(reallyName);
+            sb.append(fileName);
             int i = 1;
             while (true) {
                 FileNode fileNode = queryFileByNameId(user.getUserId(), nodeId, sb.toString());
@@ -95,7 +95,7 @@ public class FileServiceImpl implements FileService {
                     i++;
                 }
             }
-            String fileName = sb.toString();
+            fileName = sb.toString();
             String fileType = FilenameUtils.getExtension(file.getOriginalFilename());
             fileType = fileProperties.getIcon().containsKey(fileType) ? fileProperties.getIcon().get(fileType) : fileProperties.getOtherIcon();
             FileNode fileNode = new FileNode(null,
@@ -162,7 +162,7 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public List queryFolderContent(User user, Long nodeId) {
+    public List<List> queryFolderContent(User user, Long nodeId) {
         List<FileNode> list = nodeRepository.getSubTree(user.getUserId(), nodeId, 0L).get(0).getDescendants();
         List<FileDTO> files = new ArrayList<>();
         List<FileDTO> folders = new ArrayList<>();
@@ -175,6 +175,19 @@ public class FileServiceImpl implements FileService {
             }
         }
         return Arrays.asList(folders, files);
+    }
+
+    @Override
+    public Long checkFilePath(Long userId,String filePath) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("userId").is(userId));
+        query.addCriteria(Criteria.where("filePath").is(filePath));
+        FileNode fileNode = mongoTemplate.findOne(query, FileNode.class, FILE_COLLECTION);
+        if(fileNode!=null){
+            return fileNode.getNodeId();
+        }else{
+            return null;
+        }
     }
 
     @Override
@@ -251,12 +264,20 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public ParamDTO queryAllFolder(Long userId, Long nodeId) {
+    public ParamDTO queryAllFolder(User user, Long nodeId) {
         ParamDTO paramDTO = new ParamDTO();
-        List<FileNode> fileNodes = nodeRepository.getSubTree(userId, nodeId, 0L, true).get(0).getDescendants();
+        List<FileNode> fileNodes = nodeRepository.getSubTree(user.getUserId(), nodeId, 0L, true).get(0).getDescendants();
         List<FileDTO> res = new ArrayList<>();
         for (FileNode fileNode : fileNodes) {
-            FileDTO fileDTO = new FileDTO(fileNode);
+            FileDTO fileDTO = new FileDTO();
+            fileDTO.setNodeId(fileNode.getNodeId());
+            fileDTO.setFileName(fileNode.getFileName());
+            fileDTO.setFilePath(fileNode.getFilePath());
+            if(queryFolderContent(user,fileNode.getNodeId()).get(0).size() == 0){
+                fileDTO.setLeaf(true);
+            }else{
+                fileDTO.setLeaf(false);
+            }
             res.add(fileDTO);
         }
         paramDTO.setContent(res);

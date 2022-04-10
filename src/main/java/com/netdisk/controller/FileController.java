@@ -158,11 +158,29 @@ public class FileController {
 
     /**
      * 查询该目录下的所有文件夹
+     * userId, nodeId
      */
     @PostMapping(value = "/queryAllFolder")
     @ResponseBody
     public Response queryAllFolder(@RequestBody ParamDTO paramDTO){
+        User user = userService.getUserById(paramDTO.getUserId());
         AssemblyResponse<ParamDTO> assembly = new AssemblyResponse<>();
-        return assembly.success(fileService.queryAllFolder(paramDTO.getUserId(), paramDTO.getNodeId()));
+        return assembly.success(fileService.queryAllFolder(user, paramDTO.getNodeId()));
+    }
+
+    /**
+     * 查看输入的路径是否存在
+     * userId, filePath
+     */
+    @PostMapping(value = "checkPath")
+    @ResponseBody
+    public Response checkPath (@RequestBody ParamDTO paramDTO){
+        AssemblyResponse<Long> assembly = new AssemblyResponse<>();
+        Long res = fileService.checkFilePath(paramDTO.getUserId(),paramDTO.getFilePath());
+        if(res!=null){
+            return assembly.success(res);
+        }else{
+            return assembly.fail(453,null);
+        }
     }
 }
