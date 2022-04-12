@@ -6,7 +6,7 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class ParamDTO {
+public class    ParamDTO {
     /**
      * 文件或文件夹名
      */
@@ -68,4 +68,46 @@ public class ParamDTO {
      */
     @JsonProperty("is_favorites")
     Boolean isFavorites;
+
+    /**
+     * 文件md5值
+     */
+    @JsonProperty("hash")
+    String md5;
+
+    /**
+     * 文件大小
+     */
+    @JsonProperty("size")
+    Long size;
+
+    /**
+     * 文件类型
+     */
+    @JsonProperty("content_type")
+    String contentType;
+
+    /**
+     * 上传是否成功
+     */
+    @JsonProperty("upload_success")
+    Boolean uploadSuccess;
+
+    /**
+     * 上传任务建立成功
+     */
+    @JsonProperty("create_task")
+    Boolean createTask;
+
+    /**
+     * UUID
+     */
+    @JsonProperty("uid")
+    String uuId;
+
+    /**
+     * 分片编号
+     */
+    @JsonProperty("sliceNo")
+    Long sliceNo;
 }

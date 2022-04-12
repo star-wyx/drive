@@ -12,9 +12,7 @@ class FilePropertiesTest {
 
     @Test
     public void propertiesTest(){
-        System.out.println(fileProperties.getRootDir());
-        System.out.println(fileProperties.getIcon());
-        System.out.println(fileProperties.getOtherIcon());
+
     }
 
 }

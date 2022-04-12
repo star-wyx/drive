@@ -19,7 +19,20 @@ public interface FileService {
      * 上传文件
      * user, nodeId, fileList
      */
-    int uploadFile(User user, Long nodeId,MultipartFile[] list);
+    int uploadFile(User user, Long nodeId, MultipartFile[] list);
+
+    /**
+     * 返回当前文件夹可用的文件名
+     */
+
+    String availableFileName(User user, Long nodeId, String fileName);
+
+
+    /**
+     * 数据库中记录新文件
+     * user, nodeId, fileList
+     */
+    void insertFileNode(User user, Long nodeId, String fileName);
 
     List<FileNode> sub(Long userId, Long nodeId, Long maxDepth);
 
@@ -48,6 +61,7 @@ public interface FileService {
 
     /**
      * 用户登陆时返回根目录内容
+     *
      * @param user
      * @return
      */
@@ -57,7 +71,7 @@ public interface FileService {
      * 查找文件信息
      * userId, nodeId
      */
-    FileNode queryFolderById(Long userId,Long nodeId);
+    FileNode queryFolderById(Long userId, Long nodeId);
 
     /**
      * 根据用户id，父目录id，文件名称查找Folder
@@ -78,7 +92,7 @@ public interface FileService {
     /**
      * 收藏或取消收藏文件夹
      */
-    int favoriteFile(Long userId,Long nodeId,Boolean isFavorites);
+    int favoriteFile(Long userId, Long nodeId, Boolean isFavorites);
 
     /**
      * 查找已收藏的FileNode
@@ -89,4 +103,11 @@ public interface FileService {
      * 查找目录下的所有文件夹
      */
     ParamDTO queryAllFolder(User user, Long nodeId);
+
+    /**
+     * 检查md5值是否存在
+     */
+    boolean checkMd5(String md5);
+
+
 }

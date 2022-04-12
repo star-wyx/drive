@@ -81,15 +81,15 @@ public class FileServiceImpl implements FileService {
         for (MultipartFile file : list) {
             String fileName = file.getOriginalFilename();
             String suffix = fileName.substring(fileName.lastIndexOf("."));
-            String reallyName = fileName.substring(0,fileName.lastIndexOf("."));
+            String reallyName = fileName.substring(0, fileName.lastIndexOf("."));
             StringBuilder sb = new StringBuilder();
             sb.append(fileName);
             int i = 1;
             while (true) {
                 FileNode fileNode = queryFileByNameId(user.getUserId(), nodeId, sb.toString());
-                if(fileNode == null){
+                if (fileNode == null) {
                     break;
-                }else{
+                } else {
                     sb = new StringBuilder();
                     sb.append(reallyName).append("(").append(i).append(")").append(suffix);
                     i++;
@@ -113,6 +113,44 @@ public class FileServiceImpl implements FileService {
             myFileUtils.saveFile(file, fileNode.getFilePath());
         }
         return 200;
+    }
+
+    @Override
+    public String availableFileName(User user, Long nodeId, String fileName) {
+        String suffix = fileName.substring(fileName.lastIndexOf("."));
+        String reallyName = fileName.substring(0, fileName.lastIndexOf("."));
+        StringBuilder sb = new StringBuilder();
+        sb.append(fileName);
+        int i = 1;
+        while (true) {
+            FileNode fileNode = queryFileByNameId(user.getUserId(), nodeId, sb.toString());
+            if (fileNode == null) {
+                break;
+            } else {
+                sb = new StringBuilder();
+                sb.append(reallyName).append("(").append(i).append(")").append(suffix);
+                i++;
+            }
+        }
+        return sb.toString();
+    }
+
+    public void insertFileNode(User user, Long nodeId, String fileName) {
+        FileNode folder = queryFolderById(user.getUserId(), nodeId);
+        String fileType = fileName.substring(fileName.lastIndexOf(".") + 1);
+        fileType = fileProperties.getIcon().containsKey(fileType) ? fileProperties.getIcon().get(fileType) : fileProperties.getOtherIcon();
+        FileNode fileNode = new FileNode(null,
+                user.getUserId(),
+                seqService.getNextSeqId(user.getUserName()),
+                fileName,
+                folder.getFilePath() + "/" + fileName,
+                false,
+                null,
+                folder.getNodeId(),
+                fileType,
+                false
+        );
+        mongoTemplate.save(fileNode, FILE_COLLECTION);
     }
 
     @Override
@@ -178,14 +216,14 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public Long checkFilePath(Long userId,String filePath) {
+    public Long checkFilePath(Long userId, String filePath) {
         Query query = new Query();
         query.addCriteria(Criteria.where("userId").is(userId));
         query.addCriteria(Criteria.where("filePath").is(filePath));
         FileNode fileNode = mongoTemplate.findOne(query, FileNode.class, FILE_COLLECTION);
-        if(fileNode!=null){
+        if (fileNode != null) {
             return fileNode.getNodeId();
-        }else{
+        } else {
             return null;
         }
     }
@@ -273,9 +311,9 @@ public class FileServiceImpl implements FileService {
             fileDTO.setNodeId(fileNode.getNodeId());
             fileDTO.setFileName(fileNode.getFileName());
             fileDTO.setFilePath(fileNode.getFilePath());
-            if(queryFolderContent(user,fileNode.getNodeId()).get(0).size() == 0){
+            if (queryFolderContent(user, fileNode.getNodeId()).get(0).size() == 0) {
                 fileDTO.setLeaf(true);
-            }else{
+            } else {
                 fileDTO.setLeaf(false);
             }
             res.add(fileDTO);
@@ -283,4 +321,12 @@ public class FileServiceImpl implements FileService {
         paramDTO.setContent(res);
         return paramDTO;
     }
+
+    @Override
+    public boolean checkMd5(String md5) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("md5").is(md5));
+        return mongoTemplate.findOne(query, FileNode.class, FILE_COLLECTION) != null;
+    }
+
 }

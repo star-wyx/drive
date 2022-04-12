@@ -20,4 +20,10 @@ public class FileProperties {
     private Map<String, String> icon;
 
     private String otherIcon;
+
+    public String tmpPath;
+
+    public String separator;
+
+    public int sliceSizeMB;
 }
