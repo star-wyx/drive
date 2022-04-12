@@ -212,6 +212,7 @@ public class FileServiceImpl implements FileService {
                 files.add(new FileDTO(f));
             }
         }
+        Collections.sort(files);
         return Arrays.asList(folders, files);
     }
 

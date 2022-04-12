@@ -5,13 +5,12 @@ import com.netdisk.module.FileNode;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
 @Data
 @NoArgsConstructor
-public class FileDTO {
+public class FileDTO implements Comparable<FileDTO> {
     @JsonProperty("node_id")
     private Long nodeId;
     @JsonProperty("file_name")
@@ -37,5 +36,15 @@ public class FileDTO {
             res.add(fileDTO);
         }
         return res;
+    }
+
+    @Override
+    public int compareTo(FileDTO o) {
+        int contentCompare = this.contentType.compareTo(o.getContentType());
+        if(contentCompare != 0){
+            return contentCompare;
+        }else{
+            return this.fileName.compareTo(o.getFileName());
+        }
     }
 }
