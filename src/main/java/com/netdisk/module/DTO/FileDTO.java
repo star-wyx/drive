@@ -8,6 +8,7 @@ import com.netdisk.util.MyFileUtils;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -19,7 +20,7 @@ import java.util.Map;
 @Data
 @Component
 @NoArgsConstructor
-public class FileDTO implements Comparable<FileDTO> {
+public class FileDTO {
     @JsonProperty("node_id")
     private Long nodeId;
     @JsonProperty("file_name")
@@ -47,24 +48,4 @@ public class FileDTO implements Comparable<FileDTO> {
         return res;
     }
 
-    @Override
-    public int compareTo(FileDTO o) {
-        int rank = ContentTypeRank(this.getContentType(), o.getContentType());
-        if (rank != 0) {
-            return rank;
-        }
-        return this.getFileName().compareTo(o.getFileName());
-    }
-
-    public int ContentTypeRank(String type1, String type2) {
-        Map<String, Integer> map = new HashMap<>();
-        map.put("folder-fill", 5);
-        map.put("film", 4);
-        map.put("music-note-beamed", 3);
-        map.put("image", 2);
-        map.put("file-earmark", 0);
-
-        return map.getOrDefault(type1,1) - map.getOrDefault(type2,1);
-
-    }
 }

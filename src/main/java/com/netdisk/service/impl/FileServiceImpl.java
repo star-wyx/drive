@@ -11,6 +11,7 @@ import com.netdisk.service.SeqService;
 import com.netdisk.util.AssemblyResponse;
 import com.netdisk.util.MyFileUtils;
 import com.netdisk.util.Response;
+import com.netdisk.util.TypeComparator;
 import org.apache.commons.io.FilenameUtils;
 import org.checkerframework.checker.units.qual.C;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +44,9 @@ public class FileServiceImpl implements FileService {
 
     @Autowired
     MyFileUtils myFileUtils;
+
+    @Autowired
+    TypeComparator typeComparator;
 
     private final NodeRepository nodeRepository;
 
@@ -212,8 +216,8 @@ public class FileServiceImpl implements FileService {
                 files.add(new FileDTO(f));
             }
         }
-        Collections.sort(files);
-        Collections.sort(folders);
+        Collections.sort(files,typeComparator);
+        Collections.sort(folders,typeComparator);
         return Arrays.asList(folders, files);
     }
 
@@ -276,6 +280,7 @@ public class FileServiceImpl implements FileService {
             query.addCriteria(Criteria.where("contentType").is(contentType));
         }
         List<FileDTO> fileDTOList = FileDTO.listConvert(mongoTemplate.find(query, FileNode.class, FILE_COLLECTION));
+        Collections.sort(fileDTOList,typeComparator);
         ParamDTO paramDTO = new ParamDTO();
         paramDTO.setContent(fileDTOList);
         paramDTO.setContentSize(fileDTOList.size());
@@ -297,24 +302,14 @@ public class FileServiceImpl implements FileService {
         Query query = new Query(Criteria.where("userId").is(userId));
         query.addCriteria(Criteria.where("isFavorites").is(true));
         List<FileDTO> fileDTOList = FileDTO.listConvert(mongoTemplate.find(query, FileNode.class, FILE_COLLECTION));
-        Collections.sort(fileDTOList);
+//        Collections.sort(fileDTOList);
+        Collections.sort(fileDTOList,typeComparator);
         ParamDTO paramDTO = new ParamDTO();
         paramDTO.setContent(fileDTOList);
         paramDTO.setContentSize(fileDTOList.size());
         return paramDTO;
     }
 
-    @Override
-    public ParamDTO queryMusic(Long userId) {
-        Query query = new Query(Criteria.where("userId").is(userId));
-        query.addCriteria(Criteria.where("contentType").is(fileProperties.getIcon().get("mp3")));
-        List<FileDTO> fileDTOS = FileDTO.listConvert(mongoTemplate.find(query, FileNode.class, FILE_COLLECTION));
-        Collections.sort(fileDTOS);
-        ParamDTO res = new ParamDTO();
-        res.setContent(fileDTOS);
-        res.setContentSize(fileDTOS.size());
-        return res;
-    }
 
     @Override
     public ParamDTO queryAllFolder(User user, Long nodeId) {

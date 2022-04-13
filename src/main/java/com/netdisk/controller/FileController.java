@@ -1,6 +1,7 @@
 package com.netdisk.controller;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.netdisk.config.FileProperties;
 import com.netdisk.module.DTO.ParamDTO;
 import com.netdisk.module.FileNode;
 import com.netdisk.module.User;
@@ -8,6 +9,7 @@ import com.netdisk.service.FileService;
 import com.netdisk.service.SeqService;
 import com.netdisk.service.UserService;
 import com.netdisk.util.AssemblyResponse;
+import com.netdisk.util.MyFileUtils;
 import com.netdisk.util.Response;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +33,9 @@ public class FileController {
 
     @Autowired
     private SeqService seqService;
+
+    @Autowired
+    private FileProperties fileProperties;
 
     /**
      * 新建目录并记录在数据库 userId, nodeId, FileName
@@ -108,7 +113,7 @@ public class FileController {
     @ResponseBody
     public Response queryAllImage(@RequestBody ParamDTO paramDTO){
         AssemblyResponse<ParamDTO> assembly = new AssemblyResponse<>();
-        return assembly.success(fileService.queryAll(paramDTO.getUserId(),"image"));
+        return assembly.success(fileService.queryAll(paramDTO.getUserId(),fileProperties.getIcon().get("picture")));
     }
 
     /**
@@ -119,7 +124,7 @@ public class FileController {
     @ResponseBody
     public Response queryAllFilm(@RequestBody ParamDTO paramDTO){
         AssemblyResponse<ParamDTO> assembly = new AssemblyResponse<>();
-        return assembly.success(fileService.queryAll(paramDTO.getUserId(),"film"));
+        return assembly.success(fileService.queryAll(paramDTO.getUserId(),fileProperties.getIcon().get("film")));
     }
 
     /**
@@ -130,7 +135,7 @@ public class FileController {
     @ResponseBody
     public Response queryAllTorrent(@RequestBody ParamDTO paramDTO){
         AssemblyResponse<ParamDTO> assembly = new AssemblyResponse<>();
-        return assembly.success(fileService.queryAll(paramDTO.getUserId(),"file-earmark-arrow-down"));
+        return assembly.success(fileService.queryAll(paramDTO.getUserId(),fileProperties.getIcon().get("torrent")));
     }
 
     /**
@@ -141,7 +146,7 @@ public class FileController {
     @ResponseBody
     public Response queryMusic(@RequestBody ParamDTO paramDTO){
         AssemblyResponse<ParamDTO> assembly = new AssemblyResponse<>();
-        return assembly.success(fileService.queryAll(paramDTO.getUserId(),"music-note-beamed"));
+        return assembly.success(fileService.queryAll(paramDTO.getUserId(),fileProperties.getIcon().get("music")));
     }
 
     /**
