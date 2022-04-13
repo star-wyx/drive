@@ -12,6 +12,7 @@ import com.netdisk.util.AssemblyResponse;
 import com.netdisk.util.MyFileUtils;
 import com.netdisk.util.Response;
 import org.apache.commons.io.FilenameUtils;
+import org.checkerframework.checker.units.qual.C;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.CodecRegistryProvider;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -204,7 +205,6 @@ public class FileServiceImpl implements FileService {
         List<FileNode> list = nodeRepository.getSubTree(user.getUserId(), nodeId, 0L).get(0).getDescendants();
         List<FileDTO> files = new ArrayList<>();
         List<FileDTO> folders = new ArrayList<>();
-        Collections.sort(list);
         for (FileNode f : list) {
             if (f.isFolder()) {
                 folders.add(new FileDTO(f));
@@ -213,6 +213,7 @@ public class FileServiceImpl implements FileService {
             }
         }
         Collections.sort(files);
+        Collections.sort(folders);
         return Arrays.asList(folders, files);
     }
 
@@ -296,10 +297,23 @@ public class FileServiceImpl implements FileService {
         Query query = new Query(Criteria.where("userId").is(userId));
         query.addCriteria(Criteria.where("isFavorites").is(true));
         List<FileDTO> fileDTOList = FileDTO.listConvert(mongoTemplate.find(query, FileNode.class, FILE_COLLECTION));
+        Collections.sort(fileDTOList);
         ParamDTO paramDTO = new ParamDTO();
         paramDTO.setContent(fileDTOList);
         paramDTO.setContentSize(fileDTOList.size());
         return paramDTO;
+    }
+
+    @Override
+    public ParamDTO queryMusic(Long userId) {
+        Query query = new Query(Criteria.where("userId").is(userId));
+        query.addCriteria(Criteria.where("contentType").is(fileProperties.getIcon().get("mp3")));
+        List<FileDTO> fileDTOS = FileDTO.listConvert(mongoTemplate.find(query, FileNode.class, FILE_COLLECTION));
+        Collections.sort(fileDTOS);
+        ParamDTO res = new ParamDTO();
+        res.setContent(fileDTOS);
+        res.setContentSize(fileDTOS.size());
+        return res;
     }
 
     @Override

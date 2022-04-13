@@ -2,6 +2,7 @@ package com.netdisk.controller;
 
 import com.netdisk.config.FileProperties;
 import com.netdisk.module.DTO.ParamDTO;
+import com.netdisk.module.FileNode;
 import com.netdisk.service.ChunkService;
 import com.netdisk.service.FileService;
 import com.netdisk.service.SeqService;
@@ -53,6 +54,10 @@ public class TransferController {
         if (nodeId == 0L) {
             return assembly.fail(453, null);
         }
+        FileNode fileNode = fileService.queryFolderById(userId,nodeId);
+        if(fileNode == null || !fileNode.isFolder()){
+            return assembly.fail(453,null);
+        }
         String contentType = fileName.substring(fileName.lastIndexOf(".") + 1);
         Long serialNo = chunkService.createTask(md5, uuid, userId, nodeId, fileName);
         res.setSliceNo(serialNo);
@@ -94,4 +99,21 @@ public class TransferController {
             return assembly.success(null);
         }
     }
+
+    /**
+     * 删除所有缓存文件
+     */
+    @GetMapping(value = "abort")
+    @ResponseBody
+    public Response abort(@RequestParam(value = "hash") String md5,
+                          @RequestParam(value = "uid") String uid){
+        AssemblyResponse<Integer> assembly = new AssemblyResponse<>();
+        int res = chunkService.abort(uid,md5);
+        if(res != 200){
+            return assembly.fail(res,null);
+        }else {
+            return assembly.success(null);
+        }
+    }
+
 }

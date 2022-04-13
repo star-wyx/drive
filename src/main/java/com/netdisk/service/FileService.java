@@ -100,6 +100,11 @@ public interface FileService {
     ParamDTO queryFavorites(Long userId);
 
     /**
+     * 查找所有音乐文件
+     */
+    ParamDTO queryMusic(Long userId);
+
+    /**
      * 查找目录下的所有文件夹
      */
     ParamDTO queryAllFolder(User user, Long nodeId);

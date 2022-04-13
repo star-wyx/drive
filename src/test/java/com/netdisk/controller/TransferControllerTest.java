@@ -1,7 +1,13 @@
 package com.netdisk.controller;
 
+import com.netdisk.module.Chunk;
+import com.netdisk.service.ChunkService;
+import com.netdisk.service.impl.ChunkServiceImpl;
+import org.checkerframework.checker.units.qual.C;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.mongodb.core.MongoTemplate;
 
 import java.io.File;
 
@@ -9,6 +15,12 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 class TransferControllerTest {
+
+    @Autowired
+    ChunkService chunkService;
+
+    @Autowired
+    MongoTemplate mongoTemplate;
 
     @Test
     void analysis(){
@@ -28,6 +40,12 @@ class TransferControllerTest {
             file.mkdirs();
         }
 
+    }
+
+    @Test
+    void mongodb(){
+        Chunk chunk = new Chunk(null,4L,"uuid","md5",1L,1L,"fileName","filePaht");
+        mongoTemplate.save(chunk, ChunkServiceImpl.CHUNK_COLLECTION);
     }
 
 }

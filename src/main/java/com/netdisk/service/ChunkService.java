@@ -20,4 +20,14 @@ public interface ChunkService {
      * merge
      */
     int merge(String uuid, String md5);
+
+    /**
+     * 删除数据库chunk
+     */
+    Long deleteChunk(String uuid);
+
+    /**
+     * 删除缓存文件
+     */
+    int abort(String uuid, String md5);
 }

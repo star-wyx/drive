@@ -102,7 +102,7 @@ public class ChunkServiceImpl implements ChunkService {
                 int len;
                 in = new FileInputStream(new File(chunk.getStorePath(), i + ".tmp"));
                 while((len = in.read(byt)) != -1){
-                    System.out.println("------" + len);
+//                    System.out.println("------" + len);
                     out.write(byt, 0 , len);
                 }
             }
@@ -120,6 +120,26 @@ public class ChunkServiceImpl implements ChunkService {
         }
 
         fileService.insertFileNode(user,chunk.getNodeId(),availableFileName);
+        return 200;
+    }
+
+    @Override
+    public Long deleteChunk(String uuid) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("uuid").is(uuid));
+        return mongoTemplate.remove(query,Chunk.class, CHUNK_COLLECTION).getDeletedCount();
+    }
+
+    @Override
+    public int abort(String uuid, String md5) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("uuid").is(uuid));
+        Chunk chunk = mongoTemplate.findOne(query,Chunk.class,CHUNK_COLLECTION);
+        if(chunk == null){
+            return 453;
+        }
+        boolean bol = FileUtils.deleteQuietly(new File(chunk.getStorePath()));
+        mongoTemplate.remove(chunk);
         return 200;
     }
 }

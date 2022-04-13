@@ -134,6 +134,17 @@ public class FileController {
     }
 
     /**
+     * 返回用户所有音乐文件
+     * userId
+     */
+    @PostMapping(value = "/queryMusic")
+    @ResponseBody
+    public Response queryMusic(@RequestBody ParamDTO paramDTO){
+        AssemblyResponse<ParamDTO> assembly = new AssemblyResponse<>();
+        return assembly.success(fileService.queryAll(paramDTO.getUserId(),"music-note-beamed"));
+    }
+
+    /**
      * 返回用户所有的收藏文件及文件夹
      * userId
      */
