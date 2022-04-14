@@ -24,7 +24,11 @@ public class TypeComparator<T> implements Comparator<T> {
         if (rank != 0) {
             return rank;
         }
-        return f1.getFileName().compareTo(f2.getFileName());
+        if (f1.getContentType().equals(f2.getContentType())) {
+            return f1.getFileName().compareTo(f2.getFileName());
+        }else{
+            return f1.getContentType().compareTo(f2.getContentType());
+        }
     }
 
     public int ContentTypeRank(String type1, String type2) {
@@ -35,7 +39,7 @@ public class TypeComparator<T> implements Comparator<T> {
         map.put(fileProperties.getIcon().get("picture"), 2);
         map.put("file-earmark", 0);
 
-        return map.getOrDefault(type2,1) - map.getOrDefault(type1,1);
+        return map.getOrDefault(type2, 1) - map.getOrDefault(type1, 1);
 
     }
 }
