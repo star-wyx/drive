@@ -15,6 +15,10 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.File;
+
 
 @Api(value = "上传下载")
 @Controller
@@ -54,9 +58,9 @@ public class TransferController {
         if (nodeId == 0L) {
             return assembly.fail(453, null);
         }
-        FileNode fileNode = fileService.queryFolderById(userId,nodeId);
-        if(fileNode == null || !fileNode.isFolder()){
-            return assembly.fail(453,null);
+        FileNode fileNode = fileService.queryFolderById(userId, nodeId);
+        if (fileNode == null || !fileNode.isFolder()) {
+            return assembly.fail(453, null);
         }
         String contentType = fileName.substring(fileName.lastIndexOf(".") + 1);
         Long serialNo = chunkService.createTask(md5, uuid, userId, nodeId, fileName);
@@ -92,10 +96,10 @@ public class TransferController {
     public Response merge(@RequestParam(value = "hash") String md5,
                           @RequestParam(value = "uid") String uid) {
         AssemblyResponse<Integer> assembly = new AssemblyResponse<>();
-        int res = chunkService.merge(uid,md5);
-        if(res != 200){
-            return assembly.fail(res,null);
-        }else{
+        int res = chunkService.merge(uid, md5);
+        if (res != 200) {
+            return assembly.fail(res, null);
+        } else {
             return assembly.success(null);
         }
     }
@@ -106,14 +110,30 @@ public class TransferController {
     @GetMapping(value = "abort")
     @ResponseBody
     public Response abort(@RequestParam(value = "hash") String md5,
-                          @RequestParam(value = "uid") String uid){
+                          @RequestParam(value = "uid") String uid) {
         AssemblyResponse<Integer> assembly = new AssemblyResponse<>();
-        int res = chunkService.abort(uid,md5);
-        if(res != 200){
-            return assembly.fail(res,null);
-        }else {
+        int res = chunkService.abort(uid, md5);
+        if (res != 200) {
+            return assembly.fail(res, null);
+        } else {
             return assembly.success(null);
         }
+    }
+
+
+    /**
+     * 文件分片下载
+     * * @param range http请求头Range，用于表示请求指定部分的内容。
+     * * 格式为：Range: bytes=start-end  [start,end]表示，即是包含请求头的start及end字节的内容
+     */
+    @RequestMapping(value = "download", method = RequestMethod.GET)
+    public void fileChunkDownload(@RequestHeader(value = "Range") String range,
+                                  @RequestParam(value = "user_id") Long userId,
+                                  @RequestParam(value = "node_id") Long nodeId,
+                                  HttpServletRequest request,
+                                  HttpServletResponse response) {
+        FileNode fileNode = fileService.queryFolderById(userId, nodeId);
+        chunkService.fileChunkDownload(range, fileProperties.getRootDir() + File.separator + fileNode.getFilePath(), request, response);
     }
 
 }

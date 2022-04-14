@@ -4,6 +4,9 @@ import com.netdisk.module.Chunk;
 import com.netdisk.module.DTO.ParamDTO;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 public interface ChunkService {
 
     /**
@@ -30,4 +33,9 @@ public interface ChunkService {
      * 删除缓存文件
      */
     int abort(String uuid, String md5);
+
+    /**
+     * 文件下载
+     */
+    void fileChunkDownload(String range, String filePath, HttpServletRequest request, HttpServletResponse response);
 }
