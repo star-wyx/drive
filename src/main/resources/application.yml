@@ -10,12 +10,17 @@ spring:
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
+    static-path-pattern: /vdownload/**
   jackson:
     default-property-inclusion: non_null
   servlet:
     multipart:
       max-file-size: 2000MB
       max-request-size: 2000MB
+  web:
+    resources:
+      static-locations: file:/Users/star_wyx/Desktop/File
+
 
 
 logging:

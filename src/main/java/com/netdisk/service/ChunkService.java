@@ -35,7 +35,12 @@ public interface ChunkService {
     int abort(String uuid, String md5);
 
     /**
-     * 文件下载
+     * 文件分片下载
      */
     void fileChunkDownload(String range, String filePath, HttpServletRequest request, HttpServletResponse response);
+
+    /**
+     * 文件下载
+     */
+    void fileDownload(String filePath, HttpServletRequest request, HttpServletResponse response);
 }

@@ -10,6 +10,10 @@ import com.netdisk.util.TypeComparator;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,6 +33,9 @@ class FileServiceImplTest {
     @Autowired
     TypeComparator typeComparator;
 
+    @Autowired
+    MongoTemplate mongoTemplate;
+
     @Test
     public void test() {
         User user = new User(null, "wyx", "123", "@qq.com");
@@ -41,14 +48,28 @@ class FileServiceImplTest {
     }
 
     @Test
-    public void FileRank(){
-        FileNode a = fileService.queryFolderById(2L,103L);
-        FileNode b  = fileService.queryFolderById(2L,109L);
+    public void FileRank() {
+        FileNode a = fileService.queryFolderById(2L, 103L);
+        FileNode b = fileService.queryFolderById(2L, 109L);
         FileDTO adto = new FileDTO(a);
         FileDTO bdto = new FileDTO(b);
         List<FileDTO> list = new ArrayList<>();
         list.add(adto);
         list.add(bdto);
-        Collections.sort(list,typeComparator);
+        Collections.sort(list, typeComparator);
+    }
+
+    @Test
+    public void addStorePath() {
+        for (int i = 1; i <= 2; i++) {
+            Query query = new Query();
+            query.addCriteria(Criteria.where("userId").is(i));
+            List<FileNode> list = mongoTemplate.find(query, FileNode.class, FileServiceImpl.FILE_COLLECTION);
+            for (FileNode fileNode : list) {
+                Update update = new Update();
+                update.set("storePath", fileNode.getFilePath());
+                mongoTemplate.save(fileNode,FileServiceImpl.FILE_COLLECTION);
+            }
+        }
     }
 }

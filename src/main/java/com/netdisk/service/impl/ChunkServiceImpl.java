@@ -198,7 +198,7 @@ public class ChunkServiceImpl implements ChunkService {
         response.setHeader("Content-Type", contentType);
         //Content-Disposition 表示响应内容以何种形式展示，是以内联的形式（即网页或者页面的一部分），还是以附件的形式下载并保存到本地。
         // 这里文件名换成下载后你想要的文件名，inline表示内联的形式，即：浏览器直接下载
-        response.setHeader("Content-Disposition", "inline;filename=" + fileName);
+        response.setHeader("Content-Disposition", "attachment;filename=" + fileName);
         //Content-Length 表示资源内容长度，即：文件大小
         response.setHeader("Content-Length", String.valueOf(contentLength));
         //Content-Range 表示响应了多少数据，格式为：[要下载的开始位置]-[结束位置]/[文件总大小]
@@ -239,6 +239,28 @@ public class ChunkServiceImpl implements ChunkService {
             } catch (IOException e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+    @Override
+    public void fileDownload(String filePath, HttpServletRequest request, HttpServletResponse response) {
+        File file = new File(filePath);
+
+//        Content-Type: application/octet-stream
+//Content-Disposition: attachment;filename=2018-03-03_15-47-45--2019-03-03_15-48-13--73c75b84-ba2a-470f-a713-07216fcd214b.xlsx
+        response.setHeader("Content-Type", "application/octet-stream");
+        response.setHeader("Content-Disposition", "inline;filename=" + file.getName());
+        try {
+            FileInputStream fileInputStream = new FileInputStream(file);
+            BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream);
+            byte[] b = new byte[bufferedInputStream.available()];
+            bufferedInputStream.read(b);
+            OutputStream outputStream = response.getOutputStream();
+            outputStream.write(b);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }

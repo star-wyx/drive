@@ -17,6 +17,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 
 @Api(value = "文件管理")
@@ -198,5 +199,16 @@ public class FileController {
         }else{
             return assembly.fail(453,null);
         }
+    }
+
+    /**
+     * 移动文件
+     * userId, old_nodeId, new_nodeId
+     */
+    @PostMapping(value = "moveFile")
+    @ResponseBody
+    public Response moveFile(@RequestBody ParamDTO paramDTO){
+        AssemblyResponse<Object> assembly = new AssemblyResponse<>();
+        return null;
     }
 }

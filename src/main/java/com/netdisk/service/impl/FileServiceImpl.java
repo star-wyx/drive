@@ -108,6 +108,7 @@ public class FileServiceImpl implements FileService {
                     seqService.getNextSeqId(user.getUserName()),
                     fileName,
                     folder.getFilePath() + "/" + fileName,
+                    folder.getFilePath() + "/" + fileName,
                     false,
                     null,
                     folder.getNodeId(),
@@ -149,6 +150,7 @@ public class FileServiceImpl implements FileService {
                 seqService.getNextSeqId(user.getUserName()),
                 fileName,
                 folder.getFilePath() + "/" + fileName,
+                folder.getFilePath() + "/" + fileName,
                 false,
                 null,
                 folder.getNodeId(),
@@ -175,6 +177,7 @@ public class FileServiceImpl implements FileService {
                 seqService.getNextSeqId(user.getUserName()),
                 fileName,
                 current.getFilePath() + "/" + fileName,
+                current.getFilePath() + "/" + fileName,
                 true,
                 null,
                 current.getNodeId(),
@@ -193,6 +196,7 @@ public class FileServiceImpl implements FileService {
                 user.getUserId(),
                 seqService.getNextSeqId(user.getUserName()),
                 user.getUserName(),
+                "/" + user.getUserName(),
                 "/" + user.getUserName(),
                 true,
                 null,
@@ -337,6 +341,17 @@ public class FileServiceImpl implements FileService {
         Query query = new Query();
         query.addCriteria(Criteria.where("md5").is(md5));
         return mongoTemplate.findOne(query, FileNode.class, FILE_COLLECTION) != null;
+    }
+
+    @Override
+    public boolean moveFile(Long userId, Long newParentNodeId, Long NodeId){
+        Query query = new Query();
+        query.addCriteria(Criteria.where("userId").is(userId));
+        query.addCriteria(Criteria.where("nodeId").is(newParentNodeId));
+        FileNode newParent = mongoTemplate.findOne(query,FileNode.class,FILE_COLLECTION);
+
+
+        return false;
     }
 
 }

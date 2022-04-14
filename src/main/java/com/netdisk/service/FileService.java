@@ -109,5 +109,8 @@ public interface FileService {
      */
     boolean checkMd5(String md5);
 
-
+    /**
+     * 移动文件夹
+     */
+    boolean moveFile(Long userId, Long newNodeId, Long oldNodeId);
 }

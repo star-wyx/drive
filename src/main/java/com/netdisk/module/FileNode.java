@@ -21,6 +21,7 @@ public class FileNode implements Comparable<FileNode> {
     private Long nodeId;
     private String fileName;
     private String filePath;
+    private String storePath;
     private boolean isFolder;
     private List<FileNode> descendants;
     private Long parentId;
