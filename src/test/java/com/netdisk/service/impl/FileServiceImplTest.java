@@ -72,4 +72,10 @@ class FileServiceImplTest {
             }
         }
     }
+
+    @Test
+    public void addMd5(){
+        Query query = new Query(Criteria.where("userId").is(2));
+
+    }
 }

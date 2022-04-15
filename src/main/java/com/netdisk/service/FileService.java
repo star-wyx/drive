@@ -107,10 +107,20 @@ public interface FileService {
     /**
      * 检查md5值是否存在
      */
-    boolean checkMd5(String md5);
+    FileNode checkMd5(String md5);
 
     /**
      * 移动文件夹
      */
     boolean moveFile(Long userId, Long newNodeId, Long oldNodeId);
+
+    /**
+     * 删除文件
+     */
+    boolean deleteFile(Long userId, Long nodeId);
+
+    /**
+     * 删除文件夹
+     */
+//    boolean deleteDescendants(FileNode fileNode);
 }

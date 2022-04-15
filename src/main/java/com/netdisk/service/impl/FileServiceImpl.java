@@ -1,5 +1,6 @@
 package com.netdisk.service.impl;
 
+import ch.qos.logback.core.util.FileUtil;
 import com.netdisk.config.FileProperties;
 import com.netdisk.module.DTO.FileDTO;
 import com.netdisk.module.DTO.ParamDTO;
@@ -12,6 +13,7 @@ import com.netdisk.util.AssemblyResponse;
 import com.netdisk.util.MyFileUtils;
 import com.netdisk.util.Response;
 import com.netdisk.util.TypeComparator;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.checkerframework.checker.units.qual.C;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,9 +23,13 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
+import org.springframework.util.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.crypto.Cipher;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.*;
 
 
@@ -85,22 +91,13 @@ public class FileServiceImpl implements FileService {
         FileNode folder = queryFolderById(user.getUserId(), nodeId);
         for (MultipartFile file : list) {
             String fileName = file.getOriginalFilename();
-            String suffix = fileName.substring(fileName.lastIndexOf("."));
-            String reallyName = fileName.substring(0, fileName.lastIndexOf("."));
-            StringBuilder sb = new StringBuilder();
-            sb.append(fileName);
-            int i = 1;
-            while (true) {
-                FileNode fileNode = queryFileByNameId(user.getUserId(), nodeId, sb.toString());
-                if (fileNode == null) {
-                    break;
-                } else {
-                    sb = new StringBuilder();
-                    sb.append(reallyName).append("(").append(i).append(")").append(suffix);
-                    i++;
-                }
+            fileName = availableFileName(user, nodeId, fileName);
+            String md5 = null;
+            try {
+                md5 = DigestUtils.md5DigestAsHex(file.getInputStream());
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-            fileName = sb.toString();
             String fileType = FilenameUtils.getExtension(file.getOriginalFilename());
             fileType = fileProperties.getIcon().containsKey(fileType) ? fileProperties.getIcon().get(fileType) : fileProperties.getOtherIcon();
             FileNode fileNode = new FileNode(null,
@@ -113,10 +110,18 @@ public class FileServiceImpl implements FileService {
                     null,
                     folder.getNodeId(),
                     fileType,
-                    false
+                    false,
+                    md5
             );
-            mongoTemplate.save(fileNode, FILE_COLLECTION);
-            myFileUtils.saveFile(file, fileNode.getFilePath());
+            FileNode origin = checkMd5(md5);
+            if (origin != null) {
+                fileNode.setStorePath(origin.getStorePath());
+                mongoTemplate.save(fileNode, FILE_COLLECTION);
+            } else {
+                mongoTemplate.save(fileNode, FILE_COLLECTION);
+                myFileUtils.saveFile(file, fileNode.getFilePath());
+            }
+
         }
         return 200;
     }
@@ -155,7 +160,8 @@ public class FileServiceImpl implements FileService {
                 null,
                 folder.getNodeId(),
                 fileType,
-                false
+                false,
+                null
         );
         mongoTemplate.save(fileNode, FILE_COLLECTION);
     }
@@ -182,7 +188,8 @@ public class FileServiceImpl implements FileService {
                 null,
                 current.getNodeId(),
                 fileProperties.getIcon().get("folder"),
-                false
+                false,
+                null
         );
         myFileUtils.createFolder(fileNode.getFilePath());
         mongoTemplate.save(fileNode, FILE_COLLECTION);
@@ -202,7 +209,8 @@ public class FileServiceImpl implements FileService {
                 null,
                 0L,
                 fileProperties.getIcon().get("folder"),
-                false
+                false,
+                null
         );
         myFileUtils.createFolder(fileNode.getFilePath());
         mongoTemplate.save(fileNode, FILE_COLLECTION);
@@ -220,8 +228,8 @@ public class FileServiceImpl implements FileService {
                 files.add(new FileDTO(f));
             }
         }
-        Collections.sort(files,typeComparator);
-        Collections.sort(folders,typeComparator);
+        Collections.sort(files, typeComparator);
+        Collections.sort(folders, typeComparator);
         return Arrays.asList(folders, files);
     }
 
@@ -284,7 +292,7 @@ public class FileServiceImpl implements FileService {
             query.addCriteria(Criteria.where("contentType").is(contentType));
         }
         List<FileDTO> fileDTOList = FileDTO.listConvert(mongoTemplate.find(query, FileNode.class, FILE_COLLECTION));
-        Collections.sort(fileDTOList,typeComparator);
+        Collections.sort(fileDTOList, typeComparator);
         ParamDTO paramDTO = new ParamDTO();
         paramDTO.setContent(fileDTOList);
         paramDTO.setContentSize(fileDTOList.size());
@@ -307,7 +315,7 @@ public class FileServiceImpl implements FileService {
         query.addCriteria(Criteria.where("isFavorites").is(true));
         List<FileDTO> fileDTOList = FileDTO.listConvert(mongoTemplate.find(query, FileNode.class, FILE_COLLECTION));
 //        Collections.sort(fileDTOList);
-        Collections.sort(fileDTOList,typeComparator);
+        Collections.sort(fileDTOList, typeComparator);
         ParamDTO paramDTO = new ParamDTO();
         paramDTO.setContent(fileDTOList);
         paramDTO.setContentSize(fileDTOList.size());
@@ -337,21 +345,62 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public boolean checkMd5(String md5) {
+    public FileNode checkMd5(String md5) {
         Query query = new Query();
         query.addCriteria(Criteria.where("md5").is(md5));
-        return mongoTemplate.findOne(query, FileNode.class, FILE_COLLECTION) != null;
+        query.addCriteria(Criteria.where("isFolder").is(false));
+        return mongoTemplate.findOne(query, FileNode.class, FILE_COLLECTION);
     }
 
     @Override
-    public boolean moveFile(Long userId, Long newParentNodeId, Long NodeId){
+    public boolean moveFile(Long userId, Long newParentNodeId, Long nodeId) {
+        FileNode newParent = queryFolderById(userId, newParentNodeId);
+        if (!newParent.isFolder()) {
+            return false;
+        }
         Query query = new Query();
         query.addCriteria(Criteria.where("userId").is(userId));
-        query.addCriteria(Criteria.where("nodeId").is(newParentNodeId));
-        FileNode newParent = mongoTemplate.findOne(query,FileNode.class,FILE_COLLECTION);
+        query.addCriteria(Criteria.where("nodeId").is(nodeId));
+        FileNode fileNode = mongoTemplate.findOne(query, FileNode.class, FILE_COLLECTION);
+        Update update = new Update();
+        update.set("parentId", newParent.getNodeId());
+        update.set("filePath", newParent.getFilePath() + "/" + fileNode.getFileName());
+        mongoTemplate.findAndModify(query, update, FileNode.class, FILE_COLLECTION);
 
-
-        return false;
+        return true;
     }
+
+    @Override
+    public boolean deleteFile(Long userId, Long nodeId) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("userId").is(userId));
+        query.addCriteria(Criteria.where("nodeId").is(nodeId));
+        FileNode fileNode = mongoTemplate.findOne(query, FileNode.class, FILE_COLLECTION);
+        File file = new File(fileNode.getStorePath());
+        if (fileNode.isFolder()) {
+            List<FileNode> list = nodeRepository.getSubTree(userId, nodeId, null).get(0).getDescendants();
+            System.out.println(list);
+            for (FileNode fn : list) {
+                Query q = new Query();
+                q.addCriteria(Criteria.where("userId").is(userId));
+                q.addCriteria(Criteria.where("nodeId").is(nodeId));
+                mongoTemplate.remove(q, FILE_COLLECTION);
+            }
+            mongoTemplate.remove(query, FILE_COLLECTION);
+            FileUtils.deleteQuietly(file);
+        } else {
+            mongoTemplate.remove(query, FILE_COLLECTION);
+            file.delete();
+        }
+        return true;
+    }
+
+//    @Override
+//    public boolean deleteDescendants(FileNode fileNode) {
+//        if(fileNode.getDescendants() == null){
+//            mongoTemplate.remove()
+//        }
+//    }
+
 
 }

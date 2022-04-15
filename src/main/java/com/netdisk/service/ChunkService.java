@@ -42,5 +42,10 @@ public interface ChunkService {
     /**
      * 文件下载
      */
-    void fileDownload(String filePath, HttpServletRequest request, HttpServletResponse response);
+    void vDownload(HttpServletRequest request, HttpServletResponse response);
+
+    /**
+     * 文件下载
+     */
+    void vOpen(String Range,HttpServletRequest request, HttpServletResponse response);
 }

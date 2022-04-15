@@ -12,6 +12,7 @@ import org.apache.commons.io.FileUtils;
 import org.checkerframework.checker.units.qual.C;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.ArithmeticOperators;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
@@ -21,6 +22,8 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 
 @Service
 public class ChunkServiceImpl implements ChunkService {
@@ -243,24 +246,170 @@ public class ChunkServiceImpl implements ChunkService {
     }
 
     @Override
-    public void fileDownload(String filePath, HttpServletRequest request, HttpServletResponse response) {
-        File file = new File(filePath);
-
-//        Content-Type: application/octet-stream
-//Content-Disposition: attachment;filename=2018-03-03_15-47-45--2019-03-03_15-48-13--73c75b84-ba2a-470f-a713-07216fcd214b.xlsx
-        response.setHeader("Content-Type", "application/octet-stream");
-        response.setHeader("Content-Disposition", "inline;filename=" + file.getName());
+    public void vDownload(HttpServletRequest request, HttpServletResponse response) {
+        String url = null;
         try {
-            FileInputStream fileInputStream = new FileInputStream(file);
-            BufferedInputStream bufferedInputStream = new BufferedInputStream(fileInputStream);
-            byte[] b = new byte[bufferedInputStream.available()];
-            bufferedInputStream.read(b);
-            OutputStream outputStream = response.getOutputStream();
-            outputStream.write(b);
+            url = URLDecoder.decode(request.getRequestURL().toString(), "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        String md5 = null;
+        md5 = url.substring(url.lastIndexOf("vdownload/") + "vdownload".length() + 1);
+
+        FileNode fileNode = fileService.checkMd5(md5);
+        if (fileNode == null) {
+            return;
+        }
+        String storePath = fileProperties.getRootDir() + fileNode.getStorePath();
+
+        File file = new File(storePath);
+        if (!file.exists()) {
+            System.out.println("Not exist!");
+            return;
+        }
+
+        String fileName = fileNode.getFileName();
+        String contentType = request.getServletContext().getMimeType(file.getName());
+
+        try {
+            response.setHeader("Content-Disposition", "attachment;filename=" + URLEncoder.encode(fileName, "UTF-8"));
+            response.setStatus(response.SC_OK);
+            response.setHeader("Content-Length", String.valueOf(file.length()));
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        response.setHeader("Content-Type", contentType);
+//        response.setHeader("Content-Type", "application/octet-stream");
+
+        response.setContentType(contentType);
+
+        OutputStream os = null;
+        BufferedInputStream bis = null;
+        try {
+            bis = new BufferedInputStream(new FileInputStream(file));
+            byte[] buff = new byte[1024];
+            os = response.getOutputStream();
+            int i = 0;
+            while ((i = bis.read(buff)) != 1) {
+                os.write(buff, 0, i);
+                os.flush();
+            }
+            response.flushBuffer();
+            os.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                bis.close();
+                os.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Override
+    public void vOpen(String range, HttpServletRequest request, HttpServletResponse response) {
+        String url = null;
+        try {
+            url = URLDecoder.decode(request.getRequestURL().toString(), "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        String md5 = null;
+        md5 = url.substring(url.lastIndexOf("vdownload/") + "vdownload".length() + 1);
+
+        FileNode fileNode = fileService.checkMd5(md5);
+        if (fileNode == null) {
+            return;
+        }
+
+        String storePath = fileProperties.getRootDir() + fileNode.getStorePath();
+
+        File file = new File(storePath);
+        if (!file.exists()) {
+            System.out.println("Not exist!");
+            return;
+        }
+
+        String fileName = fileNode.getFileName();
+        String contentType = request.getServletContext().getMimeType(file.getName());
+
+
+        long endByte = file.length() - 1;
+        long startByte = 0L;
+        if (range != null && range.contains("bytes=") && range.contains("-")) {
+            range = range.substring(range.lastIndexOf("=") + 1).trim();
+            String[] ranges = range.split("-");
+            try {
+                //根据range解析下载分片的位置区间
+                if (ranges.length == 1) {
+                    //情况1，如：bytes=-1024  从开始字节到第1024个字节的数据
+                    if (range.startsWith("-")) {
+                        endByte = Long.parseLong(ranges[0]);
+                    }
+                    //情况2，如：bytes=1024-  第1024个字节到最后字节的数据
+                    else if (range.endsWith("-")) {
+                        startByte = Long.parseLong(ranges[0]);
+                    }
+                }
+                //情况3，如：bytes=1024-2048  第1024个字节到2048个字节的数据
+                else if (ranges.length == 2) {
+                    startByte = Long.parseLong(ranges[0]);
+                    endByte = Long.parseLong(ranges[1]);
+                }
+            } catch (NumberFormatException e) {
+                startByte = 0;
+                endByte = file.length() - 1;
+            }
+        }
+
+        long contentLength = endByte - startByte + 1;
+        if (contentLength > 2097152) {
+            contentLength = 2097152;
+            endByte = contentLength + startByte - 1;
+        }
+        response.setHeader("Content-Length", String.valueOf(contentLength));
+        try {
+            response.setHeader("Content-Disposition", "inline;filename=" + URLEncoder.encode(fileName, "UTF-8"));
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        response.setStatus(response.SC_PARTIAL_CONTENT);
+        response.setHeader("Content-Range", "bytes " + startByte + "-" + endByte + "/" + file.length());
+        response.setHeader("Accept-Ranges", "bytes");
+        response.setHeader("Content-Type", contentType);
+//        response.setHeader("Content-Type", "application/octet-stream");
+        response.setContentType(contentType);
+
+        BufferedOutputStream outputStream = null;
+        RandomAccessFile randomAccessFile = null;
+        long transmitted = 0;
+
+        try {
+            randomAccessFile = new RandomAccessFile(file, "r");
+            outputStream = new BufferedOutputStream(response.getOutputStream());
+            byte[] buff = new byte[2048];
+            int len = 0;
+            randomAccessFile.seek(startByte);
+            len = randomAccessFile.read(buff);
+            outputStream.write(buff, 0, len);
+            outputStream.flush();
+            response.flushBuffer();
+            randomAccessFile.close();
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            try {
+                if (randomAccessFile != null) {
+                    randomAccessFile.close();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
+
 }

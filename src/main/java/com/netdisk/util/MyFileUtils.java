@@ -4,6 +4,7 @@ import com.netdisk.config.FileProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
+import org.springframework.util.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
@@ -18,7 +19,7 @@ public final class MyFileUtils {
     @Autowired
     FileProperties fileProperties;
 
-    public void createFolder(String dictionary){
+    public void createFolder(String dictionary) {
         Path path = Paths.get(fileProperties.getRootDir() + dictionary);
         try {
             Files.createDirectory(path);
@@ -27,8 +28,8 @@ public final class MyFileUtils {
         }
     }
 
-    public void saveFile(MultipartFile file, String dictionary){
-        File localFile = new File(fileProperties.getRootDir() +dictionary);
+    public void saveFile(MultipartFile file, String dictionary) {
+        File localFile = new File(fileProperties.getRootDir() + dictionary);
         try {
             file.transferTo(localFile);
         } catch (IOException e) {
@@ -36,7 +37,7 @@ public final class MyFileUtils {
         }
     }
 
-    public void icon(String contentType){
+    public void icon(String contentType) {
         /**
          * folder-fill
          * filetype-xxx
@@ -48,5 +49,12 @@ public final class MyFileUtils {
          * image
          * .svg
          */
+    }
+
+    public static String getMD5(String str) {
+        String slat = "&%5123***&&%%$$#@";
+        String base = str + "/" + slat;
+        String md5 = DigestUtils.md5DigestAsHex(base.getBytes());
+        return md5;
     }
 }

@@ -203,12 +203,31 @@ public class FileController {
 
     /**
      * 移动文件
-     * userId, old_nodeId, new_nodeId
+     * userId, node_id, new_nodeId
      */
     @PostMapping(value = "moveFile")
     @ResponseBody
     public Response moveFile(@RequestBody ParamDTO paramDTO){
-        AssemblyResponse<Object> assembly = new AssemblyResponse<>();
-        return null;
+        AssemblyResponse<String> assembly = new AssemblyResponse<>();
+        if(fileService.moveFile(paramDTO.getUserId(),paramDTO.getNewNodeId(),paramDTO.getNodeId())){
+            return assembly.success("successfully");
+        }else{
+            return assembly.fail(404,"fail to move");
+        }
+    }
+
+    /**
+     * 删除文件
+     * userId, node_id
+     */
+    @PostMapping(value = "deleteFile")
+    @ResponseBody
+    public Response deleteFile(@RequestBody ParamDTO paramDTO){
+        AssemblyResponse<String> assembly = new AssemblyResponse<>();
+        if(fileService.deleteFile(paramDTO.getUserId(),paramDTO.getNodeId())){
+            return assembly.success("successfully");
+        }else{
+            return assembly.fail(404,"fail to delete");
+        }
     }
 }

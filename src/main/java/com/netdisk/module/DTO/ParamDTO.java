@@ -6,7 +6,7 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class    ParamDTO {
+public class ParamDTO {
     /**
      * 文件或文件夹名
      */
@@ -49,6 +49,12 @@ public class    ParamDTO {
      */
     @JsonProperty("node_id")
     Long nodeId;
+
+    /**
+     * FileNode id
+     */
+    @JsonProperty("new_nodeId")
+    Long newNodeId;
 
     /**
      * 文件或文件夹的网盘路径

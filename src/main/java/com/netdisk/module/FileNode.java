@@ -27,6 +27,7 @@ public class FileNode implements Comparable<FileNode> {
     private Long parentId;
     private String contentType;
     private boolean isFavorites;
+    private String md5;
 
 
 
