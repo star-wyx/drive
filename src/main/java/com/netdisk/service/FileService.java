@@ -32,7 +32,7 @@ public interface FileService {
      * 数据库中记录新文件
      * user, nodeId, fileList
      */
-    void insertFileNode(User user, Long nodeId, String fileName);
+    void insertFileNode(User user, Long nodeId, String fileName, String md5);
 
     List<FileNode> sub(Long userId, Long nodeId, Long maxDepth);
 
@@ -120,7 +120,7 @@ public interface FileService {
     boolean deleteFile(Long userId, Long nodeId);
 
     /**
-     * 删除文件夹
+     * 是否是图像
      */
-//    boolean deleteDescendants(FileNode fileNode);
+    boolean isImage(String contentType);
 }

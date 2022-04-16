@@ -31,12 +31,17 @@ public class FileDTO {
     private String contentType;
     @JsonProperty("is_Leaf")
     private boolean isLeaf;
+    @JsonProperty("base64")
+    private String base64;
+    @JsonProperty("isFavorite")
+    private boolean isFavorite;
 
     public FileDTO(FileNode fileNode) {
         this.nodeId = fileNode.getNodeId();
         this.fileName = fileNode.getFileName();
         this.filePath = fileNode.getFilePath();
         this.contentType = fileNode.getContentType();
+        this.isFavorite = fileNode.isFavorites();
     }
 
     public static List<FileDTO> listConvert(List<FileNode> fileNodes) {

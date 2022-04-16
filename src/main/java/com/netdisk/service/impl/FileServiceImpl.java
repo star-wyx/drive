@@ -13,6 +13,7 @@ import com.netdisk.util.AssemblyResponse;
 import com.netdisk.util.MyFileUtils;
 import com.netdisk.util.Response;
 import com.netdisk.util.TypeComparator;
+import net.coobird.thumbnailator.Thumbnails;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.checkerframework.checker.units.qual.C;
@@ -27,9 +28,7 @@ import org.springframework.util.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.crypto.Cipher;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 
 
@@ -86,6 +85,7 @@ public class FileServiceImpl implements FileService {
         return res;
     }
 
+    @Deprecated
     @Override
     public int uploadFile(User user, Long nodeId, MultipartFile[] list) {
         FileNode folder = queryFolderById(user.getUserId(), nodeId);
@@ -111,7 +111,8 @@ public class FileServiceImpl implements FileService {
                     folder.getNodeId(),
                     fileType,
                     false,
-                    md5
+                    md5,
+                    null
             );
             FileNode origin = checkMd5(md5);
             if (origin != null) {
@@ -146,7 +147,7 @@ public class FileServiceImpl implements FileService {
         return sb.toString();
     }
 
-    public void insertFileNode(User user, Long nodeId, String fileName) {
+    public void insertFileNode(User user, Long nodeId, String fileName, String md5) {
         FileNode folder = queryFolderById(user.getUserId(), nodeId);
         String fileType = fileName.substring(fileName.lastIndexOf(".") + 1);
         fileType = fileProperties.getIcon().containsKey(fileType) ? fileProperties.getIcon().get(fileType) : fileProperties.getOtherIcon();
@@ -161,8 +162,14 @@ public class FileServiceImpl implements FileService {
                 folder.getNodeId(),
                 fileType,
                 false,
+                md5,
                 null
         );
+        if (isImage(fileNode.getContentType())) {
+            String srcPath = fileProperties.getRootDir() + fileNode.getStorePath();
+            String desPath = fileProperties.getTmpPath() + "/"+UUID.randomUUID();
+            fileNode.setBase64(myFileUtils.commpressPicForScale(srcPath,desPath, 50,0.7));
+        }
         mongoTemplate.save(fileNode, FILE_COLLECTION);
     }
 
@@ -189,6 +196,7 @@ public class FileServiceImpl implements FileService {
                 current.getNodeId(),
                 fileProperties.getIcon().get("folder"),
                 false,
+                null,
                 null
         );
         myFileUtils.createFolder(fileNode.getFilePath());
@@ -210,6 +218,7 @@ public class FileServiceImpl implements FileService {
                 0L,
                 fileProperties.getIcon().get("folder"),
                 false,
+                null,
                 null
         );
         myFileUtils.createFolder(fileNode.getFilePath());
@@ -222,10 +231,26 @@ public class FileServiceImpl implements FileService {
         List<FileDTO> files = new ArrayList<>();
         List<FileDTO> folders = new ArrayList<>();
         for (FileNode f : list) {
+            FileDTO fileDTO = new FileDTO(f);
             if (f.isFolder()) {
-                folders.add(new FileDTO(f));
+                folders.add(fileDTO);
             } else {
-                files.add(new FileDTO(f));
+                if (isImage(f.getContentType())) {
+                    if (f.getBase64() == null) {
+//                    String srcPath = fileProperties.getRootDir() + f.getStorePath();
+//                    String desPath = fileProperties.getTmpPath() + "/tmp.jpg";
+//                    String base64 = myFileUtils.commpressPicForScale(srcPath,desPath,50,0.7);
+//                        Query query = new Query();
+//                        query.addCriteria(Criteria.where("userId").is(f.getUserId()));
+//                        query.addCriteria(Criteria.where("nodeId").is(f.getNodeId()));
+//                        Update update = new Update();
+//                        update.set("base64", base64);
+//                        mongoTemplate.findAndModify(query, update, FileNode.class);
+                        fileDTO.setBase64(f.getBase64());
+                    }
+                    fileDTO.setBase64(f.getBase64());
+                }
+                files.add(fileDTO);
             }
         }
         Collections.sort(files, typeComparator);
@@ -376,14 +401,14 @@ public class FileServiceImpl implements FileService {
         query.addCriteria(Criteria.where("userId").is(userId));
         query.addCriteria(Criteria.where("nodeId").is(nodeId));
         FileNode fileNode = mongoTemplate.findOne(query, FileNode.class, FILE_COLLECTION);
-        File file = new File(fileNode.getStorePath());
+        File file = new File(fileProperties.getRootDir() + fileNode.getStorePath());
         if (fileNode.isFolder()) {
             List<FileNode> list = nodeRepository.getSubTree(userId, nodeId, null).get(0).getDescendants();
             System.out.println(list);
             for (FileNode fn : list) {
                 Query q = new Query();
-                q.addCriteria(Criteria.where("userId").is(userId));
-                q.addCriteria(Criteria.where("nodeId").is(nodeId));
+                q.addCriteria(Criteria.where("userId").is(fn.getUserId()));
+                q.addCriteria(Criteria.where("nodeId").is(fn.getNodeId()));
                 mongoTemplate.remove(q, FILE_COLLECTION);
             }
             mongoTemplate.remove(query, FILE_COLLECTION);
@@ -395,12 +420,10 @@ public class FileServiceImpl implements FileService {
         return true;
     }
 
-//    @Override
-//    public boolean deleteDescendants(FileNode fileNode) {
-//        if(fileNode.getDescendants() == null){
-//            mongoTemplate.remove()
-//        }
-//    }
+    @Override
+    public boolean isImage(String contentType) {
+        return fileProperties.getIcon().get("picture").equals(contentType);
+    }
 
 
 }

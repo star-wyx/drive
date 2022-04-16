@@ -1,11 +1,13 @@
 package com.netdisk.service.impl;
 
+import com.netdisk.config.FileProperties;
 import com.netdisk.module.DTO.FileDTO;
 import com.netdisk.module.DTO.ParamDTO;
 import com.netdisk.module.FileNode;
 import com.netdisk.module.User;
 import com.netdisk.service.FileService;
 import com.netdisk.service.UserService;
+import com.netdisk.util.MyFileUtils;
 import com.netdisk.util.TypeComparator;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +37,12 @@ class FileServiceImplTest {
 
     @Autowired
     MongoTemplate mongoTemplate;
+
+    @Autowired
+    MyFileUtils myFileUtils;
+
+    @Autowired
+    FileProperties fileProperties;
 
     @Test
     public void test() {
@@ -68,14 +76,18 @@ class FileServiceImplTest {
             for (FileNode fileNode : list) {
                 Update update = new Update();
                 update.set("storePath", fileNode.getFilePath());
-                mongoTemplate.save(fileNode,FileServiceImpl.FILE_COLLECTION);
+                mongoTemplate.save(fileNode, FileServiceImpl.FILE_COLLECTION);
             }
         }
     }
 
     @Test
-    public void addMd5(){
-        Query query = new Query(Criteria.where("userId").is(2));
-
+    public void base64() {
+        String srcPath = "/tom/20211024_192750.jpg";
+//        System.out.println(myFileUtils.encodeFileToBase64BinaryWithImageSize(srcPath, 1L));
+        System.out.println(myFileUtils.commpressPicForScale(srcPath,
+                fileProperties.getTmpPath() + "/1.jpg",
+                50,
+                0.7));
     }
 }
