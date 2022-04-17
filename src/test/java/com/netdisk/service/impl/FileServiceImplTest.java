@@ -83,11 +83,33 @@ class FileServiceImplTest {
 
     @Test
     public void base64() {
-        String srcPath = "/tom/20211024_192750.jpg";
-//        System.out.println(myFileUtils.encodeFileToBase64BinaryWithImageSize(srcPath, 1L));
-        System.out.println(myFileUtils.commpressPicForScale(srcPath,
-                fileProperties.getTmpPath() + "/1.jpg",
-                50,
-                0.7));
+        Long userId = 2L;
+        Query query = new Query();
+        query.addCriteria(Criteria.where("userId").is(userId));
+        List<FileNode> list = mongoTemplate.find(query, FileNode.class, FileServiceImpl.FILE_COLLECTION);
+        for (FileNode fileNode : list) {
+            if (fileNode.getContentType().equals(fileProperties.getIcon().get("picture"))) {
+                String srcPath = fileProperties.getRootDir() + fileNode.getStorePath();
+                String desPath = fileProperties.getTmpPath() + "/tmp.jpg";
+                query = new Query();
+                query.addCriteria(Criteria.where("userId").is(userId));
+                query.addCriteria(Criteria.where("nodeId").is(fileNode.getNodeId()));
+                Update update = new Update();
+                String base64 = myFileUtils.commpressPicForScale(srcPath,
+                        desPath,
+                        50,
+                        0.7);
+                update.set("base64", base64);
+                mongoTemplate.findAndModify(query, update, FileNode.class);
+            }
+        }
+    }
+
+    @Test
+    public void sortFileNode() {
+        User user = userService.getUserById(2L);
+        List<List> lists = fileService.queryFolderContent(user, 1L);
+        List<FileNode> files = lists.get(1);
+        files.sort(typeComparator);
     }
 }

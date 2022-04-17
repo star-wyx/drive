@@ -8,6 +8,7 @@ import com.netdisk.module.User;
 import com.netdisk.service.ChunkService;
 import com.netdisk.service.FileService;
 import com.netdisk.service.UserService;
+import com.netdisk.util.MyFileUtils;
 import org.apache.commons.io.FileUtils;
 import org.checkerframework.checker.units.qual.C;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -309,7 +310,8 @@ public class ChunkServiceImpl implements ChunkService {
     }
 
     @Override
-    public void vOpen(String range, HttpServletRequest request, HttpServletResponse response) {
+    public void vOpen(HttpServletRequest request, HttpServletResponse response) {
+        String range = request.getHeader("Range");
         String url = null;
         try {
             url = URLDecoder.decode(request.getRequestURL().toString(), "UTF-8");
@@ -317,12 +319,17 @@ public class ChunkServiceImpl implements ChunkService {
             e.printStackTrace();
         }
         String md5 = null;
-        md5 = url.substring(url.lastIndexOf("vdownload/") + "vdownload".length() + 1);
+        md5 = url.substring(url.lastIndexOf("/") + 1);
 
         FileNode fileNode = fileService.checkMd5(md5);
         if (fileNode == null) {
             return;
+        }else if(range == null){
+            vOpenPdf(fileNode,request,response);
+            return;
         }
+
+
 
         String storePath = fileProperties.getRootDir() + fileNode.getStorePath();
 
@@ -333,7 +340,8 @@ public class ChunkServiceImpl implements ChunkService {
         }
 
         String fileName = fileNode.getFileName();
-        String contentType = request.getServletContext().getMimeType(file.getName());
+//        String contentType = request.getServletContext().getMimeType(file.getName());
+        String contentType = MyFileUtils.getMimeType(file);
 
 
         long endByte = file.length() - 1;
@@ -389,7 +397,7 @@ public class ChunkServiceImpl implements ChunkService {
         try {
             randomAccessFile = new RandomAccessFile(file, "r");
             outputStream = new BufferedOutputStream(response.getOutputStream());
-            byte[] buff = new byte[2048];
+            byte[] buff = new byte[2097152];
             int len = 0;
             randomAccessFile.seek(startByte);
             len = randomAccessFile.read(buff);
@@ -406,6 +414,60 @@ public class ChunkServiceImpl implements ChunkService {
                 if (randomAccessFile != null) {
                     randomAccessFile.close();
                 }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Override
+    public void vOpenPdf(FileNode fileNode, HttpServletRequest request, HttpServletResponse response) {
+        String storePath = fileProperties.getRootDir() + fileNode.getStorePath();
+        File file = new File(storePath);
+        if (!file.exists()) {
+            System.out.println("Not exist!");
+            return;
+        }
+
+        String fileName = fileNode.getFileName();
+        String contentType = request.getServletContext().getMimeType(file.getName());
+
+
+        long endByte = file.length() - 1;
+        long startByte = 0L;
+
+        long contentLength = endByte - startByte + 1;
+        response.setHeader("Content-Length", String.valueOf(contentLength));
+
+        try {
+            response.setHeader("Content-Disposition", "inline;filename=" + URLEncoder.encode(fileName, "UTF-8"));
+            response.setStatus(response.SC_OK);
+            response.setHeader("Content-Length", String.valueOf(file.length()));
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        response.setHeader("Content-Type", contentType);
+        response.setContentType(contentType);
+
+        OutputStream os = null;
+        BufferedInputStream bis = null;
+        try {
+            bis = new BufferedInputStream(new FileInputStream(file));
+            byte[] buff = new byte[1024];
+            os = response.getOutputStream();
+            int i = 0;
+            while ((i = bis.read(buff)) != 1) {
+                os.write(buff, 0, i);
+                os.flush();
+            }
+            response.flushBuffer();
+            os.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                bis.close();
+                os.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }

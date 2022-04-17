@@ -130,7 +130,7 @@ public class FileServiceImpl implements FileService {
     @Override
     public String availableFileName(User user, Long nodeId, String fileName) {
         String suffix = fileName.substring(fileName.lastIndexOf("."));
-        String reallyName = fileName.substring(0, fileName.lastIndexOf("."));
+        String prefix = fileName.substring(0, fileName.lastIndexOf("."));
         StringBuilder sb = new StringBuilder();
         sb.append(fileName);
         int i = 1;
@@ -140,7 +140,7 @@ public class FileServiceImpl implements FileService {
                 break;
             } else {
                 sb = new StringBuilder();
-                sb.append(reallyName).append("(").append(i).append(")").append(suffix);
+                sb.append(prefix).append(" (").append(i).append(")").append(suffix);
                 i++;
             }
         }
@@ -167,8 +167,9 @@ public class FileServiceImpl implements FileService {
         );
         if (isImage(fileNode.getContentType())) {
             String srcPath = fileProperties.getRootDir() + fileNode.getStorePath();
-            String desPath = fileProperties.getTmpPath() + "/"+UUID.randomUUID();
-            fileNode.setBase64(myFileUtils.commpressPicForScale(srcPath,desPath, 50,0.7));
+            String suffix = fileName.substring(fileName.lastIndexOf("."));
+            String desPath = fileProperties.getTmpPath() + "/" + UUID.randomUUID() + suffix;
+            fileNode.setBase64(myFileUtils.commpressPicForScale(srcPath, desPath, 50, 0.7));
         }
         mongoTemplate.save(fileNode, FILE_COLLECTION);
     }
@@ -359,9 +360,9 @@ public class FileServiceImpl implements FileService {
             fileDTO.setFileName(fileNode.getFileName());
             fileDTO.setFilePath(fileNode.getFilePath());
             if (queryFolderContent(user, fileNode.getNodeId()).get(0).size() == 0) {
-                fileDTO.setLeaf(true);
+                fileDTO.setIsLeaf(true);
             } else {
-                fileDTO.setLeaf(false);
+                fileDTO.setIsLeaf(false);
             }
             res.add(fileDTO);
         }

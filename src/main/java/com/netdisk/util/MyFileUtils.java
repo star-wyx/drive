@@ -14,6 +14,7 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.math.BigDecimal;
+import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -147,6 +148,20 @@ public final class MyFileUtils {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Thumbnails.of(file).scale(1f).outputQuality(0).toOutputStream(baos);
         return Base64.getEncoder().encodeToString(baos.toByteArray());
+    }
+
+
+    public static String getMimeType(File file){
+        InputStream is = null;
+        String res = null;
+        try {
+            is = new BufferedInputStream(new FileInputStream(file));
+            res =  URLConnection.guessContentTypeFromStream(is);
+            is.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return res;
     }
 
 }

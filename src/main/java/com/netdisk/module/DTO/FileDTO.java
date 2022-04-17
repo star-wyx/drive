@@ -30,7 +30,7 @@ public class FileDTO {
     @JsonProperty("content_type")
     private String contentType;
     @JsonProperty("is_Leaf")
-    private boolean isLeaf;
+    private Boolean isLeaf = null;
     @JsonProperty("base64")
     private String base64;
     @JsonProperty("isFavorite")
@@ -42,6 +42,9 @@ public class FileDTO {
         this.filePath = fileNode.getFilePath();
         this.contentType = fileNode.getContentType();
         this.isFavorite = fileNode.isFavorites();
+        if(fileNode.getBase64() != null){
+            this.base64 = fileNode.getBase64();
+        }
     }
 
     public static List<FileDTO> listConvert(List<FileNode> fileNodes) {

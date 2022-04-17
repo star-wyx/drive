@@ -11,6 +11,7 @@ import com.netdisk.service.impl.FileServiceImpl;
 import com.netdisk.util.AssemblyResponse;
 import com.netdisk.util.Response;
 import io.swagger.annotations.Api;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -28,7 +29,7 @@ import java.net.URLEncoder;
 
 @Api(value = "上传下载")
 @Controller
-
+@Slf4j
 @CrossOrigin(origins = "http://192.168.1.169:9070", allowCredentials = "true")
 public class TransferController {
 
@@ -72,9 +73,12 @@ public class TransferController {
             return assembly.fail(453, null);
         }
         String contentType = fileName.substring(fileName.lastIndexOf(".") + 1);
+        if(!fileProperties.getIcon().containsKey(contentType)){
+            contentType = fileProperties.getOtherIcon();
+        }
         Long serialNo = chunkService.createTask(md5, uuid, userId, nodeId, fileName);
         res.setSliceNo(serialNo);
-        res.setContentType(fileProperties.getIcon().get(contentType));
+        res.setContentType(contentType);
         return assembly.success(res);
     }
 
@@ -162,8 +166,8 @@ public class TransferController {
 
     @GetMapping(value = "vopen/**")
     public void vopen(
-            @RequestHeader(value = "Range") String range, HttpServletRequest request, HttpServletResponse response) {
-        chunkService.vOpen(range, request, response);
+            HttpServletRequest request, HttpServletResponse response) {
+        chunkService.vOpen(request, response);
     }
 
 
