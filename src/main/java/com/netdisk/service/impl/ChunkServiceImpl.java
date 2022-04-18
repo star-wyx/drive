@@ -9,6 +9,7 @@ import com.netdisk.service.ChunkService;
 import com.netdisk.service.FileService;
 import com.netdisk.service.UserService;
 import com.netdisk.util.MyFileUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.checkerframework.checker.units.qual.C;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,8 +26,10 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.util.Locale;
 
 @Service
+@Slf4j
 public class ChunkServiceImpl implements ChunkService {
 
     public static final String CHUNK_COLLECTION = "chunk";
@@ -125,7 +128,7 @@ public class ChunkServiceImpl implements ChunkService {
             e.printStackTrace();
         }
 
-        fileService.insertFileNode(user, chunk.getNodeId(), availableFileName, md5);
+        fileService.insertFileNode(user, chunk.getNodeId(), availableFileName, md5, fileService.getPrintSize(newFile.length()));
         return 200;
     }
 
@@ -311,6 +314,7 @@ public class ChunkServiceImpl implements ChunkService {
 
     @Override
     public void vOpen(HttpServletRequest request, HttpServletResponse response) {
+        log.info("++++++++++++++ enter vOpen method");
         String range = request.getHeader("Range");
         String url = null;
         try {
@@ -324,11 +328,14 @@ public class ChunkServiceImpl implements ChunkService {
         FileNode fileNode = fileService.checkMd5(md5);
         if (fileNode == null) {
             return;
-        }else if(range == null){
-            vOpenPdf(fileNode,request,response);
+        } else if (range == null) {
+            vOpenPdf(fileNode, request, response);
             return;
         }
 
+        if(fileNode.getFileName().substring(fileNode.getFileName().lastIndexOf(".")+1).equalsIgnoreCase("mkv")){
+
+        }
 
 
         String storePath = fileProperties.getRootDir() + fileNode.getStorePath();
@@ -422,6 +429,7 @@ public class ChunkServiceImpl implements ChunkService {
 
     @Override
     public void vOpenPdf(FileNode fileNode, HttpServletRequest request, HttpServletResponse response) {
+        log.info("==================enter vOpenPdf===================");
         String storePath = fileProperties.getRootDir() + fileNode.getStorePath();
         File file = new File(storePath);
         if (!file.exists()) {
@@ -453,10 +461,11 @@ public class ChunkServiceImpl implements ChunkService {
         BufferedInputStream bis = null;
         try {
             bis = new BufferedInputStream(new FileInputStream(file));
-            byte[] buff = new byte[1024];
+            byte[] buff = new byte[1024000];
             os = response.getOutputStream();
             int i = 0;
-            while ((i = bis.read(buff)) != 1) {
+            while (i != -1) {
+                i = bis.read(buff);
                 os.write(buff, 0, i);
                 os.flush();
             }

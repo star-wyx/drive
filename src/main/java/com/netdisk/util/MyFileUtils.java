@@ -1,6 +1,16 @@
 package com.netdisk.util;
 
 import com.netdisk.config.FileProperties;
+import lombok.extern.slf4j.Slf4j;
+import net.bramp.ffmpeg.FFmpeg;
+import net.bramp.ffmpeg.FFmpegExecutor;
+import net.bramp.ffmpeg.FFmpegUtils;
+import net.bramp.ffmpeg.FFprobe;
+import net.bramp.ffmpeg.builder.FFmpegBuilder;
+import net.bramp.ffmpeg.job.FFmpegJob;
+import net.bramp.ffmpeg.probe.FFmpegProbeResult;
+import net.bramp.ffmpeg.progress.Progress;
+import net.bramp.ffmpeg.progress.ProgressListener;
 import net.coobird.thumbnailator.Thumbnails;
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,8 +29,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Base64;
+import java.util.concurrent.TimeUnit;
 
 @Component
+@Slf4j
 public final class MyFileUtils {
 
     @Autowired
@@ -93,7 +105,7 @@ public final class MyFileUtils {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return desPath;
+        return null;
     }
 
     public void commpressPicCycle(String desPath, long desFileSize,
@@ -162,6 +174,56 @@ public final class MyFileUtils {
             e.printStackTrace();
         }
         return res;
+    }
+
+    /**
+     * 转换任意格式的视频为 mp4 格式的视频
+     *
+     * @param src  源视频文件
+     * @param dest 保存 mp4 视频的文件
+     * @throws IOException
+     */
+    public static void convertToMp4(File src, File dest) throws IOException {
+        FFmpeg ffmpeg  = new FFmpeg("/opt/homebrew/Cellar/ffmpeg/5.0.1/bin/ffmpeg");
+        FFprobe ffprobe = new FFprobe("/opt/homebrew/Cellar/ffmpeg/5.0.1/bin/ffprobe");
+        FFmpegProbeResult in = ffprobe.probe(src.getAbsolutePath());
+
+        FFmpegBuilder builder = new FFmpegBuilder()
+                .overrideOutputFiles(true) // Override the output if it exists
+                .setInput(in)
+                .addOutput(dest.getAbsolutePath())
+                .setFormat("mp4")                  // Format is inferred from filename, or can be set
+                .setVideoCodec("libx264")          // Video using x264
+                .setVideoFrameRate(24, 1)          // At 24 frames per second
+                // .setVideoResolution(width, height) // At 1280x720 resolution (宽高必须都能被 2 整除)
+                .setAudioCodec("aac")              // Using the aac codec
+                .setStrict(FFmpegBuilder.Strict.EXPERIMENTAL) // Allow FFmpeg to use experimental specs (ex. aac)
+                .done();
+
+        FFmpegExecutor executor = new FFmpegExecutor(ffmpeg, ffprobe);
+        FFmpegJob job = executor.createJob(builder, new ProgressListener() {
+            // 使用 FFmpegProbeResult 得到视频的长度 (单位为纳秒)
+            final double duration_ns = in.getFormat().duration * TimeUnit.SECONDS.toNanos(1);
+
+            @Override
+            public void progress(Progress progress) {
+                // 转换进度 [0, 100]
+                // [Fix] No duration for FLV, SWF file, 所以获取进度无效时都假装转换到了 99%
+                int percentage = (duration_ns > 0) ? (int)(progress.out_time_ns / duration_ns * 100) : 99;
+
+                // 日志中输出转换进度信息
+                log.debug("[{}%] status: {}, frame: {}, time: {} ms, fps: {}, speed: {}x",
+                        percentage,
+                        progress.status,
+                        progress.frame,
+                        FFmpegUtils.toTimecode(progress.out_time_ns, TimeUnit.NANOSECONDS),
+                        progress.fps.doubleValue(),
+                        progress.speed
+                );
+            }
+        });
+
+        job.run();
     }
 
 }

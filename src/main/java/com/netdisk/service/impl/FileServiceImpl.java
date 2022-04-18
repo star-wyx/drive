@@ -29,6 +29,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.crypto.Cipher;
 import java.io.*;
+import java.math.BigDecimal;
+import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 
@@ -112,6 +115,8 @@ public class FileServiceImpl implements FileService {
                     fileType,
                     false,
                     md5,
+                    null,
+                    null,
                     null
             );
             FileNode origin = checkMd5(md5);
@@ -147,7 +152,7 @@ public class FileServiceImpl implements FileService {
         return sb.toString();
     }
 
-    public void insertFileNode(User user, Long nodeId, String fileName, String md5) {
+    public void insertFileNode(User user, Long nodeId, String fileName, String md5, String size) {
         FileNode folder = queryFolderById(user.getUserId(), nodeId);
         String fileType = fileName.substring(fileName.lastIndexOf(".") + 1);
         fileType = fileProperties.getIcon().containsKey(fileType) ? fileProperties.getIcon().get(fileType) : fileProperties.getOtherIcon();
@@ -163,7 +168,9 @@ public class FileServiceImpl implements FileService {
                 fileType,
                 false,
                 md5,
-                null
+                null,
+                size,
+                getTime()
         );
         if (isImage(fileNode.getContentType())) {
             String srcPath = fileProperties.getRootDir() + fileNode.getStorePath();
@@ -198,7 +205,9 @@ public class FileServiceImpl implements FileService {
                 fileProperties.getIcon().get("folder"),
                 false,
                 null,
-                null
+                null,
+                null,
+                getTime()
         );
         myFileUtils.createFolder(fileNode.getFilePath());
         mongoTemplate.save(fileNode, FILE_COLLECTION);
@@ -220,7 +229,9 @@ public class FileServiceImpl implements FileService {
                 fileProperties.getIcon().get("folder"),
                 false,
                 null,
-                null
+                null,
+                null,
+                getTime()
         );
         myFileUtils.createFolder(fileNode.getFilePath());
         mongoTemplate.save(fileNode, FILE_COLLECTION);
@@ -424,6 +435,59 @@ public class FileServiceImpl implements FileService {
     @Override
     public boolean isImage(String contentType) {
         return fileProperties.getIcon().get("picture").equals(contentType);
+    }
+
+    @Override
+    public String getPrintSize(long size) {
+
+        int GB = 1024 * 1024 * 1024;//定义GB的计算常量
+        int MB = 1024 * 1024;//定义MB的计算常量
+        int KB = 1024;//定义KB的计算常量
+        try {
+            // 格式化小数
+            DecimalFormat df = new DecimalFormat("0.00");
+            String resultSize = "";
+            if (size / GB >= 1) {
+
+                //如果当前Byte的值大于等于1GB
+                resultSize = df.format(size / (float) GB) + "GB";
+            } else if (size / MB >= 1) {
+
+                //如果当前Byte的值大于等于1MB
+                resultSize = df.format(size / (float) MB) + "MB";
+            } else if (size / KB >= 1) {
+
+                //如果当前Byte的值大于等于1KB
+                resultSize = df.format(size / (float) KB) + "KB";
+            } else {
+
+                resultSize = size + "B";
+            }
+            return resultSize;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @Override
+    public String getTime() {
+        Date date = new Date();
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+        return formatter.format(date);
+    }
+
+    @Override
+    public ParamDTO getDetail(Long userId, Long nodeId) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("userId").is(userId));
+        query.addCriteria(Criteria.where("nodeId").is(nodeId));
+        FileNode fileNode = mongoTemplate.findOne(query, FileNode.class, FILE_COLLECTION);
+        ParamDTO paramDTO = new ParamDTO();
+        paramDTO.setSize(fileNode.getFileSize());
+        paramDTO.setContentType(fileNode.getFileName().substring(fileNode.getFileName().lastIndexOf(".")+1));
+        paramDTO.setUploadTime(fileNode.getUploadTime());
+        paramDTO.setFilename(fileNode.getFilePath());
+        return paramDTO;
     }
 
 

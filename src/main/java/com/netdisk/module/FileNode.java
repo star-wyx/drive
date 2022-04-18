@@ -7,6 +7,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.stereotype.Component;
 
+import java.util.Date;
 import java.util.List;
 
 
@@ -29,6 +30,8 @@ public class FileNode implements Comparable<FileNode> {
     private boolean isFavorites;
     private String md5;
     private String base64;
+    private String fileSize;
+    private String uploadTime;
 
 
 

@@ -121,6 +121,14 @@
             <version>0.4.17</version>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/net.bramp.ffmpeg/ffmpeg -->
+        <dependency>
+            <groupId>net.bramp.ffmpeg</groupId>
+            <artifactId>ffmpeg</artifactId>
+            <version>0.7.0</version>
+        </dependency>
+
+
     </dependencies>
 
     <build>

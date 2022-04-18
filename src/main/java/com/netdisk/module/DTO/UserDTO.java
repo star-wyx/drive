@@ -17,8 +17,10 @@ public class UserDTO {
     private String userEmail;
     @JsonProperty("message")
     private String message;
+    @JsonProperty("user_id")
+    private String userId;
 
     public User ToUser(Long userId){
-        return new User(userId,this.userName,this.userPwd,this.userEmail);
+        return new User(userId,this.userName,this.userPwd,this.userEmail,null);
     }
 }

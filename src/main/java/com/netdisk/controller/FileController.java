@@ -68,26 +68,6 @@ public class FileController {
         return assembly.success(fileService.queryFolderContent(user,paramDTO.getNodeId()));
     }
 
-    /**
-     * 上传文件，并存储在相应位置
-     * @param files 文件
-     * userId, nodeId
-     */
-    @PostMapping(value = "/upload")
-    @ResponseBody
-    public Response uploadFile(@RequestParam("files") MultipartFile[] files,
-                               @RequestParam("user_id") Long userId,
-                               @RequestParam("node_id") Long nodeId
-                               ){
-        AssemblyResponse<String> assembly = new AssemblyResponse<>();
-        User user = userService.getUserById(userId);
-        if (files[0].isEmpty()) {
-            return assembly.fail(450, "empty file");
-        }
-        fileService.uploadFile(user,nodeId,files);
-        return assembly.success("upload successfully");
-    }
-
 
     /**
      * 根据浏览目录，返回各级目录的id和路径
@@ -229,5 +209,16 @@ public class FileController {
         }else{
             return assembly.fail(404,"fail to delete");
         }
+    }
+
+    /**
+     * 查看文件详细信息
+     */
+    @GetMapping(value = "detail")
+    @ResponseBody
+    public Response detail(@RequestParam(value = "user_id") long userId,
+                           @RequestParam(value = "node_id") long nodeId){
+        AssemblyResponse<ParamDTO> assembly = new AssemblyResponse<>();
+        return assembly.success(fileService.getDetail(userId,nodeId));
     }
 }

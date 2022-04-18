@@ -15,4 +15,5 @@ public class User {
     private String userName;
     private String userPwd;
     private String userEmail;
+    private String base64;
 }

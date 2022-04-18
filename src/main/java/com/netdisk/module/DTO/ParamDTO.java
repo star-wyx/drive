@@ -82,10 +82,10 @@ public class ParamDTO {
     String md5;
 
     /**
-     * 文件大小
+     * 文件大小, 单位KB,MB,GB
      */
     @JsonProperty("size")
-    Long size;
+    String size;
 
     /**
      * 文件类型
@@ -116,4 +116,11 @@ public class ParamDTO {
      */
     @JsonProperty("sliceNo")
     Long sliceNo;
+
+    /**
+     * 文件上传时间
+     */
+    @JsonProperty("upload_time")
+    String uploadTime;
+
 }

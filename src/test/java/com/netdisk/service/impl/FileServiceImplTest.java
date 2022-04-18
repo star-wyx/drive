@@ -46,7 +46,7 @@ class FileServiceImplTest {
 
     @Test
     public void test() {
-        User user = new User(null, "wyx", "123", "@qq.com");
+        User user = new User(null, "wyx", "123", "@qq.com",null);
 //        fileService.createUserFile(user);
     }
 

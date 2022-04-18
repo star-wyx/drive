@@ -167,6 +167,7 @@ public class TransferController {
     @GetMapping(value = "vopen/**")
     public void vopen(
             HttpServletRequest request, HttpServletResponse response) {
+        log.info("Enter vop controller ================");
         chunkService.vOpen(request, response);
     }
 

@@ -3,6 +3,7 @@ package com.netdisk.service;
 import com.netdisk.module.DTO.UserDTO;
 import com.netdisk.module.User;
 import com.netdisk.util.Response;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
@@ -34,4 +35,14 @@ public interface UserService {
      * 根据用户id查询用户
      */
     User getUserById(Long userId);
+
+    /**
+     * 上传头像
+     */
+    int uploadPicture(MultipartFile file, Long userId);
+
+    /**
+     * 修改密码
+     */
+    int updatePwd(Long userId, String newPwd, String oldPwd);
 }

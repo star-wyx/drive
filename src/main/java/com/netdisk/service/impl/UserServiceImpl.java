@@ -1,16 +1,23 @@
 package com.netdisk.service.impl;
 
+import com.netdisk.config.FileProperties;
 import com.netdisk.module.DTO.UserDTO;
 import com.netdisk.module.User;
 import com.netdisk.service.SeqService;
 import com.netdisk.service.UserService;
 import com.netdisk.util.AssemblyResponse;
+import com.netdisk.util.MyFileUtils;
 import com.netdisk.util.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.File;
+import java.io.IOException;
 
 
 @Service
@@ -23,6 +30,12 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private SeqService seqService;
+
+    @Autowired
+    private FileProperties fileProperties;
+
+    @Autowired
+    private MyFileUtils myFileUtils;
 
     @Override
     public Response<Object> login(String userName, String pwd) {
@@ -83,6 +96,48 @@ public class UserServiceImpl implements UserService {
     public User getUserById(Long userId) {
         Query query = new Query();
         query.addCriteria(Criteria.where("userId").is(userId));
-        return mongoTemplate.findOne(query,User.class,USER_COLLECTION);
+        return mongoTemplate.findOne(query, User.class, USER_COLLECTION);
+    }
+
+    @Override
+    public int uploadPicture(MultipartFile file, Long userId) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("userId").is(userId));
+        User user = mongoTemplate.findOne(query, User.class, USER_COLLECTION);
+        File folder = new File(fileProperties.getProfileDir());
+        String suffix = file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf("."));
+        if(!folder.exists()){
+            folder.mkdirs();
+        }
+        File picture = new File(folder,user.getUserName()+suffix);
+        if(picture.exists()){
+            picture.delete();
+        }
+        try {
+            file.transferTo(picture);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return 400;
+        }
+        Update update = new Update();
+        String desPath = fileProperties.getProfileDir() + "/" + user.getUserId() + suffix;
+        update.set("base64", myFileUtils.commpressPicForScale(picture.getAbsolutePath(), desPath, 50, 0.7));
+        mongoTemplate.findAndModify(query,update,User.class,USER_COLLECTION);
+        return 200;
+    }
+
+    @Override
+    public int updatePwd(Long userId, String newPwd, String oldPwd) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("userId").is(userId));
+        query.addCriteria(Criteria.where("userPwd").is(oldPwd));
+        User user = mongoTemplate.findOne(query, User.class, USER_COLLECTION);
+        if(user == null){
+            return 401;
+        }
+        Update update = new Update();
+        update.set("userPwd", newPwd);
+        mongoTemplate.findAndModify(query,update,User.class);
+        return 200;
     }
 }

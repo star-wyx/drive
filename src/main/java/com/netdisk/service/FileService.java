@@ -32,7 +32,7 @@ public interface FileService {
      * 数据库中记录新文件
      * user, nodeId, fileList
      */
-    void insertFileNode(User user, Long nodeId, String fileName, String md5);
+    void insertFileNode(User user, Long nodeId, String fileName, String md5, String size);
 
     List<FileNode> sub(Long userId, Long nodeId, Long maxDepth);
 
@@ -123,4 +123,21 @@ public interface FileService {
      * 是否是图像
      */
     boolean isImage(String contentType);
+
+    /**
+     * 计算文件大小，KB,MB,GB
+     */
+    String getPrintSize(long size);
+
+    /**
+     * 获取当前时间
+     */
+    String getTime();
+
+    /**
+     * 获取文件详细信息
+     */
+    ParamDTO getDetail(Long userId, Long nodeId);
+
+
 }

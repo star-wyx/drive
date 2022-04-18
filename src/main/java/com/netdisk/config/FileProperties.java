@@ -23,6 +23,10 @@ public class FileProperties {
 
     public String tmpPath;
 
+    public String profileDir;
+
+    public String mp4Dir;
+
     public String separator;
 
     public int sliceSizeMB;
