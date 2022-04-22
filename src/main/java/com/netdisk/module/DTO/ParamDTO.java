@@ -123,4 +123,9 @@ public class ParamDTO {
     @JsonProperty("upload_time")
     String uploadTime;
 
+    /**
+     * token
+     */
+    @JsonProperty("token")
+    String token;
 }

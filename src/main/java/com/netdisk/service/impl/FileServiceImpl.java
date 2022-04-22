@@ -284,8 +284,7 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public Response queryFolderRootContent(User user) {
-        AssemblyResponse<ParamDTO> assemblyResponse = new AssemblyResponse();
+    public ParamDTO queryFolderRootContent(User user) {
         ParamDTO paramDTO = new ParamDTO();
         paramDTO.setNodeId(1L);
         paramDTO.setUserName(user.getUserName());
@@ -294,7 +293,7 @@ public class FileServiceImpl implements FileService {
         res.setUserName(user.getUserName());
         res.setUserId(user.getUserId());
         res.setContent(content);
-        return assemblyResponse.success(res);
+        return res;
     }
 
     @Override

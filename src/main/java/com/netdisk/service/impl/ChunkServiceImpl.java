@@ -4,9 +4,11 @@ import ch.qos.logback.core.util.FileUtil;
 import com.netdisk.config.FileProperties;
 import com.netdisk.module.Chunk;
 import com.netdisk.module.FileNode;
+import com.netdisk.module.Mp4;
 import com.netdisk.module.User;
 import com.netdisk.service.ChunkService;
 import com.netdisk.service.FileService;
+import com.netdisk.service.Mp4Service;
 import com.netdisk.service.UserService;
 import com.netdisk.util.MyFileUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +44,9 @@ public class ChunkServiceImpl implements ChunkService {
 
     @Autowired
     FileService fileService;
+
+    @Autowired
+    Mp4Service mp4Service;
 
     @Autowired
     UserService userService;
@@ -294,7 +299,8 @@ public class ChunkServiceImpl implements ChunkService {
             byte[] buff = new byte[1024];
             os = response.getOutputStream();
             int i = 0;
-            while ((i = bis.read(buff)) != 1) {
+            while (i != 1) {
+                i = bis.read(buff);
                 os.write(buff, 0, i);
                 os.flush();
             }
@@ -314,7 +320,6 @@ public class ChunkServiceImpl implements ChunkService {
 
     @Override
     public void vOpen(HttpServletRequest request, HttpServletResponse response) {
-        log.info("++++++++++++++ enter vOpen method");
         String range = request.getHeader("Range");
         String url = null;
         try {
@@ -326,19 +331,22 @@ public class ChunkServiceImpl implements ChunkService {
         md5 = url.substring(url.lastIndexOf("/") + 1);
 
         FileNode fileNode = fileService.checkMd5(md5);
-        if (fileNode == null) {
-            return;
-        } else if (range == null) {
+        String storePath = null;
+        String fileName = null;
+        if (range == null) {
             vOpenPdf(fileNode, request, response);
             return;
         }
 
-        if(fileNode.getFileName().substring(fileNode.getFileName().lastIndexOf(".")+1).equalsIgnoreCase("mkv")){
-
+        if (fileNode == null) {
+            Mp4 mp4 = mp4Service.queryByMd5(md5);
+            storePath = mp4.getStorePath();
+            fileName = mp4.getFileName();
+        } else {
+            storePath = fileProperties.getRootDir() + fileNode.getStorePath();
+            fileName = fileNode.getFileName();
         }
 
-
-        String storePath = fileProperties.getRootDir() + fileNode.getStorePath();
 
         File file = new File(storePath);
         if (!file.exists()) {
@@ -346,7 +354,6 @@ public class ChunkServiceImpl implements ChunkService {
             return;
         }
 
-        String fileName = fileNode.getFileName();
 //        String contentType = request.getServletContext().getMimeType(file.getName());
         String contentType = MyFileUtils.getMimeType(file);
 
@@ -461,7 +468,7 @@ public class ChunkServiceImpl implements ChunkService {
         BufferedInputStream bis = null;
         try {
             bis = new BufferedInputStream(new FileInputStream(file));
-            byte[] buff = new byte[1024000];
+            byte[] buff = new byte[1024];
             os = response.getOutputStream();
             int i = 0;
             while (i != -1) {

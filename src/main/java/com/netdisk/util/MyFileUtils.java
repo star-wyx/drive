@@ -70,11 +70,13 @@ public final class MyFileUtils {
          */
     }
 
-    public static String getMD5(String str) {
-        String slat = "&%5123***&&%%$$#@";
-        String base = str + "/" + slat;
-        String md5 = DigestUtils.md5DigestAsHex(base.getBytes());
-        return md5;
+    public static String getMD5(File file) {
+        try {
+            return DigestUtils.md5DigestAsHex(new FileInputStream(file));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
 

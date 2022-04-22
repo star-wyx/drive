@@ -4,8 +4,10 @@ import com.netdisk.config.FileProperties;
 import com.netdisk.module.DTO.FileDTO;
 import com.netdisk.module.DTO.ParamDTO;
 import com.netdisk.module.FileNode;
+import com.netdisk.module.Mp4;
 import com.netdisk.module.User;
 import com.netdisk.service.FileService;
+import com.netdisk.service.Mp4Service;
 import com.netdisk.service.UserService;
 import com.netdisk.util.MyFileUtils;
 import com.netdisk.util.TypeComparator;
@@ -43,6 +45,9 @@ class FileServiceImplTest {
 
     @Autowired
     FileProperties fileProperties;
+
+    @Autowired
+    Mp4Service mp4Service;
 
     @Test
     public void test() {
@@ -111,5 +116,11 @@ class FileServiceImplTest {
         List<List> lists = fileService.queryFolderContent(user, 1L);
         List<FileNode> files = lists.get(1);
         files.sort(typeComparator);
+    }
+
+    @Test
+    public void mp4Test(){
+        Mp4 mp4 = mp4Service.queryByMd5("66422e08315447d69943959ac8ded578");
+        System.out.println(mp4);
     }
 }

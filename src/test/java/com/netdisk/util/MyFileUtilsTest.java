@@ -20,14 +20,10 @@ class MyFileUtilsTest {
     FileProperties fileProperties;
 
     @Test
-    public void testmkv(){
+    public void testmkv() {
         File srcFile = new File(fileProperties.getRootDir() + "/tom/Restaurant to Another World S02E11.mkv");
         File desFile = new File(fileProperties.getMp4Dir() + "/tom/Restaurant to Another World S02E11.mp4");
-        try {
-            MyFileUtils.convertToMp4(srcFile,desFile);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        MyFileUtils.convertToMp4(srcFile, desFile);
     }
 
 

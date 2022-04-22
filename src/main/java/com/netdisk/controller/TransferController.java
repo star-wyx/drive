@@ -3,12 +3,11 @@ package com.netdisk.controller;
 import com.netdisk.config.FileProperties;
 import com.netdisk.module.DTO.ParamDTO;
 import com.netdisk.module.FileNode;
-import com.netdisk.service.ChunkService;
-import com.netdisk.service.FileService;
-import com.netdisk.service.SeqService;
-import com.netdisk.service.UserService;
+import com.netdisk.module.Mp4;
+import com.netdisk.service.*;
 import com.netdisk.service.impl.FileServiceImpl;
 import com.netdisk.util.AssemblyResponse;
+import com.netdisk.util.MyFileUtils;
 import com.netdisk.util.Response;
 import io.swagger.annotations.Api;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +16,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -46,6 +46,9 @@ public class TransferController {
     private SeqService seqService;
 
     @Autowired
+    private Mp4Service mp4Service;
+
+    @Autowired
     private FileProperties fileProperties;
 
     @Autowired
@@ -73,7 +76,7 @@ public class TransferController {
             return assembly.fail(453, null);
         }
         String contentType = fileName.substring(fileName.lastIndexOf(".") + 1);
-        if(!fileProperties.getIcon().containsKey(contentType)){
+        if (!fileProperties.getIcon().containsKey(contentType)) {
             contentType = fileProperties.getOtherIcon();
         }
         Long serialNo = chunkService.createTask(md5, uuid, userId, nodeId, fileName);
@@ -162,6 +165,58 @@ public class TransferController {
         FileNode fileNode = fileService.queryFolderById(userId, nodeId);
         AssemblyResponse<String> assembly = new AssemblyResponse<>();
         return assembly.success(fileNode.getMd5());
+    }
+
+    @GetMapping("/file/getOpenMd5")
+    @ResponseBody
+    public Response getOpenMd5(@RequestParam(value = "user_id") Long userId,
+                               @RequestParam(value = "node_id") Long nodeId) {
+        FileNode fileNode = fileService.queryFolderById(userId, nodeId);
+        AssemblyResponse<String> assembly = new AssemblyResponse<>();
+        String fileName = fileNode.getFileName();
+        String suffix = fileName.substring(fileName.lastIndexOf(".") + 1);
+        if (fileNode.getContentType().equals(fileProperties.getIcon().get("film"))
+                && !suffix.equalsIgnoreCase("mp4")) {
+            Mp4 mp4 = mp4Service.queryByOtherMd5(fileNode.getMd5());
+            if(mp4!=null){
+                return assembly.success(mp4.getMd5());
+            }
+            return assembly.fail(300, "not a mp4 file");
+        } else {
+            return assembly.success(fileNode.getMd5());
+        }
+    }
+
+    @GetMapping("/file/transcode")
+    @ResponseBody
+    public Response transcode(@RequestParam(value = "user_id") Long userId,
+                              @RequestParam(value = "node_id") Long nodeId) {
+        FileNode fileNode = fileService.queryFolderById(userId, nodeId);
+        AssemblyResponse<String> assembly = new AssemblyResponse<>();
+        String fileName = fileNode.getFileName();
+        String suffix = fileName.substring(fileName.lastIndexOf(".") + 1);
+        if (!suffix.equalsIgnoreCase("mp4")) {
+            String storePath = fileProperties.getRootDir() + fileNode.getStorePath();
+            String filePath = fileNode.getFilePath();
+            File file = new File(storePath);
+            File folder = new File(fileProperties.getMp4Dir() + File.separator + filePath.substring(0, filePath.lastIndexOf("/")));
+            if (!folder.exists()) {
+                folder.mkdirs();
+            }
+            String mp4Path = fileProperties.getMp4Dir() + File.separator + filePath.substring(0, filePath.lastIndexOf("/")) + File.separator + fileName.substring(0, fileName.lastIndexOf(".")) + ".mp4";
+            File mp4 = new File(mp4Path);
+            if (!mp4.exists()) {
+                try {
+                    MyFileUtils.convertToMp4(file, mp4);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            String md5 = MyFileUtils.getMD5(mp4);
+            mp4Service.add(mp4.getName(), md5, mp4.getAbsolutePath(), fileNode.getMd5());
+            return assembly.success(md5);
+        }
+        return assembly.fail(301, "no need to transcode");
     }
 
     @GetMapping(value = "vopen/**")

@@ -7,6 +7,7 @@ import com.netdisk.service.FileService;
 import com.netdisk.service.SeqService;
 import com.netdisk.service.UserService;
 import com.netdisk.util.AssemblyResponse;
+import com.netdisk.util.JwtUtil;
 import com.netdisk.util.Response;
 import io.swagger.annotations.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,7 +46,12 @@ public class UserController {
         if (res.getCode() != 200) {
             return res;
         } else {
-            return fileService.queryFolderRootContent((User) res.getData());
+            User user = (User) res.getData();
+            AssemblyResponse<ParamDTO> assembly = new AssemblyResponse<>();
+            ParamDTO paramDTO = fileService.queryFolderRootContent(user);
+            String token = JwtUtil.sign(user.getUserId(),user.getUserPwd());
+            paramDTO.setToken(token);
+            return assembly.success(paramDTO);
         }
     }
 
@@ -97,4 +103,14 @@ public class UserController {
             return assembly.fail(res, "wrong password");
         }
     }
+
+    /**
+     * 查看用户详细信息
+     */
+    @PostMapping("/profile")
+    @ResponseBody
+    public Response profile(ParamDTO paramDTO){
+        return null;
+    }
+
 }

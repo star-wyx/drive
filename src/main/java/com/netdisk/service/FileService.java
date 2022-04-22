@@ -65,7 +65,7 @@ public interface FileService {
      * @param user
      * @return
      */
-    Response queryFolderRootContent(User user);
+    ParamDTO queryFolderRootContent(User user);
 
     /**
      * 查找文件信息
