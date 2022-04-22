@@ -65,7 +65,8 @@ public class TransferController {
             @RequestParam(value = "uid") String uuid,
             @RequestParam(value = "file_name") String fileName,
             @RequestParam(value = "user_id") Long userId,
-            @RequestParam(value = "node_id") Long nodeId) {
+            @RequestParam(value = "node_id") Long nodeId,
+            @RequestParam(value = "file_size") Long fileSize) {
         AssemblyResponse<ParamDTO> assembly = new AssemblyResponse<>();
         ParamDTO res = new ParamDTO();
         if (nodeId == 0L) {
@@ -74,6 +75,9 @@ public class TransferController {
         FileNode fileNode = fileService.queryFolderById(userId, nodeId);
         if (fileNode == null || !fileNode.isFolder()) {
             return assembly.fail(453, null);
+        }
+        if(userService.availableSpace(userId) < fileSize){
+            return assembly.fail(455, null);
         }
         String contentType = fileName.substring(fileName.lastIndexOf(".") + 1);
         if (!fileProperties.getIcon().containsKey(contentType)) {
@@ -178,7 +182,7 @@ public class TransferController {
         if (fileNode.getContentType().equals(fileProperties.getIcon().get("film"))
                 && !suffix.equalsIgnoreCase("mp4")) {
             Mp4 mp4 = mp4Service.queryByOtherMd5(fileNode.getMd5());
-            if(mp4!=null){
+            if (mp4 != null) {
                 return assembly.success(mp4.getMd5());
             }
             return assembly.fail(300, "not a mp4 file");

@@ -67,6 +67,8 @@ public class UserServiceImpl implements UserService {
         AssemblyResponse<String> assembly = new AssemblyResponse<>();
         if (byName == null && byEmail == null) {
             User user = userDTO.ToUser(seqService.getNextSeqId(USER_COLLECTION));
+            user.setUsedSize(0L);
+            user.setTotalSize(fileProperties.getDefaultSpace());
             mongoTemplate.save(user, USER_COLLECTION);
             seqService.insertUser(userDTO.getUserName());
 
@@ -106,11 +108,11 @@ public class UserServiceImpl implements UserService {
         User user = mongoTemplate.findOne(query, User.class, USER_COLLECTION);
         File folder = new File(fileProperties.getProfileDir());
         String suffix = file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf("."));
-        if(!folder.exists()){
+        if (!folder.exists()) {
             folder.mkdirs();
         }
-        File picture = new File(folder,user.getUserName()+suffix);
-        if(picture.exists()){
+        File picture = new File(folder, user.getUserName() + suffix);
+        if (picture.exists()) {
             picture.delete();
         }
         try {
@@ -122,7 +124,7 @@ public class UserServiceImpl implements UserService {
         Update update = new Update();
         String desPath = fileProperties.getProfileDir() + "/" + user.getUserId() + suffix;
         update.set("base64", myFileUtils.commpressPicForScale(picture.getAbsolutePath(), desPath, 50, 0.7));
-        mongoTemplate.findAndModify(query,update,User.class,USER_COLLECTION);
+        mongoTemplate.findAndModify(query, update, User.class, USER_COLLECTION);
         return 200;
     }
 
@@ -132,12 +134,32 @@ public class UserServiceImpl implements UserService {
         query.addCriteria(Criteria.where("userId").is(userId));
         query.addCriteria(Criteria.where("userPwd").is(oldPwd));
         User user = mongoTemplate.findOne(query, User.class, USER_COLLECTION);
-        if(user == null){
+        if (user == null) {
             return 401;
         }
         Update update = new Update();
         update.set("userPwd", newPwd);
-        mongoTemplate.findAndModify(query,update,User.class);
+        mongoTemplate.findAndModify(query, update, User.class);
         return 200;
+    }
+
+    @Override
+    public boolean updateSize(Long userId, Long fileSize) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("userId").is(userId));
+        User user = mongoTemplate.findOne(query, User.class, USER_COLLECTION);
+        if (fileSize + user.getUsedSize() > user.getTotalSize()) {
+            Update update = new Update();
+            mongoTemplate.findAndModify(query, update, User.class, USER_COLLECTION);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    @Override
+    public Long availableSpace(Long userId) {
+        User user = getUserById(userId);
+        return user.getTotalSize() - user.getUsedSize();
     }
 }

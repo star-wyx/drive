@@ -1,15 +1,20 @@
 package com.netdisk.controller;
 
+import com.netdisk.config.FileProperties;
 import com.netdisk.module.DTO.ParamDTO;
 import com.netdisk.module.DTO.UserDTO;
+import com.netdisk.module.FileNode;
+import com.netdisk.module.Profile;
 import com.netdisk.module.User;
 import com.netdisk.service.FileService;
 import com.netdisk.service.SeqService;
 import com.netdisk.service.UserService;
 import com.netdisk.util.AssemblyResponse;
 import com.netdisk.util.JwtUtil;
+import com.netdisk.util.MyFileUtils;
 import com.netdisk.util.Response;
 import io.swagger.annotations.*;
+import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -32,6 +37,12 @@ public class UserController {
     @Autowired
     private SeqService seqService;
 
+    @Autowired
+    private FileProperties fileProperties;
+
+    @Autowired
+    private MyFileUtils myFileUtils;
+
     /**
      * 用户登陆，成功则返回根目录
      *
@@ -49,7 +60,7 @@ public class UserController {
             User user = (User) res.getData();
             AssemblyResponse<ParamDTO> assembly = new AssemblyResponse<>();
             ParamDTO paramDTO = fileService.queryFolderRootContent(user);
-            String token = JwtUtil.sign(user.getUserId(),user.getUserPwd());
+            String token = JwtUtil.sign(user.getUserId(), user.getUserPwd());
             paramDTO.setToken(token);
             return assembly.success(paramDTO);
         }
@@ -106,11 +117,46 @@ public class UserController {
 
     /**
      * 查看用户详细信息
+     * userId
      */
     @PostMapping("/profile")
     @ResponseBody
-    public Response profile(ParamDTO paramDTO){
-        return null;
+    public Response<Profile> profile(@RequestBody ParamDTO paramDTO) {
+        long filmSize = 0L;
+        long musicSize = 0L;
+        long torrentSize = 0L;
+        long pictureSize = 0L;
+        long others = 0L;
+        User user = userService.getUserById(paramDTO.getUserId());
+        List<FileNode> list = fileService.queryAllFiles(paramDTO.getUserId());
+        for (FileNode fileNode : list) {
+            if (!fileNode.isFolder()) {
+                if (fileNode.getContentType().equals(fileProperties.getIcon().get("film"))) {
+                    filmSize += fileNode.getFileSize();
+                } else if (fileNode.getContentType().equals(fileProperties.getIcon().get("music"))) {
+                    musicSize += fileNode.getFileSize();
+                } else if (fileNode.getContentType().equals(fileProperties.getIcon().get("torrent"))) {
+                    torrentSize += fileNode.getFileSize();
+                } else if (fileNode.getContentType().equals(fileProperties.getIcon().get("picture"))) {
+                    pictureSize += fileNode.getFileSize();
+                } else {
+                    others += fileNode.getFileSize();
+                }
+            }
+        }
+
+        Profile profile = new Profile(user.getUserId(),
+                user.getUserEmail(),
+                myFileUtils.getPrintSize(userService.availableSpace(user.getUserId())),
+                myFileUtils.getPrintSize(filmSize),
+                myFileUtils.getPrintSize(musicSize),
+                myFileUtils.getPrintSize(torrentSize),
+                myFileUtils.getPrintSize(pictureSize),
+                myFileUtils.getPrintSize(others),
+                user.getBase64()
+        );
+        AssemblyResponse<Profile> assembly = new AssemblyResponse<>();
+        return assembly.success(profile);
     }
 
 }

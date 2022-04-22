@@ -152,7 +152,8 @@ public class FileServiceImpl implements FileService {
         return sb.toString();
     }
 
-    public void insertFileNode(User user, Long nodeId, String fileName, String md5, String size) {
+    @Override
+    public void insertFileNode(User user, Long nodeId, String fileName, String md5, long size) {
         FileNode folder = queryFolderById(user.getUserId(), nodeId);
         String fileType = fileName.substring(fileName.lastIndexOf(".") + 1);
         fileType = fileProperties.getIcon().containsKey(fileType) ? fileProperties.getIcon().get(fileType) : fileProperties.getOtherIcon();
@@ -407,16 +408,18 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public boolean deleteFile(Long userId, Long nodeId) {
+    public Long deleteFile(Long userId, Long nodeId) {
         Query query = new Query();
         query.addCriteria(Criteria.where("userId").is(userId));
         query.addCriteria(Criteria.where("nodeId").is(nodeId));
         FileNode fileNode = mongoTemplate.findOne(query, FileNode.class, FILE_COLLECTION);
         File file = new File(fileProperties.getRootDir() + fileNode.getStorePath());
+        long filesize = 0L;
         if (fileNode.isFolder()) {
             List<FileNode> list = nodeRepository.getSubTree(userId, nodeId, null).get(0).getDescendants();
             System.out.println(list);
             for (FileNode fn : list) {
+                filesize += fn.getFileSize();
                 Query q = new Query();
                 q.addCriteria(Criteria.where("userId").is(fn.getUserId()));
                 q.addCriteria(Criteria.where("nodeId").is(fn.getNodeId()));
@@ -425,10 +428,11 @@ public class FileServiceImpl implements FileService {
             mongoTemplate.remove(query, FILE_COLLECTION);
             FileUtils.deleteQuietly(file);
         } else {
+            filesize += fileNode.getFileSize();
             mongoTemplate.remove(query, FILE_COLLECTION);
             file.delete();
         }
-        return true;
+        return filesize;
     }
 
     @Override
@@ -436,37 +440,7 @@ public class FileServiceImpl implements FileService {
         return fileProperties.getIcon().get("picture").equals(contentType);
     }
 
-    @Override
-    public String getPrintSize(long size) {
 
-        int GB = 1024 * 1024 * 1024;//定义GB的计算常量
-        int MB = 1024 * 1024;//定义MB的计算常量
-        int KB = 1024;//定义KB的计算常量
-        try {
-            // 格式化小数
-            DecimalFormat df = new DecimalFormat("0.00");
-            String resultSize = "";
-            if (size / GB >= 1) {
-
-                //如果当前Byte的值大于等于1GB
-                resultSize = df.format(size / (float) GB) + "GB";
-            } else if (size / MB >= 1) {
-
-                //如果当前Byte的值大于等于1MB
-                resultSize = df.format(size / (float) MB) + "MB";
-            } else if (size / KB >= 1) {
-
-                //如果当前Byte的值大于等于1KB
-                resultSize = df.format(size / (float) KB) + "KB";
-            } else {
-
-                resultSize = size + "B";
-            }
-            return resultSize;
-        } catch (Exception e) {
-            return null;
-        }
-    }
 
     @Override
     public String getTime() {
@@ -482,11 +456,18 @@ public class FileServiceImpl implements FileService {
         query.addCriteria(Criteria.where("nodeId").is(nodeId));
         FileNode fileNode = mongoTemplate.findOne(query, FileNode.class, FILE_COLLECTION);
         ParamDTO paramDTO = new ParamDTO();
-        paramDTO.setSize(fileNode.getFileSize());
-        paramDTO.setContentType(fileNode.getFileName().substring(fileNode.getFileName().lastIndexOf(".")+1));
+        paramDTO.setSize(myFileUtils.getPrintSize(fileNode.getFileSize()));
+        paramDTO.setContentType(fileNode.getFileName().substring(fileNode.getFileName().lastIndexOf(".") + 1));
         paramDTO.setUploadTime(fileNode.getUploadTime());
         paramDTO.setFilename(fileNode.getFilePath());
         return paramDTO;
+    }
+
+    @Override
+    public List<FileNode> queryAllFiles(Long userId) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("userId").is(userId));
+        return mongoTemplate.find(query,FileNode.class,FILE_COLLECTION);
     }
 
 

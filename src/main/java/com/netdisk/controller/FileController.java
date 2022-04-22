@@ -204,7 +204,9 @@ public class FileController {
     @ResponseBody
     public Response deleteFile(@RequestBody ParamDTO paramDTO){
         AssemblyResponse<String> assembly = new AssemblyResponse<>();
-        if(fileService.deleteFile(paramDTO.getUserId(),paramDTO.getNodeId())){
+        long deleteSize = fileService.deleteFile(paramDTO.getUserId(),paramDTO.getNodeId());
+        if(deleteSize > 0L){
+            userService.updateSize(paramDTO.getUserId(),-deleteSize);
             return assembly.success("successfully");
         }else{
             return assembly.fail(404,"fail to delete");

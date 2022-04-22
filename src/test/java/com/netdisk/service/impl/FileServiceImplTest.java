@@ -19,6 +19,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -51,7 +52,7 @@ class FileServiceImplTest {
 
     @Test
     public void test() {
-        User user = new User(null, "wyx", "123", "@qq.com",null);
+//        User user = new User(null, "wyx", "123", "@qq.com",null);
 //        fileService.createUserFile(user);
     }
 
@@ -122,5 +123,33 @@ class FileServiceImplTest {
     public void mp4Test(){
         Mp4 mp4 = mp4Service.queryByMd5("66422e08315447d69943959ac8ded578");
         System.out.println(mp4);
+    }
+
+    @Test
+    public void updateFileSize(){
+        Long userId = 1L;
+        Query query = new Query();
+        query.addCriteria(Criteria.where("userId").is(userId));
+        long size = 0L;
+        List<FileNode> list = fileService.queryAllFiles(userId);
+        for(FileNode fileNode : list){
+            if(!fileNode.isFolder()){
+                Query q = new Query();
+                q.addCriteria(Criteria.where("userId").is(userId));
+                q.addCriteria(Criteria.where("nodeId").is(fileNode.getNodeId()));
+                File file = new File(fileProperties.getRootDir() + fileNode.getStorePath());
+                Update update = new Update();
+                update.set("fileSize",file.length());
+                size += file.length();
+                mongoTemplate.findAndModify(q,update,FileNode.class);
+            }
+        }
+
+        Query userQuery = new Query();
+        userQuery.addCriteria(Criteria.where("userId").is(userId));
+        Update update = new Update();
+        update.set("usedSize",size/8);
+        update.set("totalSize", fileProperties.getDefaultSpace());
+        mongoTemplate.findAndModify(userQuery,update,User.class,UserServiceImpl.USER_COLLECTION);
     }
 }

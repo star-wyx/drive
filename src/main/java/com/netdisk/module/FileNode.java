@@ -30,7 +30,7 @@ public class FileNode implements Comparable<FileNode> {
     private boolean isFavorites;
     private String md5;
     private String base64;
-    private String fileSize;
+    private Long fileSize;
     private String uploadTime;
 
 

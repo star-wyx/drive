@@ -32,7 +32,7 @@ public interface FileService {
      * 数据库中记录新文件
      * user, nodeId, fileList
      */
-    void insertFileNode(User user, Long nodeId, String fileName, String md5, String size);
+    void insertFileNode(User user, Long nodeId, String fileName, String md5, long size);
 
     List<FileNode> sub(Long userId, Long nodeId, Long maxDepth);
 
@@ -117,17 +117,13 @@ public interface FileService {
     /**
      * 删除文件
      */
-    boolean deleteFile(Long userId, Long nodeId);
+    Long deleteFile(Long userId, Long nodeId);
 
     /**
      * 是否是图像
      */
     boolean isImage(String contentType);
 
-    /**
-     * 计算文件大小，KB,MB,GB
-     */
-    String getPrintSize(long size);
 
     /**
      * 获取当前时间
@@ -139,5 +135,8 @@ public interface FileService {
      */
     ParamDTO getDetail(Long userId, Long nodeId);
 
-
+    /**
+     * 获取用户下的所有文件
+     */
+    List<FileNode> queryAllFiles(Long userId);
 }

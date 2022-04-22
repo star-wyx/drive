@@ -16,4 +16,6 @@ public class User {
     private String userPwd;
     private String userEmail;
     private String base64;
+    private Long usedSize;
+    private Long totalSize;
 }

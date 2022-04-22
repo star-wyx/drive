@@ -133,7 +133,8 @@ public class ChunkServiceImpl implements ChunkService {
             e.printStackTrace();
         }
 
-        fileService.insertFileNode(user, chunk.getNodeId(), availableFileName, md5, fileService.getPrintSize(newFile.length()));
+        userService.updateSize(user.getUserId(),newFile.length());
+        fileService.insertFileNode(user, chunk.getNodeId(), availableFileName, md5, newFile.length());
         return 200;
     }
 

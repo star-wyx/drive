@@ -30,4 +30,6 @@ public class FileProperties {
     public String separator;
 
     public int sliceSizeMB;
+
+    private Long defaultSpace;
 }

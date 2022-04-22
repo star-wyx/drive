@@ -18,21 +18,21 @@ public class Mp4ServiceImpl implements Mp4Service {
     @Autowired
     MongoTemplate mongoTemplate;
 
-    public static final String CHUNK_COLLECTION = "mp4";
+    public static final String Mp4_COLLECTION = "mp4";
 
 
     @Override
     public Mp4 queryByMd5(String md5) {
         Query query = new Query();
         query.addCriteria(Criteria.where("md5").is(md5));
-        return mongoTemplate.findOne(query,Mp4.class,CHUNK_COLLECTION);
+        return mongoTemplate.findOne(query,Mp4.class,Mp4_COLLECTION);
     }
 
     @Override
     public Mp4 queryByOtherMd5(String otherMd5) {
         Query query = new Query();
         query.addCriteria(Criteria.where("otherMd5").is(otherMd5));
-        return mongoTemplate.findOne(query,Mp4.class,CHUNK_COLLECTION);
+        return mongoTemplate.findOne(query,Mp4.class,Mp4_COLLECTION);
     }
 
     @Override

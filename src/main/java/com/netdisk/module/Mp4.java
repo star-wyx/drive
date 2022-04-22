@@ -9,7 +9,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 @Data
 @AllArgsConstructor
-@Document(Mp4ServiceImpl.CHUNK_COLLECTION)
+@Document(Mp4ServiceImpl.Mp4_COLLECTION)
 public class Mp4 {
 
     @Id

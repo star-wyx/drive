@@ -45,4 +45,14 @@ public interface UserService {
      * 修改密码
      */
     int updatePwd(Long userId, String newPwd, String oldPwd);
+
+    /**
+     * 修改用户空间
+     */
+    boolean updateSize(Long userId, Long fileSize);
+
+    /**
+     * 查看可用空间
+     */
+    Long availableSpace(Long userId);
 }

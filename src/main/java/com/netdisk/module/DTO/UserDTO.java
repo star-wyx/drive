@@ -21,6 +21,6 @@ public class UserDTO {
     private String userId;
 
     public User ToUser(Long userId){
-        return new User(userId,this.userName,this.userPwd,this.userEmail,null);
+        return new User(userId,this.userName,this.userPwd,this.userEmail,null,null,null);
     }
 }
