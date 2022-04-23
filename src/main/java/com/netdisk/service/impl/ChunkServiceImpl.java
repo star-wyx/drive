@@ -36,6 +36,8 @@ public class ChunkServiceImpl implements ChunkService {
 
     public static final String CHUNK_COLLECTION = "chunk";
 
+    public static final String UPLOADRECORD_COLLECTION = "UploadRecord";
+
     @Autowired
     MongoTemplate mongoTemplate;
 

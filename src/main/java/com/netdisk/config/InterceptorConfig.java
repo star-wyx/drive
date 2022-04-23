@@ -23,9 +23,11 @@ public class InterceptorConfig implements WebMvcConfigurer {
      */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-//        registry.addInterceptor(authenticationInterceptor())
-//                .addPathPatterns("/**")
-//                .excludePathPatterns("/user/login");
+        registry.addInterceptor(authenticationInterceptor())
+                .addPathPatterns("/**")
+                .excludePathPatterns("/user/login")
+                .excludePathPatterns("/user/signin")
+                .excludePathPatterns("/user/checkToken");
     }
     /* *
      * @Author lsc

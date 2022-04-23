@@ -20,8 +20,10 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -120,36 +122,95 @@ class FileServiceImplTest {
     }
 
     @Test
-    public void mp4Test(){
+    public void mp4Test() {
         Mp4 mp4 = mp4Service.queryByMd5("66422e08315447d69943959ac8ded578");
         System.out.println(mp4);
     }
 
     @Test
-    public void updateFileSize(){
+    public void updateFileSize() {
         Long userId = 1L;
         Query query = new Query();
         query.addCriteria(Criteria.where("userId").is(userId));
         long size = 0L;
         List<FileNode> list = fileService.queryAllFiles(userId);
-        for(FileNode fileNode : list){
-            if(!fileNode.isFolder()){
+        for (FileNode fileNode : list) {
+            if (!fileNode.isFolder()) {
                 Query q = new Query();
                 q.addCriteria(Criteria.where("userId").is(userId));
                 q.addCriteria(Criteria.where("nodeId").is(fileNode.getNodeId()));
                 File file = new File(fileProperties.getRootDir() + fileNode.getStorePath());
                 Update update = new Update();
-                update.set("fileSize",file.length());
+                update.set("fileSize", file.length());
                 size += file.length();
-                mongoTemplate.findAndModify(q,update,FileNode.class);
+                mongoTemplate.findAndModify(q, update, FileNode.class);
             }
         }
 
         Query userQuery = new Query();
         userQuery.addCriteria(Criteria.where("userId").is(userId));
         Update update = new Update();
-        update.set("usedSize",size/8);
+        update.set("usedSize", size / 8);
         update.set("totalSize", fileProperties.getDefaultSpace());
-        mongoTemplate.findAndModify(userQuery,update,User.class,UserServiceImpl.USER_COLLECTION);
+        mongoTemplate.findAndModify(userQuery, update, User.class, UserServiceImpl.USER_COLLECTION);
+    }
+
+    @Test
+    public void testDate() {
+        Long userId = 1L;
+        Query query = new Query();
+        query.addCriteria(Criteria.where("userId").is(userId));
+        List<FileNode> list = mongoTemplate.find(query, FileNode.class, FileServiceImpl.FILE_COLLECTION);
+        for (FileNode f : list) {
+            Query q = new Query();
+            q.addCriteria(Criteria.where("userId").is(userId));
+            q.addCriteria(Criteria.where("nodeId").is(f.getNodeId()));
+            Update update = new Update();
+            Date date = new Date();
+            SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+            update.set("uploadTime", formatter.format(date));
+            mongoTemplate.findAndModify(q, update, FileNode.class, FileServiceImpl.FILE_COLLECTION);
+        }
+    }
+
+    @Test
+    public void folderSize() {
+        File file = new File(fileProperties.getRootDir() + "tom");
+        System.out.println(file.length());
+    }
+
+    @Test
+    public void percentage() {
+        long userId = 2L;
+        long filmSize = 0L;
+        long musicSize = 0L;
+        long pictureSize = 0L;
+        long others = 0L;
+        long remain = 0L;
+        User user = userService.getUserById(userId);
+        List<FileNode> list = fileService.queryAllFiles(userId);
+        for (FileNode fileNode : list) {
+            if (!fileNode.isFolder()) {
+                if (fileNode.getContentType().equals(fileProperties.getIcon().get("film"))) {
+                    filmSize += fileNode.getFileSize();
+                } else if (fileNode.getContentType().equals(fileProperties.getIcon().get("music"))) {
+                    musicSize += fileNode.getFileSize();
+                } else if (fileNode.getContentType().equals(fileProperties.getIcon().get("picture"))) {
+                    pictureSize += fileNode.getFileSize();
+                } else {
+                    others += fileNode.getFileSize();
+                }
+            }
+        }
+        remain = userService.availableSpace(user.getUserId());
+        List<Long> longs = new ArrayList<>();
+        longs.add(filmSize);
+        longs.add(musicSize);
+        longs.add(pictureSize);
+        longs.add(others);
+        longs.add(remain);
+
+        System.out.println(myFileUtils.getPercentValue(longs, 2));
+
     }
 }

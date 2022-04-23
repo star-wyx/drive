@@ -1,5 +1,7 @@
 package com.netdisk.controller;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.netdisk.config.FileProperties;
 import com.netdisk.module.DTO.ParamDTO;
 import com.netdisk.module.DTO.UserDTO;
@@ -60,7 +62,7 @@ public class UserController {
             User user = (User) res.getData();
             AssemblyResponse<ParamDTO> assembly = new AssemblyResponse<>();
             ParamDTO paramDTO = fileService.queryFolderRootContent(user);
-            String token = JwtUtil.sign(user.getUserId(), user.getUserPwd());
+            String token = JwtUtil.sign(user.getUserName(), user.getUserPwd());
             paramDTO.setToken(token);
             return assembly.success(paramDTO);
         }
@@ -101,12 +103,10 @@ public class UserController {
     /**
      * 修改密码
      */
-    @GetMapping("/changePwd")
+    @PostMapping("/changePwd")
     @ResponseBody
-    public Response changePwd(@RequestParam(value = "old_pwd") String oldPwd,
-                              @RequestParam(value = "new_pwd") String newPwd,
-                              @RequestParam(value = "user_id") Long userId) {
-        int res = userService.updatePwd(userId, newPwd, oldPwd);
+    public Response changePwd(@RequestBody ParamDTO paramDTO) {
+        int res = userService.updatePwd(paramDTO.getUserId(), paramDTO.getNewPwd(), paramDTO.getOldPwd());
         AssemblyResponse<String> assembly = new AssemblyResponse<>();
         if (res == 200) {
             return assembly.success("password change successful");
@@ -124,9 +124,9 @@ public class UserController {
     public Response<Profile> profile(@RequestBody ParamDTO paramDTO) {
         long filmSize = 0L;
         long musicSize = 0L;
-        long torrentSize = 0L;
         long pictureSize = 0L;
         long others = 0L;
+        long remain = 0L;
         User user = userService.getUserById(paramDTO.getUserId());
         List<FileNode> list = fileService.queryAllFiles(paramDTO.getUserId());
         for (FileNode fileNode : list) {
@@ -135,8 +135,6 @@ public class UserController {
                     filmSize += fileNode.getFileSize();
                 } else if (fileNode.getContentType().equals(fileProperties.getIcon().get("music"))) {
                     musicSize += fileNode.getFileSize();
-                } else if (fileNode.getContentType().equals(fileProperties.getIcon().get("torrent"))) {
-                    torrentSize += fileNode.getFileSize();
                 } else if (fileNode.getContentType().equals(fileProperties.getIcon().get("picture"))) {
                     pictureSize += fileNode.getFileSize();
                 } else {
@@ -144,19 +142,39 @@ public class UserController {
                 }
             }
         }
-
-        Profile profile = new Profile(user.getUserId(),
+        remain = userService.availableSpace(user.getUserId());
+        Profile profile = new Profile(
                 user.getUserEmail(),
-                myFileUtils.getPrintSize(userService.availableSpace(user.getUserId())),
+                myFileUtils.getPrintSize(remain),
                 myFileUtils.getPrintSize(filmSize),
                 myFileUtils.getPrintSize(musicSize),
-                myFileUtils.getPrintSize(torrentSize),
                 myFileUtils.getPrintSize(pictureSize),
                 myFileUtils.getPrintSize(others),
-                user.getBase64()
+                user.getBase64(),
+                myFileUtils.getRatio(filmSize, musicSize, pictureSize, others, remain)
         );
         AssemblyResponse<Profile> assembly = new AssemblyResponse<>();
         return assembly.success(profile);
+    }
+
+    @PostMapping("/checkToken")
+    @ResponseBody
+    public Response checkToken(@RequestBody ParamDTO paramDTO) {
+        AssemblyResponse assembly = new AssemblyResponse();
+        ParamDTO res = new ParamDTO();
+        String token = paramDTO.getToken();
+        DecodedJWT jwt = JWT.decode(token);
+        String userName = jwt.getClaim("userName").asString();
+        // 这边拿到的 用户名 应该去数据库查询获得密码，简略，步骤在service直接获取密码
+        User user = userService.getUserByName(userName);
+        boolean result = JwtUtil.verify(token, userName, user.getUserPwd());
+        if (result) {
+            res.setUserId(user.getUserId());
+            res.setUserName(user.getUserName());
+            return assembly.success(res);
+        }else{
+            return assembly.fail(456,null);
+        }
     }
 
 }

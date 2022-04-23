@@ -4,7 +4,9 @@ import com.netdisk.config.FileProperties;
 import com.netdisk.module.DTO.ParamDTO;
 import com.netdisk.module.FileNode;
 import com.netdisk.module.Mp4;
+import com.netdisk.module.UploadRecord;
 import com.netdisk.service.*;
+import com.netdisk.service.impl.ChunkServiceImpl;
 import com.netdisk.service.impl.FileServiceImpl;
 import com.netdisk.util.AssemblyResponse;
 import com.netdisk.util.MyFileUtils;
@@ -14,7 +16,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.CriteriaExtensionsKt;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +29,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.util.List;
 
 
 @Api(value = "上传下载")
@@ -228,6 +233,31 @@ public class TransferController {
             HttpServletRequest request, HttpServletResponse response) {
         log.info("Enter vop controller ================");
         chunkService.vOpen(request, response);
+    }
+
+    @PostMapping("/setHistory")
+    @ResponseBody
+    public Response setHistory(@RequestBody UploadRecord uploadRecord){
+        Query query = new Query();
+        query.addCriteria(Criteria.where("userId").is(uploadRecord.getUserId()));
+        query.addCriteria(Criteria.where("uuid").is(uploadRecord.getUuid()));
+        UploadRecord record = mongoTemplate.findOne(query,UploadRecord.class, ChunkServiceImpl.UPLOADRECORD_COLLECTION);
+        if(record != null){
+            mongoTemplate.remove(record,ChunkServiceImpl.UPLOADRECORD_COLLECTION);
+        }
+        mongoTemplate.save(uploadRecord);
+        AssemblyResponse assembly = new AssemblyResponse();
+        return assembly.success(null);
+    }
+
+    @PostMapping("/getHistory")
+    @ResponseBody
+    public Response getHistory(@RequestBody ParamDTO paramDTO){
+        Query query = new Query();
+        query.addCriteria(Criteria.where("userId").is(paramDTO.getUserId()));
+        List<UploadRecord> list = mongoTemplate.find(query,UploadRecord.class, ChunkServiceImpl.UPLOADRECORD_COLLECTION);
+        AssemblyResponse<List> assembly = new AssemblyResponse();
+        return assembly.success(list);
     }
 
 

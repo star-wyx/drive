@@ -1,6 +1,7 @@
 package com.netdisk.controller;
 
 import com.netdisk.module.Chunk;
+import com.netdisk.module.UploadRecord;
 import com.netdisk.service.ChunkService;
 import com.netdisk.service.impl.ChunkServiceImpl;
 import org.checkerframework.checker.units.qual.C;
@@ -46,6 +47,12 @@ class TransferControllerTest {
     void mongodb(){
         Chunk chunk = new Chunk(null,4L,"uuid","md5",1L,1L,"fileName","filePaht");
         mongoTemplate.save(chunk, ChunkServiceImpl.CHUNK_COLLECTION);
+    }
+
+    @Test
+    public void uploadHistory(){
+        UploadRecord uploadRecord = new UploadRecord(null,2L,"what","what","what","what",1,"what","what",true,true,true,true);
+        mongoTemplate.save(uploadRecord,ChunkServiceImpl.UPLOADRECORD_COLLECTION);
     }
 
 }

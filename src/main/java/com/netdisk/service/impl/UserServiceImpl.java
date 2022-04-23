@@ -112,8 +112,12 @@ public class UserServiceImpl implements UserService {
             folder.mkdirs();
         }
         File picture = new File(folder, user.getUserName() + suffix);
-        if (picture.exists()) {
-            picture.delete();
+        File[] fs = folder.listFiles();
+        for(File f:fs){
+            String fileName = f.getName();
+            if(fileName.substring(fileName.lastIndexOf(".")).equals(user.getUserName())){
+                f.delete();
+            }
         }
         try {
             file.transferTo(picture);

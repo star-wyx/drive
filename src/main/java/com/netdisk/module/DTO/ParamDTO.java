@@ -128,4 +128,16 @@ public class ParamDTO {
      */
     @JsonProperty("token")
     String token;
+
+    /**
+     * 旧密码
+     */
+    @JsonProperty("old_pwd")
+    String oldPwd;
+
+    /**
+     * 新密码
+     */
+    @JsonProperty("new_pwd")
+    String newPwd;
 }

@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.logging.LoggerGroup;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,7 +30,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.DecimalFormat;
+import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 @Component
@@ -89,7 +94,7 @@ public final class MyFileUtils {
      * @return
      */
     public String commpressPicForScale(String srcPath, String desPath,
-                                              long desFileSize, double accuracy) {
+                                       long desFileSize, double accuracy) {
         File desFile = null;
         try {
             File srcFile = new File(srcPath);
@@ -112,7 +117,7 @@ public final class MyFileUtils {
     }
 
     public void commpressPicCycle(String desPath, long desFileSize,
-                                         double accuracy) throws IOException {
+                                  double accuracy) throws IOException {
         File imgFile = new File(desPath);
         long fileSize = imgFile.length();
         //判断大小,如果小于500k,不压缩,如果大于等于500k,压缩
@@ -135,7 +140,7 @@ public final class MyFileUtils {
     /**
      * 文件转成base64字符串,根据最大尺寸压缩
      */
-    public String encodeFileToBase64BinaryWithImageSize(String storePath, long maxSize){
+    public String encodeFileToBase64BinaryWithImageSize(String storePath, long maxSize) {
         File file = new File(fileProperties.getRootDir() + storePath);
         long fileSize = file.length();
         double accuracy = 1f;
@@ -166,12 +171,12 @@ public final class MyFileUtils {
     }
 
 
-    public static String getMimeType(File file){
+    public static String getMimeType(File file) {
         InputStream is = null;
         String res = null;
         try {
             is = new BufferedInputStream(new FileInputStream(file));
-            res =  URLConnection.guessContentTypeFromStream(is);
+            res = URLConnection.guessContentTypeFromStream(is);
             is.close();
         } catch (IOException e) {
             e.printStackTrace();
@@ -187,7 +192,7 @@ public final class MyFileUtils {
      * @throws IOException
      */
     public static void convertToMp4(File src, File dest) throws IOException {
-        FFmpeg ffmpeg  = new FFmpeg("/opt/homebrew/Cellar/ffmpeg/5.0.1/bin/ffmpeg");
+        FFmpeg ffmpeg = new FFmpeg("/opt/homebrew/Cellar/ffmpeg/5.0.1/bin/ffmpeg");
         FFprobe ffprobe = new FFprobe("/opt/homebrew/Cellar/ffmpeg/5.0.1/bin/ffprobe");
         FFmpegProbeResult in = ffprobe.probe(src.getAbsolutePath());
 
@@ -212,7 +217,7 @@ public final class MyFileUtils {
             public void progress(Progress progress) {
                 // 转换进度 [0, 100]
                 // [Fix] No duration for FLV, SWF file, 所以获取进度无效时都假装转换到了 99%
-                int percentage = (duration_ns > 0) ? (int)(progress.out_time_ns / duration_ns * 100) : 99;
+                int percentage = (duration_ns > 0) ? (int) (progress.out_time_ns / duration_ns * 100) : 99;
 
                 // 日志中输出转换进度信息
                 log.debug("[{}%] status: {}, frame: {}, time: {} ms, fps: {}, speed: {}x",
@@ -265,4 +270,90 @@ public final class MyFileUtils {
         }
     }
 
+    public List<String> getRatio(long film, long music, long picture, long others, long remain) {
+        List<Long> longs = new ArrayList<>();
+        longs.add(picture);
+        longs.add(film);
+        longs.add(music);
+        longs.add(others);
+        longs.add(remain);
+        return getPercentValue(longs,2);
+    }
+
+    public List<String> getPercentValue(List<Long> list, int precision) {
+        if (CollectionUtils.isEmpty(list)) {
+            return null;
+        }
+        double listSum = list.stream().mapToDouble(p -> p).sum();
+        if (listSum == 0) {
+            return null;
+        }
+        List<Double> seatsList = new ArrayList<>();//整数值
+        List<Double> votesPerQuotaList = new ArrayList<>();//求小数得集合
+        double currentSum = 0;
+        //10得二次幂是100用于计算精度
+        double targetSeats = Math.pow(10, precision) * 100;
+        for (long val : list) {
+            //扩大比例100 用于计算
+            //double result = divideToDouble((val * targetSeats),listSum);
+            double result = val / listSum * targetSeats;
+            double seats = Math.floor(result);
+            currentSum = add(currentSum, seats);//求总和
+            seatsList.add(seats);//取整数位
+            votesPerQuotaList.add(subtract(result, seats));//取小数位
+        }
+        //给最大得值加1 凑够占比100%
+        while (currentSum < targetSeats) {
+            double max = 0;
+            int maxId = 0;
+            for (int i = 0; i < votesPerQuotaList.size(); i++) {
+                if (votesPerQuotaList.get(i) > max) {
+                    max = votesPerQuotaList.get(i);
+                    maxId = i;
+                }
+            }
+            //最大值加1 凑100
+            seatsList.set(maxId, add(seatsList.get(maxId), 1));
+            votesPerQuotaList.set(maxId, 0.0);//最大值小数位设为0
+            currentSum = add(currentSum, 1);
+        }
+
+        List<String> res = new ArrayList<>();
+        for (int i = 0; i < seatsList.size(); i++) {
+            res.add(calculatePercentage(seatsList.get(i), targetSeats));
+        }
+
+        return res;
+
+    }
+
+    private static String calculatePercentage(double num1, double num2) {
+        if (num1 == 0 || num2 == 0) {
+            return "0";
+        }
+        NumberFormat numberFormat = NumberFormat.getInstance();
+        numberFormat.setMaximumFractionDigits(2);
+        return numberFormat.format(num1 / num2 * 100) + "";
+    }
+
+    private static double divideToDouble(double num1, int num2) {
+        if (num1 == 0 || num2 == 0) {
+            return 0.0f;
+        }
+        BigDecimal b1 = new BigDecimal(num1);
+        BigDecimal b2 = new BigDecimal(num2);
+        return b1.divide(b2, 8, BigDecimal.ROUND_DOWN).doubleValue();
+    }
+
+    private static double add(double v1, double v2) {
+        BigDecimal b1 = new BigDecimal(Double.toString(v1));
+        BigDecimal b2 = new BigDecimal(Double.toString(v2));
+        return b1.add(b2).doubleValue();
+    }
+
+    private static double subtract(double num1, double num2) {
+        BigDecimal b1 = new BigDecimal(num1);
+        BigDecimal b2 = new BigDecimal(num2);
+        return b1.subtract(b2).doubleValue();
+    }
 }

@@ -31,15 +31,16 @@ public class JwtInterceptor implements HandlerInterceptor {
             return true;
         }
         if (token != null){
-            String userId = JwtUtil.getUserIdByToken(request);
+            String userName = JwtUtil.getUserNameByToken(request);
             // 这边拿到的 用户名 应该去数据库查询获得密码，简略，步骤在service直接获取密码
-            User user = userService.getUserById(Long.valueOf(userId));
-            boolean result = JwtUtil.verify(token,userId,user.getUserPwd());
+            User user = userService.getUserByName(userName);
+            boolean result = JwtUtil.verify(token,userName,user.getUserPwd());
             if(result){
                 System.out.println("通过拦截器");
                 return true;
             }
         }
+        response.setStatus(401);
         return false;
     }
 

@@ -441,7 +441,6 @@ public class FileServiceImpl implements FileService {
     }
 
 
-
     @Override
     public String getTime() {
         Date date = new Date();
@@ -456,10 +455,23 @@ public class FileServiceImpl implements FileService {
         query.addCriteria(Criteria.where("nodeId").is(nodeId));
         FileNode fileNode = mongoTemplate.findOne(query, FileNode.class, FILE_COLLECTION);
         ParamDTO paramDTO = new ParamDTO();
-        paramDTO.setSize(myFileUtils.getPrintSize(fileNode.getFileSize()));
-        paramDTO.setContentType(fileNode.getFileName().substring(fileNode.getFileName().lastIndexOf(".") + 1));
         paramDTO.setUploadTime(fileNode.getUploadTime());
-        paramDTO.setFilename(fileNode.getFilePath());
+        paramDTO.setFilePath(fileNode.getFilePath());
+        paramDTO.setFilename(fileNode.getFileName());
+        if (!fileNode.isFolder()) {
+            paramDTO.setSize(myFileUtils.getPrintSize(fileNode.getFileSize()));
+            paramDTO.setContentType(fileNode.getFileName().substring(fileNode.getFileName().lastIndexOf(".") + 1));
+        } else {
+            List<FileNode> list = nodeRepository.getSubTree(userId, nodeId, null).get(0).getDescendants();
+            long size = 0L;
+            for (FileNode f : list) {
+                if (!f.isFolder()) {
+                    size += f.getFileSize();
+                }
+            }
+            paramDTO.setSize(myFileUtils.getPrintSize(size));
+            paramDTO.setContentType("folder");
+        }
         return paramDTO;
     }
 
@@ -467,7 +479,7 @@ public class FileServiceImpl implements FileService {
     public List<FileNode> queryAllFiles(Long userId) {
         Query query = new Query();
         query.addCriteria(Criteria.where("userId").is(userId));
-        return mongoTemplate.find(query,FileNode.class,FILE_COLLECTION);
+        return mongoTemplate.find(query, FileNode.class, FILE_COLLECTION);
     }
 
 

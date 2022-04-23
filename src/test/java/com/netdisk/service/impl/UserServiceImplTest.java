@@ -17,6 +17,7 @@ class UserServiceImplTest {
     @Test
     public void addTest(){
 
+
     }
 
 }
