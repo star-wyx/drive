@@ -8,6 +8,7 @@ import com.netdisk.service.UserService;
 import com.netdisk.util.AssemblyResponse;
 import com.netdisk.util.MyFileUtils;
 import com.netdisk.util.Response;
+import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -16,8 +17,12 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.Base64;
 
 
 @Service
@@ -102,7 +107,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public int uploadPicture(MultipartFile file, Long userId) {
+    public String uploadPicture(MultipartFile file, Long userId) {
         Query query = new Query();
         query.addCriteria(Criteria.where("userId").is(userId));
         User user = mongoTemplate.findOne(query, User.class, USER_COLLECTION);
@@ -111,25 +116,55 @@ public class UserServiceImpl implements UserService {
         if (!folder.exists()) {
             folder.mkdirs();
         }
-        File picture = new File(folder, user.getUserName() + suffix);
-        File[] fs = folder.listFiles();
-        for(File f:fs){
-            String fileName = f.getName();
-            if(fileName.substring(fileName.lastIndexOf(".")).equals(user.getUserName())){
-                f.delete();
-            }
+
+        File picture = new File(folder, user.getUserId() + ".jpg");
+        if(picture.exists()){
+            picture.delete();
         }
+        InputStream is = null;
         try {
-            file.transferTo(picture);
+            is = file.getInputStream();
+            BufferedImage bufferedImage = ImageIO.read(is);
+            ImageIO.write(bufferedImage, "jpg", picture);
         } catch (IOException e) {
             e.printStackTrace();
-            return 400;
+        } finally {
+            if (is != null){
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
+
+
+//        File picture = new File(folder, user.getUserName() + suffix);
+//        File[] fs = folder.listFiles();
+//        for (File f : fs) {
+//            String fileName = f.getName();
+//            if (fileName.substring(fileName.lastIndexOf(".")).equals(user.getUserName())) {
+//                f.delete();
+//            }
+//        }
+//        try {
+//            file.transferTo(picture);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//            return null;
+//        }
+
         Update update = new Update();
-        String desPath = fileProperties.getProfileDir() + "/" + user.getUserId() + suffix;
-        update.set("base64", myFileUtils.commpressPicForScale(picture.getAbsolutePath(), desPath, 50, 0.7));
+        String base64 = null;
+        try {
+            byte[] bytes = FileUtils.readFileToByteArray(picture);
+            base64 = Base64.getEncoder().encodeToString(bytes);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        update.set("base64", base64);
         mongoTemplate.findAndModify(query, update, User.class, USER_COLLECTION);
-        return 200;
+        return base64;
     }
 
     @Override

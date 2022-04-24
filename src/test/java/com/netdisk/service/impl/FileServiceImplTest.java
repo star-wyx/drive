@@ -213,4 +213,10 @@ class FileServiceImplTest {
         System.out.println(myFileUtils.getPercentValue(longs, 2));
 
     }
+
+    @Test
+    public void testMp4(){
+        String otherMd5 = "6c4285afd53b542d2a2f84a0edec2b52";
+        mp4Service.changeStatus(otherMd5, "in");
+    }
 }

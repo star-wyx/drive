@@ -191,9 +191,9 @@ public final class MyFileUtils {
      * @param dest 保存 mp4 视频的文件
      * @throws IOException
      */
-    public static void convertToMp4(File src, File dest) throws IOException {
-        FFmpeg ffmpeg = new FFmpeg("/opt/homebrew/Cellar/ffmpeg/5.0.1/bin/ffmpeg");
-        FFprobe ffprobe = new FFprobe("/opt/homebrew/Cellar/ffmpeg/5.0.1/bin/ffprobe");
+    public void convertToMp4(File src, File dest) throws IOException {
+        FFmpeg ffmpeg = new FFmpeg(fileProperties.getFfmpegPath());
+        FFprobe ffprobe = new FFprobe(fileProperties.getFfmpegPath());
         FFmpegProbeResult in = ffprobe.probe(src.getAbsolutePath());
 
         FFmpegBuilder builder = new FFmpegBuilder()
@@ -355,5 +355,35 @@ public final class MyFileUtils {
         BigDecimal b1 = new BigDecimal(num1);
         BigDecimal b2 = new BigDecimal(num2);
         return b1.subtract(b2).doubleValue();
+    }
+
+    /**
+     * 修改原图的文件格式
+     * @param srcPath 原图路径
+     * @param destPath 新图路径
+     * @param formatName 图片格式，支持bmp|gif|jpg|jpeg|png
+     * @return
+     */
+    public static boolean modifyImageFormat(String srcPath, String destPath, String formatName) {
+        boolean isSuccess = false;
+        InputStream fis = null;
+        try {
+            fis = new FileInputStream(srcPath);
+            BufferedImage bufferedImg = ImageIO.read(fis);
+            isSuccess = ImageIO.write(bufferedImg, formatName, new File(destPath));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (fis != null) {
+                try {
+                    fis.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return isSuccess;
     }
 }

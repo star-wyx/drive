@@ -39,7 +39,7 @@ public interface UserService {
     /**
      * 上传头像
      */
-    int uploadPicture(MultipartFile file, Long userId);
+    String uploadPicture(MultipartFile file, Long userId);
 
     /**
      * 修改密码

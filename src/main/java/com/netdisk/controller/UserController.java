@@ -16,16 +16,23 @@ import com.netdisk.util.JwtUtil;
 import com.netdisk.util.MyFileUtils;
 import com.netdisk.util.Response;
 import io.swagger.annotations.*;
+import lombok.extern.slf4j.Slf4j;
 import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.*;
+import java.net.URLDecoder;
+import java.util.ArrayList;
 import java.util.List;
 
 
 @Api(value = "用户接口")
+@Slf4j
 @Controller
 @RequestMapping("/user")
 @CrossOrigin(origins = "http://192.168.1.169:9070", allowCredentials = "true")
@@ -63,7 +70,9 @@ public class UserController {
             AssemblyResponse<ParamDTO> assembly = new AssemblyResponse<>();
             ParamDTO paramDTO = fileService.queryFolderRootContent(user);
             String token = JwtUtil.sign(user.getUserName(), user.getUserPwd());
+            log.info("log in toke is: " + token);
             paramDTO.setToken(token);
+            paramDTO.setBase64(user.getBase64());
             return assembly.success(paramDTO);
         }
     }
@@ -92,9 +101,12 @@ public class UserController {
     @ResponseBody
     public Response updatePhoto(@RequestParam("file") MultipartFile file,
                                 @RequestParam("user_id") Long userId) {
-        AssemblyResponse<Integer> assembly = new AssemblyResponse();
-        if (userService.uploadPicture(file, userId) == 200) {
-            return assembly.success(null);
+        AssemblyResponse<ParamDTO> assembly = new AssemblyResponse();
+        ParamDTO paramDTO = new ParamDTO();
+        String base64 = userService.uploadPicture(file, userId);
+        if (base64 != null) {
+            paramDTO.setBase64(base64);
+            return assembly.success(paramDTO);
         } else {
             return assembly.fail(400, null);
         }
@@ -150,7 +162,6 @@ public class UserController {
                 myFileUtils.getPrintSize(musicSize),
                 myFileUtils.getPrintSize(pictureSize),
                 myFileUtils.getPrintSize(others),
-                user.getBase64(),
                 myFileUtils.getRatio(filmSize, musicSize, pictureSize, others, remain)
         );
         AssemblyResponse<Profile> assembly = new AssemblyResponse<>();
@@ -167,14 +178,30 @@ public class UserController {
         String userName = jwt.getClaim("userName").asString();
         // 这边拿到的 用户名 应该去数据库查询获得密码，简略，步骤在service直接获取密码
         User user = userService.getUserByName(userName);
+        if (user == null) {
+            return assembly.fail(456, null);
+        }
         boolean result = JwtUtil.verify(token, userName, user.getUserPwd());
         if (result) {
             res.setUserId(user.getUserId());
             res.setUserName(user.getUserName());
             return assembly.success(res);
-        }else{
-            return assembly.fail(456,null);
+        } else {
+            return assembly.fail(456, null);
         }
+    }
+
+    @GetMapping("/availableSpace")
+    public Response availableSpace(@RequestBody ParamDTO paramDTO){
+        AssemblyResponse assembly = new AssemblyResponse();
+        User user = userService.getUserById(paramDTO.getUserId());
+        Long usedSize = user.getUsedSize();
+        Long availableSize = user.getTotalSize() - usedSize;
+        List<Long> longs = new ArrayList<>();
+        longs.add(usedSize);
+        longs.add(availableSize);
+        List<String> res = myFileUtils.getPercentValue(longs,2);
+        return assembly.success(res);
     }
 
 }

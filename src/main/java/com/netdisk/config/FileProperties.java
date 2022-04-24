@@ -32,4 +32,8 @@ public class FileProperties {
     public int sliceSizeMB;
 
     private Long defaultSpace;
+
+    private String ffmpegPath;
+
+    private String ffprobePath;
 }

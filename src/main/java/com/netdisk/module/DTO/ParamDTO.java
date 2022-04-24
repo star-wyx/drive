@@ -140,4 +140,10 @@ public class ParamDTO {
      */
     @JsonProperty("new_pwd")
     String newPwd;
+
+    /**
+     * base 64
+     */
+    @JsonProperty("base64")
+    String base64;
 }

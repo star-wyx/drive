@@ -12,4 +12,8 @@ public class AssemblyResponse<T> {
         return new Response<>(errorCode,data);
     }
 
+    public Response<T> set(int code, T data){
+        return new Response<>(code, data);
+    }
+
 }

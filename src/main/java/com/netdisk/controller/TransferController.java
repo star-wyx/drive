@@ -5,6 +5,7 @@ import com.netdisk.module.DTO.ParamDTO;
 import com.netdisk.module.FileNode;
 import com.netdisk.module.Mp4;
 import com.netdisk.module.UploadRecord;
+import com.netdisk.module.User;
 import com.netdisk.service.*;
 import com.netdisk.service.impl.ChunkServiceImpl;
 import com.netdisk.service.impl.FileServiceImpl;
@@ -30,6 +31,7 @@ import java.io.*;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 
 @Api(value = "上传下载")
@@ -57,6 +59,9 @@ public class TransferController {
     private FileProperties fileProperties;
 
     @Autowired
+    private MyFileUtils myFileUtils;
+
+    @Autowired
     MongoTemplate mongoTemplate;
 
     /**
@@ -81,7 +86,7 @@ public class TransferController {
         if (fileNode == null || !fileNode.isFolder()) {
             return assembly.fail(453, null);
         }
-        if(userService.availableSpace(userId) < fileSize){
+        if (userService.availableSpace(userId) < fileSize) {
             return assembly.fail(455, null);
         }
         String contentType = fileName.substring(fileName.lastIndexOf(".") + 1);
@@ -187,10 +192,15 @@ public class TransferController {
         if (fileNode.getContentType().equals(fileProperties.getIcon().get("film"))
                 && !suffix.equalsIgnoreCase("mp4")) {
             Mp4 mp4 = mp4Service.queryByOtherMd5(fileNode.getMd5());
-            if (mp4 != null) {
+            if (mp4 != null && mp4.getStatus().equals("DONE")) {
                 return assembly.success(mp4.getMd5());
             }
-            return assembly.fail(300, "not a mp4 file");
+//            else if (mp4 != null && mp4.getStatus().equals("ING")) {
+//                return assembly.set(301, "transcoding ing");
+//            }
+            else {
+                return assembly.fail(300, "not a mp4 file");
+            }
         } else {
             return assembly.success(fileNode.getMd5());
         }
@@ -208,22 +218,42 @@ public class TransferController {
             String storePath = fileProperties.getRootDir() + fileNode.getStorePath();
             String filePath = fileNode.getFilePath();
             File file = new File(storePath);
-            File folder = new File(fileProperties.getMp4Dir() + File.separator + filePath.substring(0, filePath.lastIndexOf("/")));
+            File folder = new File(fileProperties.getMp4Dir());
+//            File folder = new File(fileProperties.getMp4Dir() + File.separator + filePath.substring(0, filePath.lastIndexOf("/")));
             if (!folder.exists()) {
                 folder.mkdirs();
             }
-            String mp4Path = fileProperties.getMp4Dir() + File.separator + filePath.substring(0, filePath.lastIndexOf("/")) + File.separator + fileName.substring(0, fileName.lastIndexOf(".")) + ".mp4";
+
+            String mp4Path = fileProperties.getMp4Dir() + File.separator + fileNode.getMd5() + ".mp4";
+            String md5 = null;
+//            String mp4Path = fileProperties.getMp4Dir() + File.separator + filePath.substring(0, filePath.lastIndexOf("/")) + File.separator + fileName.substring(0, fileName.lastIndexOf(".")) + ".mp4";
             File mp4 = new File(mp4Path);
-            if (!mp4.exists()) {
+            Mp4 mp4Record = mp4Service.queryByOtherMd5(fileNode.getMd5());
+            if (mp4Record == null) {
+                mp4Service.add(mp4.getName(), " ", mp4.getAbsolutePath(), fileNode.getMd5(), "ING");
                 try {
-                    MyFileUtils.convertToMp4(file, mp4);
+                    myFileUtils.convertToMp4(file, mp4);
+                    md5 = MyFileUtils.getMD5(mp4);
+                    mp4Service.changeStatus(fileNode.getMd5(), "DONE");
+                    mp4Service.setMd5(fileNode.getMd5(),md5);
+                    return assembly.success(md5);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+            } else if (mp4Record.getStatus().equals("ING")) {
+                while(!mp4Service.queryByOtherMd5(fileNode.getMd5()).getStatus().equals("DONE")){
+                    try {
+                        TimeUnit.SECONDS.sleep(10);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                return assembly.success(mp4Service.queryByOtherMd5(fileNode.getMd5()).getMd5());
+            } else if (mp4Record.getStatus().equals("DONE")) {
+                return assembly.success(mp4Record.getMd5());
             }
-            String md5 = MyFileUtils.getMD5(mp4);
-            mp4Service.add(mp4.getName(), md5, mp4.getAbsolutePath(), fileNode.getMd5());
-            return assembly.success(md5);
+//            mp4Service.add(mp4.getName(), md5, mp4.getAbsolutePath(), fileNode.getMd5());
+
         }
         return assembly.fail(301, "no need to transcode");
     }
@@ -237,13 +267,13 @@ public class TransferController {
 
     @PostMapping("/setHistory")
     @ResponseBody
-    public Response setHistory(@RequestBody UploadRecord uploadRecord){
+    public Response setHistory(@RequestBody UploadRecord uploadRecord) {
         Query query = new Query();
         query.addCriteria(Criteria.where("userId").is(uploadRecord.getUserId()));
         query.addCriteria(Criteria.where("uuid").is(uploadRecord.getUuid()));
-        UploadRecord record = mongoTemplate.findOne(query,UploadRecord.class, ChunkServiceImpl.UPLOADRECORD_COLLECTION);
-        if(record != null){
-            mongoTemplate.remove(record,ChunkServiceImpl.UPLOADRECORD_COLLECTION);
+        UploadRecord record = mongoTemplate.findOne(query, UploadRecord.class, ChunkServiceImpl.UPLOADRECORD_COLLECTION);
+        if (record != null) {
+            mongoTemplate.remove(record, ChunkServiceImpl.UPLOADRECORD_COLLECTION);
         }
         mongoTemplate.save(uploadRecord);
         AssemblyResponse assembly = new AssemblyResponse();
@@ -252,12 +282,55 @@ public class TransferController {
 
     @PostMapping("/getHistory")
     @ResponseBody
-    public Response getHistory(@RequestBody ParamDTO paramDTO){
+    public Response getHistory(@RequestBody ParamDTO paramDTO) {
         Query query = new Query();
         query.addCriteria(Criteria.where("userId").is(paramDTO.getUserId()));
-        List<UploadRecord> list = mongoTemplate.find(query,UploadRecord.class, ChunkServiceImpl.UPLOADRECORD_COLLECTION);
+        List<UploadRecord> list = mongoTemplate.find(query, UploadRecord.class, ChunkServiceImpl.UPLOADRECORD_COLLECTION);
         AssemblyResponse<List> assembly = new AssemblyResponse();
         return assembly.success(list);
+    }
+
+
+    @GetMapping(value = "vavatar/**")
+    public void avatar(HttpServletRequest request, HttpServletResponse response) {
+        String url = null;
+        try {
+            url = URLDecoder.decode(request.getRequestURL().toString(), "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        log.info("url is: " + url);
+        String usrId = url.substring(url.lastIndexOf("/") + 1);
+        File avatar = new File(fileProperties.getProfileDir() + File.separator + usrId + ".jpg");
+        response.setStatus(response.SC_OK);
+        response.setHeader("Content-Length", String.valueOf(avatar.length()));
+        response.setHeader("Content-Type", request.getServletContext().getMimeType(avatar.getName()));
+
+        OutputStream os = null;
+        BufferedInputStream bis = null;
+        try {
+            bis = new BufferedInputStream(new FileInputStream(avatar));
+            byte[] buff = new byte[1024];
+            os = response.getOutputStream();
+            int i = 0;
+            while (i != -1) {
+                i = bis.read(buff);
+                os.write(buff, 0, i);
+                os.flush();
+            }
+            response.flushBuffer();
+            os.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                bis.close();
+                os.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
     }
 
 

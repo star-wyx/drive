@@ -23,6 +23,8 @@ public class Mp4 {
 
     private String otherMd5;
 
+    private String status;
+
 
 
 }

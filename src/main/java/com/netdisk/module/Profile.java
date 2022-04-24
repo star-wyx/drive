@@ -18,7 +18,7 @@ public class Profile {
     private String musicSize;
     private String picture;
     private String others;
-    private String base64;
+//    private String base64;
 
     private List<String> ratio;
 

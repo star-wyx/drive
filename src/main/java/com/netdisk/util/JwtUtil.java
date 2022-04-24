@@ -18,8 +18,8 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    // Token过期时间30分钟
-    public static final long EXPIRE_TIME = 30 * 60 * 1000;
+    // Token过期时间6个小时
+    public static final long EXPIRE_TIME = 6 * 60 * 60 * 1000;
 
     /* *
      * @Author lsc
@@ -68,7 +68,6 @@ public class JwtUtil {
     }
 
 
-
     /* *
      * @Author lsc
      * <p>生成签名,30min后过期 </p>
@@ -109,13 +108,18 @@ public class JwtUtil {
      * @Param [request]
      * @Return java.lang.String
      */
-    public static String getUserNameByToken(HttpServletRequest request)  {
+    public static String getUserNameByToken(HttpServletRequest request) {
         String token = request.getHeader("token");
         DecodedJWT jwt = JWT.decode(token);
         return jwt.getClaim("userName")
                 .asString();
     }
 
+    public static String getUserNameByToken(String token) {
+        DecodedJWT jwt = JWT.decode(token);
+        return jwt.getClaim("userName")
+                .asString();
+    }
 
 
 }

@@ -302,7 +302,7 @@ public class ChunkServiceImpl implements ChunkService {
             byte[] buff = new byte[1024];
             os = response.getOutputStream();
             int i = 0;
-            while (i != 1) {
+            while (i != -1) {
                 i = bis.read(buff);
                 os.write(buff, 0, i);
                 os.flush();
