@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
 import java.util.List;
+import java.util.Objects;
 
 @Api(value = "文件管理")
 @Controller
@@ -189,6 +190,9 @@ public class FileController {
     @ResponseBody
     public Response moveFile(@RequestBody ParamDTO paramDTO){
         AssemblyResponse<String> assembly = new AssemblyResponse<>();
+        if(Objects.equals(paramDTO.getNewNodeId(), paramDTO.getNodeId())){
+            assembly.fail(404, "fail to move");
+        }
         if(fileService.moveFile(paramDTO.getUserId(),paramDTO.getNewNodeId(),paramDTO.getNodeId())){
             return assembly.success("successfully");
         }else{

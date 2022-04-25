@@ -30,6 +30,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -270,7 +271,7 @@ public class TransferController {
     public Response setHistory(@RequestBody UploadRecord uploadRecord) {
         Query query = new Query();
         query.addCriteria(Criteria.where("userId").is(uploadRecord.getUserId()));
-        query.addCriteria(Criteria.where("uuid").is(uploadRecord.getUuid()));
+        query.addCriteria(Criteria.where("id").is(uploadRecord.getId()));
         UploadRecord record = mongoTemplate.findOne(query, UploadRecord.class, ChunkServiceImpl.UPLOADRECORD_COLLECTION);
         if (record != null) {
             mongoTemplate.remove(record, ChunkServiceImpl.UPLOADRECORD_COLLECTION);
@@ -286,8 +287,22 @@ public class TransferController {
         Query query = new Query();
         query.addCriteria(Criteria.where("userId").is(paramDTO.getUserId()));
         List<UploadRecord> list = mongoTemplate.find(query, UploadRecord.class, ChunkServiceImpl.UPLOADRECORD_COLLECTION);
+        for(UploadRecord uploadRecord: list){
+            uploadRecord.setUserId(null);
+        }
+        Collections.reverse(list);
         AssemblyResponse<List> assembly = new AssemblyResponse();
         return assembly.success(list);
+    }
+
+    @PostMapping("/deleteHistory")
+    @ResponseBody
+    public Response deleteHistory(@RequestBody UploadRecord uploadRecord) {
+        Query query = new Query();
+        AssemblyResponse assembly = new AssemblyResponse();
+        query.addCriteria(Criteria.where("id").is(uploadRecord.getId()));
+        mongoTemplate.remove(query, UploadRecord.class, ChunkServiceImpl.UPLOADRECORD_COLLECTION);
+        return assembly.success(null);
     }
 
 

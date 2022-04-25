@@ -1,5 +1,6 @@
 package com.netdisk.module;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
@@ -10,12 +11,13 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Document("UploadRecord")
 public class UploadRecord {
 
-    @Id
-    private String id;
+//    @Id
+//    private String Id;
+    @JsonProperty("user_id")
     private Long userId;
-    private String fileName;
-    private String fileSize;
-    private String uuid;
+    private String name;
+    private String size;
+    private String id;
     private String status;
     private int complete;
     private String hash;

@@ -3,6 +3,7 @@ package com.netdisk.service;
 import com.netdisk.module.Chunk;
 import com.netdisk.module.DTO.ParamDTO;
 import com.netdisk.module.FileNode;
+import com.netdisk.module.User;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
@@ -54,4 +55,8 @@ public interface ChunkService {
      * 文件打开
      */
     void vOpenPdf(FileNode fileNode, HttpServletRequest request, HttpServletResponse response);
+
+    String availableFileName(Long userId, Long nodeId, String fileName);
+
+    Chunk queryByNameId(Long userId, Long nodeId, String fileName);
 }

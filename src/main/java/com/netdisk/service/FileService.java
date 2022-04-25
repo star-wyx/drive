@@ -25,7 +25,7 @@ public interface FileService {
      * 返回当前文件夹可用的文件名
      */
 
-    String availableFileName(User user, Long nodeId, String fileName);
+    String availableFoldereName(Long userId, Long nodeId, String fileName);
 
 
     /**
@@ -113,6 +113,11 @@ public interface FileService {
      * 移动文件夹
      */
     boolean moveFile(Long userId, Long newNodeId, Long oldNodeId);
+
+    /**
+     * 改变子节点路径
+     */
+    void chChildPath(FileNode fileNode);
 
     /**
      * 删除文件

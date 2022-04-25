@@ -20,6 +20,9 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -218,5 +221,16 @@ class FileServiceImplTest {
     public void testMp4(){
         String otherMd5 = "6c4285afd53b542d2a2f84a0edec2b52";
         mp4Service.changeStatus(otherMd5, "in");
+    }
+
+    @Test
+    public void testMoveFile(){
+        File srcFile = new File(fileProperties.getRootDir() + "/tom/mTest1");
+        File desFile = new File(fileProperties.getRootDir() + "/tom/asd/mTest1");
+        try {
+            Files.move(srcFile.toPath(),desFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
