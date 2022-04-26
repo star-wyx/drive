@@ -13,6 +13,7 @@ import com.netdisk.util.MyFileUtils;
 import com.netdisk.util.Response;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,7 +25,7 @@ import java.util.Objects;
 @Api(value = "文件管理")
 @Controller
 @RequestMapping("/file")
-@CrossOrigin(origins="http://192.168.1.169:9070", allowCredentials = "true")
+@CrossOrigin(origins = "http://192.168.1.169:9070", allowCredentials = "true")
 public class FileController {
 
     @Autowired
@@ -44,29 +45,29 @@ public class FileController {
      */
     @PostMapping("/newdir")
     @ResponseBody
-    public Response createDir(@RequestBody ParamDTO paramDTO){
+    public Response createDir(@RequestBody ParamDTO paramDTO) {
         AssemblyResponse<String> assembly = new AssemblyResponse<>();
         User user = userService.getUserById(paramDTO.getUserId());
         boolean success = fileService.createDir(user, paramDTO.getNodeId(), paramDTO.getFilename());
-        if(success){
+        if (success) {
             return assembly.success("新目录创建成功");
-        }else{
-            return assembly.fail(451,"已存在同名文件夹");
+        } else {
+            return assembly.fail(451, "已存在同名文件夹");
         }
     }
 
     /**
-     *
      * 查询文件夹内容
      * userId, nodeId
+     *
      * @return
      */
     @PostMapping("/query")
     @ResponseBody
-    public Response queryFolder(@RequestBody ParamDTO paramDTO){
+    public Response queryFolder(@RequestBody ParamDTO paramDTO) {
         AssemblyResponse<List> assembly = new AssemblyResponse<>();
         User user = userService.getUserById(paramDTO.getUserId());
-        return assembly.success(fileService.queryFolderContent(user,paramDTO.getNodeId()));
+        return assembly.success(fileService.queryFolderContent(user, paramDTO.getNodeId()));
     }
 
 
@@ -76,13 +77,13 @@ public class FileController {
      */
     @PostMapping(value = "/browsePath")
     @ResponseBody
-    public Response browsePath(@RequestBody ParamDTO paramDTO){
+    public Response browsePath(@RequestBody ParamDTO paramDTO) {
         AssemblyResponse<List> assembly = new AssemblyResponse<>();
         User user = userService.getUserById(paramDTO.getUserId());
-        List res = fileService.queryBrowsePath(user,paramDTO.getContent());
-        if(res == null){
-            return assembly.fail(453,null);
-        }else{
+        List res = fileService.queryBrowsePath(user, paramDTO.getContent());
+        if (res == null) {
+            return assembly.fail(453, null);
+        } else {
             return assembly.success(res);
         }
     }
@@ -93,9 +94,9 @@ public class FileController {
      */
     @PostMapping(value = "/queryImage")
     @ResponseBody
-    public Response queryAllImage(@RequestBody ParamDTO paramDTO){
+    public Response queryAllImage(@RequestBody ParamDTO paramDTO) {
         AssemblyResponse<ParamDTO> assembly = new AssemblyResponse<>();
-        return assembly.success(fileService.queryAll(paramDTO.getUserId(),fileProperties.getIcon().get("picture")));
+        return assembly.success(fileService.queryAll(paramDTO.getUserId(), fileProperties.getIcon().get("picture")));
     }
 
     /**
@@ -104,9 +105,9 @@ public class FileController {
      */
     @PostMapping(value = "/queryFilm")
     @ResponseBody
-    public Response queryAllFilm(@RequestBody ParamDTO paramDTO){
+    public Response queryAllFilm(@RequestBody ParamDTO paramDTO) {
         AssemblyResponse<ParamDTO> assembly = new AssemblyResponse<>();
-        return assembly.success(fileService.queryAll(paramDTO.getUserId(),fileProperties.getIcon().get("film")));
+        return assembly.success(fileService.queryAll(paramDTO.getUserId(), fileProperties.getIcon().get("film")));
     }
 
     /**
@@ -115,9 +116,9 @@ public class FileController {
      */
     @PostMapping(value = "/queryTorrent")
     @ResponseBody
-    public Response queryAllTorrent(@RequestBody ParamDTO paramDTO){
+    public Response queryAllTorrent(@RequestBody ParamDTO paramDTO) {
         AssemblyResponse<ParamDTO> assembly = new AssemblyResponse<>();
-        return assembly.success(fileService.queryAll(paramDTO.getUserId(),fileProperties.getIcon().get("torrent")));
+        return assembly.success(fileService.queryAll(paramDTO.getUserId(), fileProperties.getIcon().get("torrent")));
     }
 
     /**
@@ -126,9 +127,9 @@ public class FileController {
      */
     @PostMapping(value = "/queryMusic")
     @ResponseBody
-    public Response queryMusic(@RequestBody ParamDTO paramDTO){
+    public Response queryMusic(@RequestBody ParamDTO paramDTO) {
         AssemblyResponse<ParamDTO> assembly = new AssemblyResponse<>();
-        return assembly.success(fileService.queryAll(paramDTO.getUserId(),fileProperties.getIcon().get("music")));
+        return assembly.success(fileService.queryAll(paramDTO.getUserId(), fileProperties.getIcon().get("music")));
     }
 
     /**
@@ -137,7 +138,7 @@ public class FileController {
      */
     @PostMapping(value = "/queryFavorites")
     @ResponseBody
-    public Response queryFavorites(@RequestBody ParamDTO paramDTO){
+    public Response queryFavorites(@RequestBody ParamDTO paramDTO) {
         AssemblyResponse<ParamDTO> assembly = new AssemblyResponse<>();
         return assembly.success(fileService.queryFavorites(paramDTO.getUserId()));
     }
@@ -148,9 +149,9 @@ public class FileController {
      */
     @PostMapping(value = "/favoriteFile")
     @ResponseBody
-    public Response favoriteFile(@RequestBody ParamDTO paramDTO){
+    public Response favoriteFile(@RequestBody ParamDTO paramDTO) {
         AssemblyResponse<String> assembly = new AssemblyResponse<>();
-        fileService.favoriteFile(paramDTO.getUserId(),paramDTO.getNodeId(),paramDTO.getIsFavorites());
+        fileService.favoriteFile(paramDTO.getUserId(), paramDTO.getNodeId(), paramDTO.getIsFavorites());
         return assembly.success("update success!");
     }
 
@@ -160,7 +161,7 @@ public class FileController {
      */
     @PostMapping(value = "/queryAllFolder")
     @ResponseBody
-    public Response queryAllFolder(@RequestBody ParamDTO paramDTO){
+    public Response queryAllFolder(@RequestBody ParamDTO paramDTO) {
         User user = userService.getUserById(paramDTO.getUserId());
         AssemblyResponse<ParamDTO> assembly = new AssemblyResponse<>();
         return assembly.success(fileService.queryAllFolder(user, paramDTO.getNodeId()));
@@ -172,13 +173,13 @@ public class FileController {
      */
     @PostMapping(value = "checkPath")
     @ResponseBody
-    public Response checkPath (@RequestBody ParamDTO paramDTO){
+    public Response checkPath(@RequestBody ParamDTO paramDTO) {
         AssemblyResponse<Long> assembly = new AssemblyResponse<>();
-        Long res = fileService.checkFilePath(paramDTO.getUserId(),paramDTO.getFilePath());
-        if(res!=null){
+        Long res = fileService.checkFilePath(paramDTO.getUserId(), paramDTO.getFilePath());
+        if (res != null) {
             return assembly.success(res);
-        }else{
-            return assembly.fail(453,null);
+        } else {
+            return assembly.fail(453, null);
         }
     }
 
@@ -188,15 +189,16 @@ public class FileController {
      */
     @PostMapping(value = "moveFile")
     @ResponseBody
-    public Response moveFile(@RequestBody ParamDTO paramDTO){
+    public Response moveFile(@RequestBody ParamDTO paramDTO) {
         AssemblyResponse<String> assembly = new AssemblyResponse<>();
-        if(Objects.equals(paramDTO.getNewNodeId(), paramDTO.getNodeId())){
-            assembly.fail(404, "fail to move");
+        FileNode parentNode = fileService.queryFolderById(paramDTO.getUserId(), paramDTO.getNodeId());
+        if (Objects.equals(paramDTO.getNewNodeId(), parentNode.getParentId())) {
+            return assembly.fail(404, "fail to move");
         }
-        if(fileService.moveFile(paramDTO.getUserId(),paramDTO.getNewNodeId(),paramDTO.getNodeId())){
+        if (fileService.moveFile(paramDTO.getUserId(), paramDTO.getNewNodeId(), paramDTO.getNodeId())) {
             return assembly.success("successfully");
-        }else{
-            return assembly.fail(404,"fail to move");
+        } else {
+            return assembly.fail(404, "fail to move");
         }
     }
 
@@ -206,14 +208,14 @@ public class FileController {
      */
     @PostMapping(value = "deleteFile")
     @ResponseBody
-    public Response deleteFile(@RequestBody ParamDTO paramDTO){
+    public Response deleteFile(@RequestBody ParamDTO paramDTO) {
         AssemblyResponse<String> assembly = new AssemblyResponse<>();
-        long deleteSize = fileService.deleteFile(paramDTO.getUserId(),paramDTO.getNodeId());
-        if(deleteSize > 0L){
-            userService.updateSize(paramDTO.getUserId(),-deleteSize);
+        long deleteSize = fileService.deleteFile(paramDTO.getUserId(), paramDTO.getNodeId());
+        if (deleteSize > 0L) {
+            userService.updateSize(paramDTO.getUserId(), -deleteSize);
             return assembly.success("successfully");
-        }else{
-            return assembly.fail(404,"fail to delete");
+        } else {
+            return assembly.fail(404, "fail to delete");
         }
     }
 
@@ -223,8 +225,39 @@ public class FileController {
     @GetMapping(value = "detail")
     @ResponseBody
     public Response detail(@RequestParam(value = "user_id") long userId,
-                           @RequestParam(value = "node_id") long nodeId){
+                           @RequestParam(value = "node_id") long nodeId) {
         AssemblyResponse<ParamDTO> assembly = new AssemblyResponse<>();
-        return assembly.success(fileService.getDetail(userId,nodeId));
+        return assembly.success(fileService.getDetail(userId, nodeId));
+    }
+
+    /**
+     * 修改文件、文件夹名称
+     * userId, nodeId, fileName
+     */
+    @PostMapping(value = "/reName")
+    @ResponseBody
+    public Response reName(@RequestBody ParamDTO paramDTO) {
+        AssemblyResponse assembly = new AssemblyResponse();
+        String newName = paramDTO.getFilename();
+        FileNode fileNode = fileService.queryFolderById(paramDTO.getUserId(), paramDTO.getNodeId());
+        String oldName = fileNode.getFileName();
+        FileNode sameName = null;
+        if (fileNode.isFolder()) {
+            sameName = fileService.queryFolderByNameId(paramDTO.getUserId(), fileNode.getParentId(), newName);
+            if (sameName != null) {
+                return assembly.fail(451, null);
+            }
+            fileService.chName(fileNode, paramDTO.getFilename());
+        } else {
+            String suffix = oldName.substring(oldName.lastIndexOf(".") + 1);
+            newName = newName + "." + suffix;
+            sameName = fileService.queryFileByNameId(paramDTO.getUserId(), fileNode.getParentId(), newName);
+            if (sameName != null) {
+                return assembly.fail(452, null);
+            }
+            fileService.chName(fileNode, paramDTO.getFilename());
+        }
+        return assembly.success(null);
+
     }
 }

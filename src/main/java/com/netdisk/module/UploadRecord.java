@@ -6,6 +6,8 @@ import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.Date;
+
 @Data
 @AllArgsConstructor
 @Document("UploadRecord")
@@ -26,5 +28,7 @@ public class UploadRecord {
     private Boolean isFinished;
     private Boolean isPause;
     private Boolean isGG;
+    private String date;
+    private Date recordDate;
 
 }

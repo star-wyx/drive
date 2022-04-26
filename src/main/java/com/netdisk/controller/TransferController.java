@@ -31,6 +31,7 @@ import java.io.*;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -96,7 +97,7 @@ public class TransferController {
         }
         Long serialNo = chunkService.createTask(md5, uuid, userId, nodeId, fileName);
         res.setSliceNo(serialNo);
-        res.setContentType(contentType);
+        res.setContentType(fileProperties.getIcon().get(contentType));
         return assembly.success(res);
     }
 
@@ -276,6 +277,7 @@ public class TransferController {
         if (record != null) {
             mongoTemplate.remove(record, ChunkServiceImpl.UPLOADRECORD_COLLECTION);
         }
+        uploadRecord.setRecordDate(new Date());
         mongoTemplate.save(uploadRecord);
         AssemblyResponse assembly = new AssemblyResponse();
         return assembly.success(null);
@@ -289,6 +291,7 @@ public class TransferController {
         List<UploadRecord> list = mongoTemplate.find(query, UploadRecord.class, ChunkServiceImpl.UPLOADRECORD_COLLECTION);
         for(UploadRecord uploadRecord: list){
             uploadRecord.setUserId(null);
+            uploadRecord.setRecordDate(null);
         }
         Collections.reverse(list);
         AssemblyResponse<List> assembly = new AssemblyResponse();

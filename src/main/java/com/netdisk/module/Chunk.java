@@ -6,6 +6,8 @@ import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.Date;
+
 @Data
 @AllArgsConstructor
 @Document(ChunkServiceImpl.CHUNK_COLLECTION)
@@ -31,5 +33,6 @@ public class Chunk {
 
     private String storePath;
 
+    private Date uploadTime;
 
 }

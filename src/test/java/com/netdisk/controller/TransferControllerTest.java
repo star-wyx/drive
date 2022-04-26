@@ -14,6 +14,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 
 import java.io.File;
+import java.util.Date;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -47,24 +48,19 @@ class TransferControllerTest {
 
     }
 
-    @Test
-    void mongodb() {
-        Chunk chunk = new Chunk(null, 4L, "uuid", "md5", 1L, 1L, "fileName", "filePaht");
-        mongoTemplate.save(chunk, ChunkServiceImpl.CHUNK_COLLECTION);
-    }
 
     @Test
     public void uploadHistory() {
-        UploadRecord uploadRecord = new UploadRecord(2L, "test", "test", "test", "test", 1, "what", "what", true, true, true, true);
-        UploadRecord uploadRecord1 = new UploadRecord(2L, "test2", "test2", "test2", "test2", 1, "what", "what", true, true, true, true);
-        mongoTemplate.save(uploadRecord, ChunkServiceImpl.UPLOADRECORD_COLLECTION);
-        mongoTemplate.save(uploadRecord1, ChunkServiceImpl.UPLOADRECORD_COLLECTION);
-
-        Query query = new Query();
-        query.addCriteria(Criteria.where("userId").is(2));
-        List<UploadRecord> list = mongoTemplate.find(query, UploadRecord.class, ChunkServiceImpl.UPLOADRECORD_COLLECTION);
-        AssemblyResponse<List> assembly = new AssemblyResponse();
-        System.out.println(assembly.success(list));
+//        UploadRecord uploadRecord = new UploadRecord(2L, "test", "test", "test", "test", 1, "what", "what", true, true, true, true);
+//        UploadRecord uploadRecord1 = new UploadRecord(2L, "test2", "test2", "test2", "test2", 1, "what", "what", true, true, true, true);
+//        mongoTemplate.save(uploadRecord, ChunkServiceImpl.UPLOADRECORD_COLLECTION);
+//        mongoTemplate.save(uploadRecord1, ChunkServiceImpl.UPLOADRECORD_COLLECTION);
+//
+//        Query query = new Query();
+//        query.addCriteria(Criteria.where("userId").is(2));
+//        List<UploadRecord> list = mongoTemplate.find(query, UploadRecord.class, ChunkServiceImpl.UPLOADRECORD_COLLECTION);
+//        AssemblyResponse<List> assembly = new AssemblyResponse();
+//        System.out.println(assembly.success(list));
     }
 
 }

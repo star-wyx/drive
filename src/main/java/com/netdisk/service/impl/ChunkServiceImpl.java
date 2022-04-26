@@ -28,6 +28,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.util.Date;
 import java.util.Locale;
 
 @Service
@@ -110,7 +111,7 @@ public class ChunkServiceImpl implements ChunkService {
                 tmpFolder.mkdirs();
             }
             String availableName = availableFileName(userId,nodeId,fileName);
-            chunk = new Chunk(null, 0L, uuid, md5, userId, nodeId, availableName, tmpPath);
+            chunk = new Chunk(null, 0L, uuid, md5, userId, nodeId, availableName, tmpPath, new Date());
             mongoTemplate.save(chunk, CHUNK_COLLECTION);
             res = -1L;
         } else {
@@ -136,6 +137,7 @@ public class ChunkServiceImpl implements ChunkService {
             }
             Update update = new Update();
             update.set("serialNo", chunk.getSerialNo() + 1);
+            update.set("uploadTime", new Date());
             mongoTemplate.updateFirst(query, update, Chunk.class, CHUNK_COLLECTION);
             return 200;
         } else {

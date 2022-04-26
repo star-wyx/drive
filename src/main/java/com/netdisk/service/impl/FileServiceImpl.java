@@ -192,7 +192,7 @@ public class FileServiceImpl implements FileService {
     @Override
     public boolean createDir(User user, Long nodeId, String fileName) {
         if (queryFolderByNameId(user.getUserId(), nodeId, fileName) != null) {
-            fileName = availableFoldereName(user.getUserId(),nodeId,fileName);
+            fileName = availableFoldereName(user.getUserId(), nodeId, fileName);
         }
         FileNode current = queryFolderById(user.getUserId(), nodeId);
         FileNode fileNode = new FileNode(null,
@@ -401,15 +401,15 @@ public class FileServiceImpl implements FileService {
         query.addCriteria(Criteria.where("nodeId").is(nodeId));
         FileNode fileNode = mongoTemplate.findOne(query, FileNode.class, FILE_COLLECTION);
         String fileName = fileNode.getFileName();
-        if(queryFolderByNameId(fileNode.getUserId(),newParentNodeId,fileNode.getFileName()) != null){
-            fileName = availableFoldereName(userId,newParentNodeId,fileName);
+        if (queryFolderByNameId(fileNode.getUserId(), newParentNodeId, fileNode.getFileName()) != null) {
+            fileName = availableFoldereName(userId, newParentNodeId, fileName);
         }
         Update update = new Update();
         String newPath = newParent.getFilePath() + File.separator + fileName;
         update.set("parentId", newParent.getNodeId());
         update.set("filePath", newPath);
         update.set("storePath", newPath);
-        update.set("fileName",fileName);
+        update.set("fileName", fileName);
         mongoTemplate.findAndModify(query, update, FileNode.class, FILE_COLLECTION);
 
         try {
@@ -518,6 +518,43 @@ public class FileServiceImpl implements FileService {
         Query query = new Query();
         query.addCriteria(Criteria.where("userId").is(userId));
         return mongoTemplate.find(query, FileNode.class, FILE_COLLECTION);
+    }
+
+    @Override
+    public boolean chName(FileNode fileNode, String newName) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("userId").is(fileNode.getUserId()));
+        query.addCriteria(Criteria.where("nodeId").is(fileNode.getNodeId()));
+        if (fileNode.isFolder()) {
+            Update update = new Update();
+            String filePath = fileNode.getFilePath();
+            String newFilePath = filePath.substring(0, filePath.lastIndexOf("/") + 1) + newName;
+            update.set("fileName", newName);
+            update.set("filePath", newFilePath);
+            update.set("storePath", newFilePath);
+            mongoTemplate.findAndModify(query, update, FileNode.class, FILE_COLLECTION);
+            File src = new File(fileProperties.getRootDir() + fileNode.getFilePath());
+            File des = new File(fileProperties.getRootDir() + newFilePath);
+            src.renameTo(des);
+            fileNode.setFilePath(newFilePath);
+            chChildPath(fileNode);
+            return true;
+        } else {
+            String fileName = fileNode.getFileName();
+            String suffix = fileName.substring(fileName.lastIndexOf(".") + 1);
+            newName = newName + "." + suffix;
+            String filePath = fileNode.getFilePath();
+            filePath = filePath.substring(0, filePath.lastIndexOf("/")+1) + newName;
+            Update update = new Update();
+            update.set("fileName", newName);
+            update.set("filePath", filePath);
+            update.set("storePath", filePath);
+            mongoTemplate.findAndModify(query, update, FileNode.class, FILE_COLLECTION);
+            File src = new File(fileProperties.getRootDir() + fileNode.getFilePath());
+            File des = new File(fileProperties.getRootDir() + filePath);
+            src.renameTo(des);
+            return true;
+        }
     }
 
 

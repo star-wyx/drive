@@ -144,4 +144,9 @@ public interface FileService {
      * 获取用户下的所有文件
      */
     List<FileNode> queryAllFiles(Long userId);
+
+    /**
+     * 更改文件、文件夹名称
+     */
+    boolean chName(FileNode fileNode, String newName);
 }
