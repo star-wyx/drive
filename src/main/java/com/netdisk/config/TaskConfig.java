@@ -24,7 +24,8 @@ public class TaskConfig {
         // Simple类型：可设置时间间隔、是否重复、触发频率（misfire机制）等
         // 这里我设置的10s的定时任务
         SimpleScheduleBuilder ssb = SimpleScheduleBuilder.simpleSchedule()
-                .withIntervalInHours(12).repeatForever();
+//                .withIntervalInSeconds(10).repeatForever();
+                .withIntervalInHours(1).repeatForever();
 
         // 一个Trigger只对应一个Job，Schedule调度器调度Trigger执行对应的Job
         SimpleTrigger sTrigger = TriggerBuilder.newTrigger().forJob(delete()).

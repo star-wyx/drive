@@ -11,6 +11,8 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
+
 
 @Service
 @Slf4j
@@ -38,7 +40,7 @@ public class Mp4ServiceImpl implements Mp4Service {
 
     @Override
     public void add(String fileName, String md5, String storePath, String otherMd5, String status) {
-        Mp4 mp4 = new Mp4(null, fileName, md5, storePath, otherMd5, status);
+        Mp4 mp4 = new Mp4(null, fileName, md5, storePath, otherMd5, status, new Date());
         mongoTemplate.save(mp4);
     }
 
@@ -62,5 +64,14 @@ public class Mp4ServiceImpl implements Mp4Service {
         update.set("md5",md5);
         mongoTemplate.updateFirst(query,update,Mp4.class,Mp4_COLLECTION);
         System.out.println("SET MD% COMPLETED");
+    }
+
+    @Override
+    public void updateTime(String md5) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("md5").is(md5));
+        Update update = new Update();
+        update.set("uploadTime", new Date());
+        mongoTemplate.findAndModify(query,update,Mp4.class,Mp4_COLLECTION);
     }
 }

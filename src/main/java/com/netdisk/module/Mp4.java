@@ -7,6 +7,8 @@ import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.Date;
+
 @Data
 @AllArgsConstructor
 @Document(Mp4ServiceImpl.Mp4_COLLECTION)
@@ -25,6 +27,7 @@ public class Mp4 {
 
     private String status;
 
+    private Date uploadTime;
 
 
 }

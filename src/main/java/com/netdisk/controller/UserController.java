@@ -17,6 +17,7 @@ import com.netdisk.util.MyFileUtils;
 import com.netdisk.util.Response;
 import io.swagger.annotations.*;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 import org.checkerframework.checker.units.qual.A;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -89,7 +90,15 @@ public class UserController {
     public Response signin(@RequestBody UserDTO userDTO) {
         Response response = userService.add(userDTO);
         if (response.getCode() == 200) {
-            fileService.createUserFile(userService.getUserByName(userDTO.getUserName()));
+            User user = userService.getUserByName(userDTO.getUserName());
+            fileService.createUserFile(user);
+            File defaultAvatar = new File(fileProperties.getProfileDir() + File.separator + "default.png");
+            File newAvatar = new File(fileProperties.getProfileDir() + File.separator + user.getUserId() +".png");
+            try {
+                FileUtils.copyFile(defaultAvatar,newAvatar);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
         return response;
     }
@@ -102,11 +111,9 @@ public class UserController {
     public Response updatePhoto(@RequestParam("file") MultipartFile file,
                                 @RequestParam("user_id") Long userId) {
         AssemblyResponse<ParamDTO> assembly = new AssemblyResponse();
-        ParamDTO paramDTO = new ParamDTO();
-        String base64 = userService.uploadPicture(file, userId);
-        if (base64 != null) {
-            paramDTO.setBase64(base64);
-            return assembly.success(paramDTO);
+//        ParamDTO paramDTO = new ParamDTO();
+        if (userService.uploadPicture(file, userId)) {
+            return assembly.success(null);
         } else {
             return assembly.fail(400, null);
         }

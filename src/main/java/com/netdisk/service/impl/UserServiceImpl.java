@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.awt.image.RenderedImage;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -107,7 +108,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public String uploadPicture(MultipartFile file, Long userId) {
+    public boolean uploadPicture(MultipartFile file, Long userId) {
         Query query = new Query();
         query.addCriteria(Criteria.where("userId").is(userId));
         User user = mongoTemplate.findOne(query, User.class, USER_COLLECTION);
@@ -117,15 +118,15 @@ public class UserServiceImpl implements UserService {
             folder.mkdirs();
         }
 
-        File picture = new File(folder, user.getUserId() + ".jpg");
+        File picture = new File(fileProperties.getProfileDir() + File.separator + userId + ".png");
         if(picture.exists()){
             picture.delete();
         }
         InputStream is = null;
         try {
             is = file.getInputStream();
-            BufferedImage bufferedImage = ImageIO.read(is);
-            ImageIO.write(bufferedImage, "jpg", picture);
+            RenderedImage bufferedImage = ImageIO.read(is);
+            ImageIO.write(bufferedImage, "png", picture);
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
@@ -137,34 +138,19 @@ public class UserServiceImpl implements UserService {
                 }
             }
         }
-
-
-//        File picture = new File(folder, user.getUserName() + suffix);
-//        File[] fs = folder.listFiles();
-//        for (File f : fs) {
-//            String fileName = f.getName();
-//            if (fileName.substring(fileName.lastIndexOf(".")).equals(user.getUserName())) {
-//                f.delete();
-//            }
-//        }
+        return true;
+//
+//        Update update = new Update();
+//        String base64 = null;
 //        try {
-//            file.transferTo(picture);
+//            byte[] bytes = FileUtils.readFileToByteArray(picture);
+//            base64 = Base64.getEncoder().encodeToString(bytes);
 //        } catch (IOException e) {
 //            e.printStackTrace();
-//            return null;
 //        }
-
-        Update update = new Update();
-        String base64 = null;
-        try {
-            byte[] bytes = FileUtils.readFileToByteArray(picture);
-            base64 = Base64.getEncoder().encodeToString(bytes);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        update.set("base64", base64);
-        mongoTemplate.findAndModify(query, update, User.class, USER_COLLECTION);
-        return base64;
+//        update.set("base64", base64);
+//        mongoTemplate.findAndModify(query, update, User.class, USER_COLLECTION);
+//        return base64;
     }
 
     @Override

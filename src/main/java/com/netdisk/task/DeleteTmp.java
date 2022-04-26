@@ -2,9 +2,12 @@ package com.netdisk.task;
 
 import com.netdisk.config.FileProperties;
 import com.netdisk.module.Chunk;
+import com.netdisk.module.Mp4;
 import com.netdisk.module.UploadRecord;
 import com.netdisk.service.ChunkService;
 import com.netdisk.service.impl.ChunkServiceImpl;
+import com.netdisk.service.impl.FileServiceImpl;
+import com.netdisk.service.impl.Mp4ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
@@ -44,6 +47,8 @@ public class DeleteTmp extends QuartzJobBean {
 
         deleteHistory();
 
+        deleteMp4();
+
     }
 
     private void deleteTmp(){
@@ -74,5 +79,22 @@ public class DeleteTmp extends QuartzJobBean {
         mongoTemplate.remove(query, UploadRecord.class,ChunkServiceImpl.UPLOADRECORD_COLLECTION);
         System.out.println("auto delete history");
 
+    }
+
+    public void deleteMp4(){
+        Query query = new Query();
+        Date date = new Date();
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+//        calendar.add(Calendar.SECOND, -25);
+        calendar.add(Calendar.DATE, -1);
+        query.addCriteria(Criteria.where("uploadTime").lte(calendar.getTime()));
+        mongoTemplate.remove(query, Mp4.class, Mp4ServiceImpl.Mp4_COLLECTION);
+        List<Mp4> list = mongoTemplate.find(query,Mp4.class, Mp4ServiceImpl.Mp4_COLLECTION);
+        for(Mp4 mp4 : list){
+            File file = new File(mp4.getStorePath());
+            file.delete();
+        }
+        System.out.println("auto delete mp4");
     }
 }

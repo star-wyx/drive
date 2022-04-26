@@ -49,6 +49,7 @@ public class NodeRepositoryImpl implements NodeGraphLookupRepository{
     public List<FileNode> getSubTree(Long userId, Long nodeId, Long maxDepth, boolean isFolder) {
         final Criteria byNodeId = new Criteria("nodeId").is(nodeId);
         final Criteria byTreeId = new Criteria("userId").is(userId);
+        final Criteria criteria = new Criteria("userId").is(userId).andOperator(Criteria.where("isFolder").is(true));
         final MatchOperation matchStage = Aggregation.match(byTreeId.andOperator(byNodeId));
 
         GraphLookupOperation graphLookupOperation = GraphLookupOperation.builder()
@@ -56,9 +57,10 @@ public class NodeRepositoryImpl implements NodeGraphLookupRepository{
                 .startWith("$nodeId")
                 .connectFrom("nodeId")
                 .connectTo("parentId")
-                .restrict(new Criteria("userId").is(userId))
+//                .restrict(new Criteria("userId").is(userId))
                 .maxDepth(maxDepth != null ? maxDepth : MAX_DEPTH_SUPPORTED)
-                .restrict(Criteria.where("isFolder").is(true))
+//                .restrict(Criteria.where("isFolder").is(true))
+                .restrict(criteria)
                 .as("descendants");
 
         Aggregation aggregation = Aggregation.newAggregation(matchStage, graphLookupOperation);

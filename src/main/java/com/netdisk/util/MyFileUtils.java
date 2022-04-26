@@ -193,7 +193,7 @@ public final class MyFileUtils {
      */
     public void convertToMp4(File src, File dest) throws IOException {
         FFmpeg ffmpeg = new FFmpeg(fileProperties.getFfmpegPath());
-        FFprobe ffprobe = new FFprobe(fileProperties.getFfmpegPath());
+        FFprobe ffprobe = new FFprobe(fileProperties.getFfprobePath());
         FFmpegProbeResult in = ffprobe.probe(src.getAbsolutePath());
 
         FFmpegBuilder builder = new FFmpegBuilder()

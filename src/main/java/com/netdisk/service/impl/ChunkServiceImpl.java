@@ -389,6 +389,7 @@ public class ChunkServiceImpl implements ChunkService {
 
         if (fileNode == null) {
             Mp4 mp4 = mp4Service.queryByMd5(md5);
+            mp4Service.updateTime(mp4.getMd5());
             storePath = mp4.getStorePath();
             fileName = mp4.getFileName();
         } else {

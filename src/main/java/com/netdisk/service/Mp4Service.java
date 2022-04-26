@@ -14,4 +14,6 @@ public interface Mp4Service {
 
     void setMd5(String otherMd5, String md5);
 
+    void updateTime(String md5);
+
 }

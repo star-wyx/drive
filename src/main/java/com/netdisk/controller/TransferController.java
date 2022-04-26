@@ -191,21 +191,22 @@ public class TransferController {
         AssemblyResponse<String> assembly = new AssemblyResponse<>();
         String fileName = fileNode.getFileName();
         String suffix = fileName.substring(fileName.lastIndexOf(".") + 1);
-        if (fileNode.getContentType().equals(fileProperties.getIcon().get("film"))
-                && !suffix.equalsIgnoreCase("mp4")) {
-            Mp4 mp4 = mp4Service.queryByOtherMd5(fileNode.getMd5());
-            if (mp4 != null && mp4.getStatus().equals("DONE")) {
-                return assembly.success(mp4.getMd5());
-            }
-//            else if (mp4 != null && mp4.getStatus().equals("ING")) {
-//                return assembly.set(301, "transcoding ing");
+//        if (fileNode.getContentType().equals(fileProperties.getIcon().get("film"))
+//                && !suffix.equalsIgnoreCase("mp4")) {
+//            Mp4 mp4 = mp4Service.queryByOtherMd5(fileNode.getMd5());
+//            if (mp4 != null && mp4.getStatus().equals("DONE")) {
+//                return assembly.success(mp4.getMd5());
 //            }
-            else {
-                return assembly.fail(300, "not a mp4 file");
-            }
-        } else {
-            return assembly.success(fileNode.getMd5());
-        }
+////            else if (mp4 != null && mp4.getStatus().equals("ING")) {
+////                return assembly.set(301, "transcoding ing");
+////            }
+//            else {
+//                return assembly.fail(300, "not a mp4 file");
+//            }
+//        } else {
+//            return assembly.success(fileNode.getMd5());
+//        }
+        return assembly.success(fileNode.getMd5());
     }
 
     @GetMapping("/file/transcode")
@@ -319,7 +320,7 @@ public class TransferController {
         }
         log.info("url is: " + url);
         String usrId = url.substring(url.lastIndexOf("/") + 1);
-        File avatar = new File(fileProperties.getProfileDir() + File.separator + usrId + ".jpg");
+        File avatar = new File(fileProperties.getProfileDir() + File.separator + usrId + ".png");
         response.setStatus(response.SC_OK);
         response.setHeader("Content-Length", String.valueOf(avatar.length()));
         response.setHeader("Content-Type", request.getServletContext().getMimeType(avatar.getName()));
