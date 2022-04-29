@@ -4,6 +4,7 @@ import com.mongodb.client.MongoCollection;
 import com.netdisk.module.Mp4;
 import com.netdisk.service.Mp4Service;
 import lombok.extern.slf4j.Slf4j;
+import org.checkerframework.checker.units.qual.C;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -39,8 +40,8 @@ public class Mp4ServiceImpl implements Mp4Service {
     }
 
     @Override
-    public void add(String fileName, String md5, String storePath, String otherMd5, String status) {
-        Mp4 mp4 = new Mp4(null, fileName, md5, storePath, otherMd5, status, new Date());
+    public void add(String fileName, String md5, String storePath, String otherMd5, String status, Long userId) {
+        Mp4 mp4 = new Mp4(null, fileName, md5, storePath, otherMd5, status, new Date(), userId);
         mongoTemplate.save(mp4);
     }
 
@@ -73,5 +74,20 @@ public class Mp4ServiceImpl implements Mp4Service {
         Update update = new Update();
         update.set("uploadTime", new Date());
         mongoTemplate.findAndModify(query,update,Mp4.class,Mp4_COLLECTION);
+    }
+
+    @Override
+    public boolean checkUserTask(Long userId, String otherMd5) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("userId").is(userId));
+        query.addCriteria(Criteria.where("status").is("ING"));
+        Mp4 mp4 = mongoTemplate.findOne(query,Mp4.class, Mp4_COLLECTION);
+        if(mp4 == null){
+            return true;
+        }else if(mp4.getOtherMd5().equals(otherMd5)){
+            return true;
+        }else{
+            return false;
+        }
     }
 }

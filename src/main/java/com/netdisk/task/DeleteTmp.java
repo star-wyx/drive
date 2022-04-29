@@ -89,8 +89,8 @@ public class DeleteTmp extends QuartzJobBean {
 //        calendar.add(Calendar.SECOND, -25);
         calendar.add(Calendar.DATE, -1);
         query.addCriteria(Criteria.where("uploadTime").lte(calendar.getTime()));
-        mongoTemplate.remove(query, Mp4.class, Mp4ServiceImpl.Mp4_COLLECTION);
         List<Mp4> list = mongoTemplate.find(query,Mp4.class, Mp4ServiceImpl.Mp4_COLLECTION);
+        mongoTemplate.remove(query, Mp4.class, Mp4ServiceImpl.Mp4_COLLECTION);
         for(Mp4 mp4 : list){
             File file = new File(mp4.getStorePath());
             file.delete();

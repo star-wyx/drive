@@ -55,4 +55,10 @@ public interface UserService {
      * 查看可用空间
      */
     Long availableSpace(Long userId);
+
+
+    /**
+     * 设置可用空间
+     */
+    void setAvailableSpace(Long userId, Long remain);
 }

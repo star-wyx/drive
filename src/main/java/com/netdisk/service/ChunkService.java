@@ -59,4 +59,6 @@ public interface ChunkService {
     String availableFileName(Long userId, Long nodeId, String fileName);
 
     Chunk queryByNameId(Long userId, Long nodeId, String fileName);
+
+    void abortAll(Long userId);
 }

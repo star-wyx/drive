@@ -3,6 +3,7 @@ package com.netdisk.service.impl;
 import ch.qos.logback.core.util.FileUtil;
 import com.netdisk.config.FileProperties;
 import com.netdisk.module.Chunk;
+import com.netdisk.module.DTO.ParamDTO;
 import com.netdisk.module.FileNode;
 import com.netdisk.module.Mp4;
 import com.netdisk.module.User;
@@ -10,7 +11,9 @@ import com.netdisk.service.ChunkService;
 import com.netdisk.service.FileService;
 import com.netdisk.service.Mp4Service;
 import com.netdisk.service.UserService;
+import com.netdisk.util.AssemblyResponse;
 import com.netdisk.util.MyFileUtils;
+import com.netdisk.util.Response;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.checkerframework.checker.units.qual.C;
@@ -21,6 +24,9 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
@@ -29,6 +35,7 @@ import java.io.*;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 @Service
@@ -94,6 +101,21 @@ public class ChunkServiceImpl implements ChunkService {
         query.addCriteria(Criteria.where("nodeId").is(nodeId));
         query.addCriteria(Criteria.where("fileName").is(fileName));
         return mongoTemplate.findOne(query,Chunk.class, CHUNK_COLLECTION);
+    }
+
+    @Override
+    public void abortAll(Long userId) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("userId").is(userId));
+        List<Chunk> list = mongoTemplate.find(query,Chunk.class, CHUNK_COLLECTION);
+        for(Chunk chunk:list){
+            try {
+                FileUtils.deleteDirectory(new File(chunk.getStorePath()));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        mongoTemplate.findAllAndRemove(query,Chunk.class,CHUNK_COLLECTION);
     }
 
     @Override
@@ -201,7 +223,8 @@ public class ChunkServiceImpl implements ChunkService {
         if (chunk == null) {
             return 453;
         }
-        boolean bol = FileUtils.deleteQuietly(new File(chunk.getStorePath()));
+        File file = new File(chunk.getStorePath());
+        file.delete();
         mongoTemplate.remove(chunk);
         return 200;
     }

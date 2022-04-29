@@ -9,6 +9,7 @@ import com.netdisk.module.User;
 import com.netdisk.service.FileService;
 import com.netdisk.service.Mp4Service;
 import com.netdisk.service.UserService;
+import com.netdisk.util.FfmpegUtil;
 import com.netdisk.util.MyFileUtils;
 import com.netdisk.util.TypeComparator;
 import org.junit.jupiter.api.Test;
@@ -19,15 +20,16 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -54,6 +56,9 @@ class FileServiceImplTest {
 
     @Autowired
     Mp4Service mp4Service;
+
+    @Autowired
+    FfmpegUtil ffmpegUtil;
 
     @Test
     public void test() {
@@ -218,19 +223,40 @@ class FileServiceImplTest {
     }
 
     @Test
-    public void testMp4(){
+    public void testMp4() {
         String otherMd5 = "6c4285afd53b542d2a2f84a0edec2b52";
         mp4Service.changeStatus(otherMd5, "in");
     }
 
     @Test
-    public void testMoveFile(){
+    public void testMoveFile() {
         File srcFile = new File(fileProperties.getRootDir() + "/tom/mTest1");
         File desFile = new File(fileProperties.getRootDir() + "/tom/asd/mTest1");
         try {
-            Files.move(srcFile.toPath(),desFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            Files.move(srcFile.toPath(), desFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    @Test
+    public void testFfmepg() {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("contentType").is("film"));
+        List<FileNode> list = mongoTemplate.find(query, FileNode.class, FileServiceImpl.FILE_COLLECTION);
+
+        for (FileNode fileNode : list) {
+            ffmpegUtil.getEncodingFormat(fileProperties.getRootDir() + fileNode.getStorePath());
+        }
+    }
+
+    @Test
+    public void testString(){
+        String url = "http://192.168.1.143:9090/vavatar/28877?time";
+        Pattern pattern = Pattern.compile("(.*/vavatar/)(\\d*)(.*?)");
+        Matcher matcher = pattern.matcher(url);
+        matcher.find();
+        String userId = matcher.group(2);
+        System.out.println(userId);
     }
 }

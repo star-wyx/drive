@@ -5,11 +5,10 @@ import com.netdisk.module.DTO.ParamDTO;
 import com.netdisk.module.FileNode;
 import com.netdisk.module.Mp4;
 import com.netdisk.module.UploadRecord;
-import com.netdisk.module.User;
 import com.netdisk.service.*;
 import com.netdisk.service.impl.ChunkServiceImpl;
-import com.netdisk.service.impl.FileServiceImpl;
 import com.netdisk.util.AssemblyResponse;
+import com.netdisk.util.FfmpegUtil;
 import com.netdisk.util.MyFileUtils;
 import com.netdisk.util.Response;
 import io.swagger.annotations.Api;
@@ -17,11 +16,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.CriteriaExtensionsKt;
 import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Controller;
-import org.springframework.util.DigestUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,11 +25,13 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 @Api(value = "上传下载")
@@ -62,6 +60,9 @@ public class TransferController {
 
     @Autowired
     private MyFileUtils myFileUtils;
+
+    @Autowired
+    private FfmpegUtil ffmpegUtil;
 
     @Autowired
     MongoTemplate mongoTemplate;
@@ -201,12 +202,21 @@ public class TransferController {
 ////                return assembly.set(301, "transcoding ing");
 ////            }
 //            else {
-//                return assembly.fail(300, "not a mp4 file");
+//                Map<String, String> map = myFileUtils.getEncodingFormat(fileProperties.getRootDir() + fileNode.getStorePath());
+//                return assembly.fail(300, map.get("Video"));
 //            }
-//        } else {
-//            return assembly.success(fileNode.getMd5());
 //        }
-        return assembly.success(fileNode.getMd5());
+        if (fileNode.getContentType().equals(fileProperties.getIcon().get("film"))) {
+            Map<String, String> map = ffmpegUtil.getEncodingFormat(fileProperties.getRootDir() + fileNode.getStorePath());
+            AssemblyResponse<ParamDTO> res = new AssemblyResponse<>();
+            ParamDTO paramDTO = new ParamDTO();
+            paramDTO.setCodec(map.get("Video"));
+            paramDTO.setMd5(fileNode.getMd5());
+            return res.fail(300,paramDTO);
+        }else{
+            return assembly.success(fileNode.getMd5());
+        }
+//        return assembly.success(fileNode.getMd5());
     }
 
     @GetMapping("/file/transcode")
@@ -231,20 +241,26 @@ public class TransferController {
             String md5 = null;
 //            String mp4Path = fileProperties.getMp4Dir() + File.separator + filePath.substring(0, filePath.lastIndexOf("/")) + File.separator + fileName.substring(0, fileName.lastIndexOf(".")) + ".mp4";
             File mp4 = new File(mp4Path);
+            if (!mp4Service.checkUserTask(userId, fileNode.getMd5())) {
+                return assembly.fail(457, "you have another trasncode task");
+            }
             Mp4 mp4Record = mp4Service.queryByOtherMd5(fileNode.getMd5());
             if (mp4Record == null) {
-                mp4Service.add(mp4.getName(), " ", mp4.getAbsolutePath(), fileNode.getMd5(), "ING");
+                mp4Service.add(mp4.getName(), " ", mp4.getAbsolutePath(), fileNode.getMd5(), "ING", userId);
                 try {
-                    myFileUtils.convertToMp4(file, mp4);
+                    ffmpegUtil.convertToMp4(file, mp4);
+
+//                    ffmpegUtil.convert(storePath, mp4Path, ffmpegUtil.getVideoFormat(storePath));
+
                     md5 = MyFileUtils.getMD5(mp4);
                     mp4Service.changeStatus(fileNode.getMd5(), "DONE");
-                    mp4Service.setMd5(fileNode.getMd5(),md5);
+                    mp4Service.setMd5(fileNode.getMd5(), md5);
                     return assembly.success(md5);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             } else if (mp4Record.getStatus().equals("ING")) {
-                while(!mp4Service.queryByOtherMd5(fileNode.getMd5()).getStatus().equals("DONE")){
+                while (!mp4Service.queryByOtherMd5(fileNode.getMd5()).getStatus().equals("DONE")) {
                     try {
                         TimeUnit.SECONDS.sleep(10);
                     } catch (InterruptedException e) {
@@ -290,7 +306,7 @@ public class TransferController {
         Query query = new Query();
         query.addCriteria(Criteria.where("userId").is(paramDTO.getUserId()));
         List<UploadRecord> list = mongoTemplate.find(query, UploadRecord.class, ChunkServiceImpl.UPLOADRECORD_COLLECTION);
-        for(UploadRecord uploadRecord: list){
+        for (UploadRecord uploadRecord : list) {
             uploadRecord.setUserId(null);
             uploadRecord.setRecordDate(null);
         }
@@ -318,9 +334,15 @@ public class TransferController {
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
-        log.info("url is: " + url);
-        String usrId = url.substring(url.lastIndexOf("/") + 1);
-        File avatar = new File(fileProperties.getProfileDir() + File.separator + usrId + ".png");
+        log.info("avatar url is: " + url);
+        Pattern pattern = Pattern.compile("(.*/vavatar/)(\\d*)(.*?)");
+        Matcher matcher = pattern.matcher(url);
+        matcher.find();
+        String userId = matcher.group(2);
+        log.info("url is: " + url + " userId is: " + userId);
+
+//        String usrId = url.substring(url.lastIndexOf("/") + 1);
+        File avatar = new File(fileProperties.getProfileDir() + File.separator + userId + ".png");
         response.setStatus(response.SC_OK);
         response.setHeader("Content-Length", String.valueOf(avatar.length()));
         response.setHeader("Content-Type", request.getServletContext().getMimeType(avatar.getName()));
@@ -350,6 +372,14 @@ public class TransferController {
             }
         }
 
+    }
+
+    @PostMapping(value = "/abortAll")
+    @ResponseBody
+    public Response abortAll(@RequestBody ParamDTO paramDTO){
+        AssemblyResponse<String> assemblyResponse = new AssemblyResponse();
+        chunkService.abortAll(paramDTO.getUserId());
+        return assemblyResponse.success(null);
     }
 
 

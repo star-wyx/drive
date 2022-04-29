@@ -162,6 +162,7 @@ public class UserController {
             }
         }
         remain = userService.availableSpace(user.getUserId());
+        userService.setAvailableSpace(user.getUserId(),filmSize + musicSize + pictureSize + others);
         Profile profile = new Profile(
                 user.getUserEmail(),
                 myFileUtils.getPrintSize(remain),
@@ -198,16 +199,20 @@ public class UserController {
         }
     }
 
-    @GetMapping("/availableSpace")
+    @PostMapping("/availableSpace")
+    @ResponseBody
     public Response availableSpace(@RequestBody ParamDTO paramDTO){
         AssemblyResponse assembly = new AssemblyResponse();
+        ParamDTO res = new ParamDTO();
         User user = userService.getUserById(paramDTO.getUserId());
         Long usedSize = user.getUsedSize();
         Long availableSize = user.getTotalSize() - usedSize;
         List<Long> longs = new ArrayList<>();
         longs.add(usedSize);
         longs.add(availableSize);
-        List<String> res = myFileUtils.getPercentValue(longs,2);
+        List<String> percents = myFileUtils.getPercentValue(longs,2);
+        res.setPercentage(percents.get(0));
+        res.setSize(myFileUtils.getPrintSize(usedSize));
         return assembly.success(res);
     }
 

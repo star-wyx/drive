@@ -13,6 +13,7 @@ import net.bramp.ffmpeg.progress.Progress;
 import net.bramp.ffmpeg.progress.ProgressListener;
 import net.coobird.thumbnailator.Thumbnails;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.logging.LoggerGroup;
 import org.springframework.context.annotation.Bean;
@@ -31,11 +32,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+//import java.util.regex.Pattern;
+import org.apache.oro.text.regex.*;
 
 @Component
 @Slf4j
@@ -184,55 +184,7 @@ public final class MyFileUtils {
         return res;
     }
 
-    /**
-     * 转换任意格式的视频为 mp4 格式的视频
-     *
-     * @param src  源视频文件
-     * @param dest 保存 mp4 视频的文件
-     * @throws IOException
-     */
-    public void convertToMp4(File src, File dest) throws IOException {
-        FFmpeg ffmpeg = new FFmpeg(fileProperties.getFfmpegPath());
-        FFprobe ffprobe = new FFprobe(fileProperties.getFfprobePath());
-        FFmpegProbeResult in = ffprobe.probe(src.getAbsolutePath());
 
-        FFmpegBuilder builder = new FFmpegBuilder()
-                .overrideOutputFiles(true) // Override the output if it exists
-                .setInput(in)
-                .addOutput(dest.getAbsolutePath())
-                .setFormat("mp4")                  // Format is inferred from filename, or can be set
-                .setVideoCodec("libx264")          // Video using x264
-                .setVideoFrameRate(24, 1)          // At 24 frames per second
-                // .setVideoResolution(width, height) // At 1280x720 resolution (宽高必须都能被 2 整除)
-                .setAudioCodec("aac")              // Using the aac codec
-                .setStrict(FFmpegBuilder.Strict.EXPERIMENTAL) // Allow FFmpeg to use experimental specs (ex. aac)
-                .done();
-
-        FFmpegExecutor executor = new FFmpegExecutor(ffmpeg, ffprobe);
-        FFmpegJob job = executor.createJob(builder, new ProgressListener() {
-            // 使用 FFmpegProbeResult 得到视频的长度 (单位为纳秒)
-            final double duration_ns = in.getFormat().duration * TimeUnit.SECONDS.toNanos(1);
-
-            @Override
-            public void progress(Progress progress) {
-                // 转换进度 [0, 100]
-                // [Fix] No duration for FLV, SWF file, 所以获取进度无效时都假装转换到了 99%
-                int percentage = (duration_ns > 0) ? (int) (progress.out_time_ns / duration_ns * 100) : 99;
-
-                // 日志中输出转换进度信息
-                log.debug("[{}%] status: {}, frame: {}, time: {} ms, fps: {}, speed: {}x",
-                        percentage,
-                        progress.status,
-                        progress.frame,
-                        FFmpegUtils.toTimecode(progress.out_time_ns, TimeUnit.NANOSECONDS),
-                        progress.fps.doubleValue(),
-                        progress.speed
-                );
-            }
-        });
-
-        job.run();
-    }
 
     public String getPrintSize(long size) {
 
@@ -277,7 +229,7 @@ public final class MyFileUtils {
         longs.add(music);
         longs.add(others);
         longs.add(remain);
-        return getPercentValue(longs,2);
+        return getPercentValue(longs, 2);
     }
 
     public List<String> getPercentValue(List<Long> list, int precision) {
@@ -359,8 +311,9 @@ public final class MyFileUtils {
 
     /**
      * 修改原图的文件格式
-     * @param srcPath 原图路径
-     * @param destPath 新图路径
+     *
+     * @param srcPath    原图路径
+     * @param destPath   新图路径
      * @param formatName 图片格式，支持bmp|gif|jpg|jpeg|png
      * @return
      */

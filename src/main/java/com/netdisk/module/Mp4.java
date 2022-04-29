@@ -29,5 +29,7 @@ public class Mp4 {
 
     private Date uploadTime;
 
+    private Long userId;
+
 
 }

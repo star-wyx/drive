@@ -3,6 +3,7 @@ package com.netdisk.module.DTO;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
+import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import java.util.List;
 
 @Data
@@ -146,4 +147,16 @@ public class ParamDTO {
      */
     @JsonProperty("base64")
     String base64;
+
+    /**
+     * codec
+     */
+    @JsonProperty("codec")
+    String codec;
+
+    /**
+     * 可用空间的比例
+     */
+    @JsonProperty("percentage")
+    String percentage;
 }

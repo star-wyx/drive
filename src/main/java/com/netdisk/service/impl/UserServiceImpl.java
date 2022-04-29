@@ -173,8 +173,9 @@ public class UserServiceImpl implements UserService {
         Query query = new Query();
         query.addCriteria(Criteria.where("userId").is(userId));
         User user = mongoTemplate.findOne(query, User.class, USER_COLLECTION);
-        if (fileSize + user.getUsedSize() > user.getTotalSize()) {
+        if (fileSize + user.getUsedSize() < user.getTotalSize()) {
             Update update = new Update();
+            update.set("usedSize", user.getUsedSize() + fileSize);
             mongoTemplate.findAndModify(query, update, User.class, USER_COLLECTION);
             return true;
         } else {
@@ -186,5 +187,14 @@ public class UserServiceImpl implements UserService {
     public Long availableSpace(Long userId) {
         User user = getUserById(userId);
         return user.getTotalSize() - user.getUsedSize();
+    }
+
+    @Override
+    public void setAvailableSpace(Long userId, Long remain) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("userId").is(userId));
+        Update update = new Update();
+        update.set("usedSize", remain);
+        mongoTemplate.findAndModify(query,update,User.class, USER_COLLECTION);
     }
 }

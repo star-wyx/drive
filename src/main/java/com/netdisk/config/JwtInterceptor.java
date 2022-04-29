@@ -12,6 +12,8 @@ import org.springframework.web.servlet.ModelAndView;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @Author lsc
@@ -30,7 +32,15 @@ public class JwtInterceptor implements HandlerInterceptor {
         String token = request.getHeader("token");
         if(token == null){
             String url = request.getQueryString();
-            token = url.substring(url.lastIndexOf("=") + 1);
+            log.info("url is: "+url);
+            Pattern pattern = Pattern.compile("(token=)(.*)");
+            Matcher matcher = pattern.matcher(url);
+            matcher.find();
+            token = matcher.group(2);
+            if(token.contains("&time=")){
+                token = token.substring(0,token.lastIndexOf("&time="));
+            }
+//            token = url.substring(url.lastIndexOf("=") + 1);
         }
         log.info("token is " + token);
         // 如果不是映射到方法直接通过
