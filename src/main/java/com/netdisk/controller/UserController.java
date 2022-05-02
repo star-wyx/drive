@@ -36,7 +36,7 @@ import java.util.List;
 @Slf4j
 @Controller
 @RequestMapping("/user")
-@CrossOrigin(origins = "http://192.168.1.169:9070", allowCredentials = "true")
+@CrossOrigin(origins = "http://192.168.1.195:9070", allowCredentials = "true")
 public class UserController {
     @Autowired
     private UserService userService;

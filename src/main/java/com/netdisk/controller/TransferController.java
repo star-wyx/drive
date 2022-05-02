@@ -37,7 +37,7 @@ import java.util.regex.Pattern;
 @Api(value = "上传下载")
 @Controller
 @Slf4j
-@CrossOrigin(origins = "http://192.168.1.169:9070", allowCredentials = "true")
+@CrossOrigin(origins = "http://192.168.1.195:9070", allowCredentials = "true")
 public class TransferController {
 
     @Autowired

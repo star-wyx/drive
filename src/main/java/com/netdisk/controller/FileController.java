@@ -25,7 +25,7 @@ import java.util.Objects;
 @Api(value = "文件管理")
 @Controller
 @RequestMapping("/file")
-@CrossOrigin(origins = "http://192.168.1.169:9070", allowCredentials = "true")
+@CrossOrigin(origins = "http://192.168.1.195:9070", allowCredentials = "true")
 public class FileController {
 
     @Autowired
