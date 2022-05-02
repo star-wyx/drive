@@ -6,6 +6,7 @@ spring:
     mongodb:
 #      uri: mongodb://localhost:27017/netdisk
       host: 192.168.1.195
+#      host: 192.168.5.130
       port: 27017
       database: vnetdisk
       username: user1
@@ -32,4 +33,5 @@ spring:
 logging:
   config: classpath:logback-spring.xml
   file:
-    path: /Users/star_wyx/coding/drive_springboot/log
+    path: /usr/local/netdisk/log
+#    path: /Users/star_wyx/coding/drive_springboot/log

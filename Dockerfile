@@ -6,7 +6,9 @@ FROM adoptopenjdk/openjdk11:jre-11.0.14.1_1-ubuntu
 RUN apt-get update \
     && apt-get install -y curl vim net-tools  \
 #    && apt-get install -y mongodb \
-    && apt-get install -y ffmpeg
+    && apt-get install -y ffmpeg \
+    && apt-get clean \
+    &&  rm -rf /var/lib/apt/lists/*
 
 #RUN apk update && \
 #    apk add yasm && \
@@ -16,14 +18,10 @@ RUN apt-get update \
 #    apk update && \
 #    apk add mongodb=3.4.4-r0 &&
 
-#RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.6/main' >> /etc/apk/repositories
-#RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.6/community' >> /etc/apk/repositories
-#RUN apk update
-#RUN apk add mongodb=3.4.4-r0
-
 VOLUME /tmp
 
 COPY ./target/*.jar /app.jar
+#COPY ./*.jar /app.jar
 
 CMD ["--server.port=9090"]
 

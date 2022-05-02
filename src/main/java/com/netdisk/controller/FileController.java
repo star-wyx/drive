@@ -26,6 +26,7 @@ import java.util.Objects;
 @Controller
 @RequestMapping("/file")
 @CrossOrigin(origins = "http://192.168.1.195:9070", allowCredentials = "true")
+//@CrossOrigin(origins = "http://192.168.5.130:9070", allowCredentials = "true")
 public class FileController {
 
     @Autowired

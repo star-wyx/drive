@@ -37,6 +37,7 @@ import java.util.List;
 @Controller
 @RequestMapping("/user")
 @CrossOrigin(origins = "http://192.168.1.195:9070", allowCredentials = "true")
+//@CrossOrigin(origins = "http://192.168.5.130:9070", allowCredentials = "true")
 public class UserController {
     @Autowired
     private UserService userService;

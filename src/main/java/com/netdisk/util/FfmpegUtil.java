@@ -165,8 +165,6 @@ public class FfmpegUtil {
 
         log.info("正在检查");
 
-        System.out.println(command.toString());
-
         String res = runProcess(command);
         if (res.contains("h264_qsv")) {
             codecProperties.getDecoder().put("h264_qsv", true);
@@ -224,8 +222,6 @@ public class FfmpegUtil {
                 sb.append(line);
                 continue;
             }
-            System.out.println("xxxxxxxxx");
-            System.out.println(line);
 
             int ret = p.waitFor();//这里线程阻塞，将等待外部转换进程运行成功运行结束后，才往下执行
             //1. end
