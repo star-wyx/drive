@@ -9,6 +9,7 @@ import com.netdisk.service.impl.ChunkServiceImpl;
 import com.netdisk.service.impl.FileServiceImpl;
 import com.netdisk.service.impl.Mp4ServiceImpl;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,7 @@ import org.springframework.scheduling.quartz.QuartzJobBean;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -51,7 +53,7 @@ public class DeleteTmp extends QuartzJobBean {
 
     }
 
-    private void deleteTmp(){
+    private void deleteTmp() {
         Query query = new Query();
         Date date = new Date();
         Calendar calendar = Calendar.getInstance();
@@ -60,15 +62,19 @@ public class DeleteTmp extends QuartzJobBean {
 //        calendar.add(Calendar.MINUTE, -1);
         query.addCriteria(Criteria.where("uploadTime").lte(calendar.getTime()));
         List<Chunk> chunkList = mongoTemplate.find(query, Chunk.class, ChunkServiceImpl.CHUNK_COLLECTION);
-        mongoTemplate.remove(query,Chunk.class,ChunkServiceImpl.CHUNK_COLLECTION);
-        for(Chunk chunk: chunkList){
+        mongoTemplate.remove(query, Chunk.class, ChunkServiceImpl.CHUNK_COLLECTION);
+        for (Chunk chunk : chunkList) {
             File file = new File(chunk.getStorePath());
-            file.delete();
+            try {
+                FileUtils.deleteDirectory(file);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
         System.out.println("auto delete tmp file");
     }
 
-    private void deleteHistory(){
+    private void deleteHistory() {
         Query query = new Query();
         Date date = new Date();
         Calendar calendar = Calendar.getInstance();
@@ -76,12 +82,12 @@ public class DeleteTmp extends QuartzJobBean {
         calendar.add(Calendar.DATE, -10);
 //        calendar.add(Calendar.MINUTE, -1);
         query.addCriteria(Criteria.where("recordDate").lte(calendar.getTime()));
-        mongoTemplate.remove(query, UploadRecord.class,ChunkServiceImpl.UPLOADRECORD_COLLECTION);
+        mongoTemplate.remove(query, UploadRecord.class, ChunkServiceImpl.UPLOADRECORD_COLLECTION);
         System.out.println("auto delete history");
 
     }
 
-    public void deleteMp4(){
+    public void deleteMp4() {
         Query query = new Query();
         Date date = new Date();
         Calendar calendar = Calendar.getInstance();
@@ -89,9 +95,9 @@ public class DeleteTmp extends QuartzJobBean {
 //        calendar.add(Calendar.SECOND, -25);
         calendar.add(Calendar.DATE, -1);
         query.addCriteria(Criteria.where("uploadTime").lte(calendar.getTime()));
-        List<Mp4> list = mongoTemplate.find(query,Mp4.class, Mp4ServiceImpl.Mp4_COLLECTION);
+        List<Mp4> list = mongoTemplate.find(query, Mp4.class, Mp4ServiceImpl.Mp4_COLLECTION);
         mongoTemplate.remove(query, Mp4.class, Mp4ServiceImpl.Mp4_COLLECTION);
-        for(Mp4 mp4 : list){
+        for (Mp4 mp4 : list) {
             File file = new File(mp4.getStorePath());
             file.delete();
         }

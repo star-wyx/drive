@@ -72,7 +72,7 @@ public class UserServiceImpl implements UserService {
         User byEmail = getUserByEmail(userEmail);
         AssemblyResponse<String> assembly = new AssemblyResponse<>();
         if (byName == null && byEmail == null) {
-            User user = userDTO.ToUser(seqService.getNextSeqId(USER_COLLECTION));
+            User user = userDTO.ToUser(seqService.getNextUserId());
             user.setUsedSize(0L);
             user.setTotalSize(fileProperties.getDefaultSpace());
             mongoTemplate.save(user, USER_COLLECTION);

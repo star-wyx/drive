@@ -36,4 +36,19 @@ public class SeqServiceImpl implements SeqService {
         SeqInfo seqInfo = new SeqInfo(null,userName,0L);
         mongoTemplate.save(seqInfo,SEQ_COLLECTION);
     }
+
+    @Override
+    public long getNextUserId() {
+        Query query = new Query(Criteria.where("collName").is("user@id"));
+        SeqInfo seqInfo = mongoTemplate.findOne(query,SeqInfo.class,SEQ_COLLECTION);
+        if(seqInfo == null){
+            seqInfo = new SeqInfo(null,"user@id",2L);
+            mongoTemplate.save(seqInfo,SEQ_COLLECTION);
+            return 1L;
+        }
+        Update update = new Update();
+        update.set("seqId",seqInfo.getSeqId()+1L);
+        mongoTemplate.findAndModify(query,update,SeqInfo.class,SEQ_COLLECTION);
+        return seqInfo.getSeqId();
+    }
 }

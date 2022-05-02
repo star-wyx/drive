@@ -128,9 +128,12 @@ public class TransferController {
     @ResponseBody
     public Response merge(@RequestParam(value = "hash") String md5,
                           @RequestParam(value = "uid") String uid) {
-        AssemblyResponse<Integer> assembly = new AssemblyResponse<>();
+        AssemblyResponse<String> assembly = new AssemblyResponse<>();
         int res = chunkService.merge(uid, md5);
-        if (res != 200) {
+        if (res == 453){
+            return assembly.fail(res, "folder doesnt exist");
+        }
+        else if(res != 200) {
             return assembly.fail(res, null);
         } else {
             return assembly.success(null);
@@ -247,18 +250,14 @@ public class TransferController {
             Mp4 mp4Record = mp4Service.queryByOtherMd5(fileNode.getMd5());
             if (mp4Record == null) {
                 mp4Service.add(mp4.getName(), " ", mp4.getAbsolutePath(), fileNode.getMd5(), "ING", userId);
-                try {
-                    ffmpegUtil.convertToMp4(file, mp4);
+                //                    ffmpegUtil.convertToMp4(file, mp4);
 
-//                    ffmpegUtil.convert(storePath, mp4Path, ffmpegUtil.getVideoFormat(storePath));
+                ffmpegUtil.convert(storePath, mp4Path, ffmpegUtil.getVideoFormat(storePath));
 
-                    md5 = MyFileUtils.getMD5(mp4);
-                    mp4Service.changeStatus(fileNode.getMd5(), "DONE");
-                    mp4Service.setMd5(fileNode.getMd5(), md5);
-                    return assembly.success(md5);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                md5 = MyFileUtils.getMD5(mp4);
+                mp4Service.changeStatus(fileNode.getMd5(), "DONE");
+                mp4Service.setMd5(fileNode.getMd5(), md5);
+                return assembly.success(md5);
             } else if (mp4Record.getStatus().equals("ING")) {
                 while (!mp4Service.queryByOtherMd5(fileNode.getMd5()).getStatus().equals("DONE")) {
                     try {

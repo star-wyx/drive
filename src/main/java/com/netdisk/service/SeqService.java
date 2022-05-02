@@ -5,4 +5,6 @@ public interface SeqService {
     long getNextSeqId(String collName);
 
     void insertUser(String userName);
+
+    long getNextUserId();
 }

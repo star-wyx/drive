@@ -1,5 +1,6 @@
 package com.netdisk.util;
 
+import com.netdisk.config.CodecProperties;
 import com.netdisk.config.FileProperties;
 import lombok.extern.slf4j.Slf4j;
 import net.bramp.ffmpeg.FFmpeg;
@@ -13,6 +14,7 @@ import net.bramp.ffmpeg.progress.Progress;
 import net.bramp.ffmpeg.progress.ProgressListener;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.oro.text.regex.*;
+import org.bson.types.Code;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -33,6 +35,9 @@ public class FfmpegUtil {
 
     @Autowired
     FileProperties fileProperties;
+
+    @Autowired
+    CodecProperties codecProperties;
 
     /**
      * 转换任意格式的视频为 mp4 格式的视频
@@ -91,8 +96,8 @@ public class FfmpegUtil {
      * /volume1/homes/wzl778633/2.mkv
      * -c:v h264_qsv -global_quality 25
      * /volume1/homes/wzl778633/1.mp4
-     *
-     *
+     * <p>
+     * <p>
      * hevc ==> -hwaccel qsv -c:v hevc_qsv
      * vp9 ==> -hwaccel qsv -c:v vp9_qsv
      * vp8 ==> -hwaccel qsv -c:v vp8_qsv
@@ -104,30 +109,102 @@ public class FfmpegUtil {
     public void convert(String src, String dest, String codec) {
         List<String> command = new ArrayList<>();
 
+        log.info("TRANSCODE");
+
         command.add(fileProperties.getFfmpegPath());
-        command.add("-hwaccel");
-        command.add("qsv");
-        if (codec.equals("hevc")) {
+        command.add("-hide_banner");
+        if (codecProperties.getDecoder().get("hevc_qsv") || codecProperties.getDecoder().get("vp9_qsv")
+                || codecProperties.getDecoder().get("vp8_qsv") || codecProperties.getDecoder().get("h264_qsv")
+        || codecProperties.getEncoder().get("h264_qsv")) {
+            command.add("-hwaccel");
+            command.add("qsv");
+        }
+//        command.add("videotoolbox");
+        if (codec.equals("hevc") && codecProperties.getDecoder().get("hevc_qsv")) {
             command.add("-c:v");
             command.add("hevc_qsv");
-        }else if(codec.equals("vp9")){
+        } else if (codec.equals("vp9") && codecProperties.getDecoder().get("vp9_qsv")) {
             command.add("-c:v");
             command.add("vp9_qsv");
-        }else if(codec.equals("vp8")){
+        } else if (codec.equals("vp8") && codecProperties.getDecoder().get("vp8_qsv")) {
             command.add("-c:v");
             command.add("vp8_qsv");
-        }else if(codec.equals("h264")){
+        } else if (codec.equals("h264") && codecProperties.getDecoder().get("h264_qsv")) {
             command.add("-c:v");
             command.add("h264_qsv");
         }
+        command.add("-y");
         command.add("-i");
         command.add(src);
-        command.add("-c:v");
-        command.add("h264_qsv");
+
+        if (codecProperties.getEncoder().get("h264_qsv")) {
+            command.add("-c:v");
+            command.add("h264_qsv");
+//            command.add("h264_videotoolbox");
+        }
         command.add("-global_quality");
         command.add("25");
         command.add(dest);
 
+        log.info("执行命令" + command.toString());
+
+        runProcess(command);
+
+    }
+
+    public void checkEncoders() {
+        log.info("开始检查decoder");
+
+        List<String> command = new ArrayList<>();
+//        ffmpeg -dncoders|grep qsv
+        command.add("ffmpeg");
+        command.add("-hide_banner");
+        command.add("-decoders");
+        command.add("|grep");
+        command.add("qsv");
+
+        log.info("正在检查");
+
+        System.out.println(command.toString());
+
+        String res = runProcess(command);
+        if (res.contains("h264_qsv")) {
+            codecProperties.getDecoder().put("h264_qsv", true);
+            log.info("有h264_qsv");
+
+        }
+        if (res.contains("hevc_qsv")) {
+            codecProperties.getDecoder().put("hevc_qsv", true);
+            log.info("有hevc_qsv");
+
+        }
+        if (res.contains("vp8_qsv")) {
+            codecProperties.getDecoder().put("vp8_qsv", true);
+            log.info("有vp8_qsv");
+        }
+        if (res.contains("vp9_qsv")) {
+            codecProperties.getDecoder().put("vp9_qsv", true);
+            log.info("有vp9_qsv");
+        }
+
+        log.info("检查encoder");
+        command = new ArrayList<>();
+        command.add("ffmpeg");
+        command.add("-hide_banner");
+        command.add("-encoders");
+        command.add("|grep");
+        command.add("qsv");
+//       command.add("videotoolbox");
+        String encoderRes = runProcess(command);
+        if (encoderRes.contains("h264_qsv")) {
+            codecProperties.getEncoder().put("h264_qsv", true);
+            log.info("有h264_qsv encoder");
+        }
+
+    }
+
+    public String runProcess(List<String> command) {
+        StringBuffer sb = null;
         try {
             ProcessBuilder builder = new ProcessBuilder();
             builder.command(command);
@@ -141,21 +218,26 @@ public class FfmpegUtil {
 
             buf = new BufferedReader(new InputStreamReader(p.getInputStream()));
 
-            StringBuffer sb = new StringBuffer();
+            sb = new StringBuffer();
             while ((line = buf.readLine()) != null) {
                 System.out.println(line);
                 sb.append(line);
                 continue;
             }
+            System.out.println("xxxxxxxxx");
+            System.out.println(line);
+
             int ret = p.waitFor();//这里线程阻塞，将等待外部转换进程运行成功运行结束后，才往下执行
             //1. end
         } catch (Exception e) {
             System.out.println(e);
         }
+        return sb.toString();
     }
 
-    public String getVideoFormat(String filePath){
-        Map<String,String> map = getEncodingFormat(filePath);
+
+    public String getVideoFormat(String filePath) {
+        Map<String, String> map = getEncodingFormat(filePath);
         return map.get("Video");
     }
 

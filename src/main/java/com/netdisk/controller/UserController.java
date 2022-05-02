@@ -93,6 +93,7 @@ public class UserController {
             User user = userService.getUserByName(userDTO.getUserName());
             fileService.createUserFile(user);
             File defaultAvatar = new File(fileProperties.getProfileDir() + File.separator + "default.png");
+//            File defaultAvatar = new File("classpath:/resources/default.png");
             File newAvatar = new File(fileProperties.getProfileDir() + File.separator + user.getUserId() +".png");
             try {
                 FileUtils.copyFile(defaultAvatar,newAvatar);

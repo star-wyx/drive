@@ -100,22 +100,22 @@ public class ChunkServiceImpl implements ChunkService {
         query.addCriteria(Criteria.where("userId").is(userId));
         query.addCriteria(Criteria.where("nodeId").is(nodeId));
         query.addCriteria(Criteria.where("fileName").is(fileName));
-        return mongoTemplate.findOne(query,Chunk.class, CHUNK_COLLECTION);
+        return mongoTemplate.findOne(query, Chunk.class, CHUNK_COLLECTION);
     }
 
     @Override
     public void abortAll(Long userId) {
         Query query = new Query();
         query.addCriteria(Criteria.where("userId").is(userId));
-        List<Chunk> list = mongoTemplate.find(query,Chunk.class, CHUNK_COLLECTION);
-        for(Chunk chunk:list){
+        List<Chunk> list = mongoTemplate.find(query, Chunk.class, CHUNK_COLLECTION);
+        for (Chunk chunk : list) {
             try {
                 FileUtils.deleteDirectory(new File(chunk.getStorePath()));
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
-        mongoTemplate.findAllAndRemove(query,Chunk.class,CHUNK_COLLECTION);
+        mongoTemplate.findAllAndRemove(query, Chunk.class, CHUNK_COLLECTION);
     }
 
     @Override
@@ -132,7 +132,7 @@ public class ChunkServiceImpl implements ChunkService {
             if (!tmpFolder.exists()) {
                 tmpFolder.mkdirs();
             }
-            String availableName = availableFileName(userId,nodeId,fileName);
+            String availableName = availableFileName(userId, nodeId, fileName);
             chunk = new Chunk(null, 0L, uuid, md5, userId, nodeId, availableName, tmpPath, new Date());
             mongoTemplate.save(chunk, CHUNK_COLLECTION);
             res = -1L;
@@ -174,6 +174,10 @@ public class ChunkServiceImpl implements ChunkService {
         Chunk chunk = mongoTemplate.findOne(query, Chunk.class, CHUNK_COLLECTION);
         assert chunk != null;
         FileNode folder = fileService.queryFolderById(chunk.getUserId(), chunk.getNodeId());
+        if (folder == null) {
+            abort(uuid, md5);
+            return 453;
+        }
         User user = userService.getUserById(chunk.getUserId());
 //        String availableFileName = availableFileName(user, chunk.getNodeId(), chunk.getFileName());
         File newFile = new File(fileProperties.getRootDir() + folder.getFilePath(), chunk.getFileName());
@@ -203,7 +207,7 @@ public class ChunkServiceImpl implements ChunkService {
             e.printStackTrace();
         }
 
-        userService.updateSize(user.getUserId(),newFile.length());
+        userService.updateSize(user.getUserId(), newFile.length());
         fileService.insertFileNode(user, chunk.getNodeId(), chunk.getFileName(), md5, newFile.length());
         return 200;
     }
@@ -224,8 +228,13 @@ public class ChunkServiceImpl implements ChunkService {
             return 453;
         }
         File file = new File(chunk.getStorePath());
-        file.delete();
-        mongoTemplate.remove(chunk);
+        try {
+            FileUtils.deleteDirectory(file);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            mongoTemplate.remove(chunk);
+        }
         return 200;
     }
 
