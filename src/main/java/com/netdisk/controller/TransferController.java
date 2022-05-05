@@ -37,8 +37,11 @@ import java.util.regex.Pattern;
 @Api(value = "上传下载")
 @Controller
 @Slf4j
-@CrossOrigin(origins = "http://192.168.1.195:9070", allowCredentials = "true")
-//@CrossOrigin(origins = "http://192.168.5.130:9070", allowCredentials = "true")
+//@CrossOrigin(origins = {"http://172.17.0.1", "http://172.17.0.1:9070", "http://www.aijiangsb.com" ,"http://aijiangsb.com:9070",
+//        "https://172.17.0.1", "https://172.17.0.1:9070", "https://www.aijiangsb.com" ,"https://aijiangsb.com:9070",
+//        "https://www.aijiangsb.com:9070","http://www.aijiangsb.com:9070"}
+//        , allowCredentials = "true")
+@CrossOrigin(origins = "http://192.168.1.169:9070", allowCredentials = "true")
 public class TransferController {
 
     @Autowired
@@ -194,22 +197,7 @@ public class TransferController {
                                @RequestParam(value = "node_id") Long nodeId) {
         FileNode fileNode = fileService.queryFolderById(userId, nodeId);
         AssemblyResponse<String> assembly = new AssemblyResponse<>();
-        String fileName = fileNode.getFileName();
-        String suffix = fileName.substring(fileName.lastIndexOf(".") + 1);
-//        if (fileNode.getContentType().equals(fileProperties.getIcon().get("film"))
-//                && !suffix.equalsIgnoreCase("mp4")) {
-//            Mp4 mp4 = mp4Service.queryByOtherMd5(fileNode.getMd5());
-//            if (mp4 != null && mp4.getStatus().equals("DONE")) {
-//                return assembly.success(mp4.getMd5());
-//            }
-////            else if (mp4 != null && mp4.getStatus().equals("ING")) {
-////                return assembly.set(301, "transcoding ing");
-////            }
-//            else {
-//                Map<String, String> map = myFileUtils.getEncodingFormat(fileProperties.getRootDir() + fileNode.getStorePath());
-//                return assembly.fail(300, map.get("Video"));
-//            }
-//        }
+        //film全部转发前端查看浏览器是否支持
         if (fileNode.getContentType().equals(fileProperties.getIcon().get("film"))) {
             Map<String, String> map = ffmpegUtil.getEncodingFormat(fileProperties.getRootDir() + fileNode.getStorePath());
             AssemblyResponse<ParamDTO> res = new AssemblyResponse<>();
@@ -220,7 +208,6 @@ public class TransferController {
         }else{
             return assembly.success(fileNode.getMd5());
         }
-//        return assembly.success(fileNode.getMd5());
     }
 
     @GetMapping("/file/transcode")
