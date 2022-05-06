@@ -157,6 +157,7 @@ public class FileServiceImpl implements FileService {
     public void insertFileNode(User user, Long nodeId, String fileName, String md5, long size) {
         FileNode folder = queryFolderById(user.getUserId(), nodeId);
         String fileType = fileName.substring(fileName.lastIndexOf(".") + 1);
+        fileType = fileType.toLowerCase(Locale.ROOT);
         fileType = fileProperties.getIcon().containsKey(fileType) ? fileProperties.getIcon().get(fileType) : fileProperties.getOtherIcon();
         FileNode fileNode = new FileNode(null,
                 user.getUserId(),

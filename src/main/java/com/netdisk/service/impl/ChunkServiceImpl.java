@@ -34,6 +34,10 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -60,6 +64,9 @@ public class ChunkServiceImpl implements ChunkService {
 
     @Autowired
     UserService userService;
+
+    @Autowired
+    MyFileUtils myFileUtils;
 
 
     @Override
@@ -148,23 +155,37 @@ public class ChunkServiceImpl implements ChunkService {
         query.addCriteria(Criteria.where("uuid").is(uuid));
         Chunk chunk = mongoTemplate.findOne(query, Chunk.class, CHUNK_COLLECTION);
         Long serialNo = Long.valueOf(sliceName.substring(sliceName.lastIndexOf("_") + 1, sliceName.lastIndexOf(".")));
-        if (serialNo <= chunk.getSerialNo()) {
-            return 200;
-        } else if (serialNo == chunk.getSerialNo() + 1) {
-            File newFile = new File(chunk.getStorePath(), serialNo + ".tmp");
-            try {
-                file.transferTo(newFile);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            Update update = new Update();
-            update.set("serialNo", chunk.getSerialNo() + 1);
-            update.set("uploadTime", new Date());
-            mongoTemplate.updateFirst(query, update, Chunk.class, CHUNK_COLLECTION);
-            return 200;
-        } else {
-            return 454;
+//        if (serialNo <= chunk.getSerialNo()) {
+//            return 200;
+//        } else if (serialNo == chunk.getSerialNo() + 1) {
+//            File newFile = new File(chunk.getStorePath(), serialNo + ".tmp");
+//            try {
+//                file.transferTo(newFile);
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//            Update update = new Update();
+//            update.set("serialNo", chunk.getSerialNo() + 1);
+//            update.set("uploadTime", new Date());
+//            mongoTemplate.updateFirst(query, update, Chunk.class, CHUNK_COLLECTION);
+//            return 200;
+//        } else {
+//            return 454;
+//        }
+
+        //实现并行
+        File newFile = new File(chunk.getStorePath(), serialNo + ".tmp");
+        try {
+            file.transferTo(newFile);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
+        Update update = new Update();
+        update.set("serialNo", chunk.getSerialNo() < serialNo ? serialNo : chunk.getSerialNo());
+        update.set("uploadTime", new Date());
+        mongoTemplate.updateFirst(query, update, Chunk.class, CHUNK_COLLECTION);
+        return 200;
+
     }
 
     @Override
@@ -188,6 +209,12 @@ public class ChunkServiceImpl implements ChunkService {
             FileOutputStream out = new FileOutputStream(newFile, true);
             for (int i = 1; i <= chunk.getSerialNo(); i++) {
                 int len;
+                File slice = new File(chunk.getStorePath(), i + ".tmp");
+                if(!slice.exists()){
+                    abort(uuid,md5);
+                    newFile.delete();
+                    return 458;
+                }
                 in = new FileInputStream(new File(chunk.getStorePath(), i + ".tmp"));
                 while ((len = in.read(byt)) != -1) {
 //                    System.out.println("------" + len);
@@ -205,6 +232,13 @@ public class ChunkServiceImpl implements ChunkService {
             FileUtils.deleteDirectory(new File(chunk.getStorePath()));
         } catch (IOException e) {
             e.printStackTrace();
+        }
+
+        String newFileMd5 = myFileUtils.getMd5ByStream(newFile);
+        if (newFileMd5 == null || !newFileMd5.toLowerCase(Locale.ROOT).equals(md5)) {
+            System.out.println(newFileMd5);
+            newFile.delete();
+            return 458;
         }
 
         userService.updateSize(user.getUserId(), newFile.length());

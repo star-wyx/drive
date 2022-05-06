@@ -30,6 +30,9 @@ import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.*;
@@ -83,6 +86,31 @@ public final class MyFileUtils {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public String getMd5ByStream(File file) {
+        try (InputStream stream = Files.newInputStream(file.toPath(), StandardOpenOption.READ)) {
+            MessageDigest digest = MessageDigest.getInstance("MD5");
+            byte[] buf = new byte[8192];
+            int len;
+            while ((len = stream.read(buf)) > 0) {
+                digest.update(buf, 0, len);
+            }
+            return toHexString(digest.digest());
+        } catch (IOException | NoSuchAlgorithmException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public String toHexString(byte[] data) {
+        char[] hexCode = "0123456789ABCDEF".toCharArray();
+        StringBuilder r = new StringBuilder(data.length * 2);
+        for (byte b : data) {
+            r.append(hexCode[(b >> 4) & 0xF]);
+            r.append(hexCode[(b & 0xF)]);
+        }
+        return r.toString();
     }
 
 
@@ -271,10 +299,18 @@ public final class MyFileUtils {
         }
 
         List<String> res = new ArrayList<>();
-        for (int i = 0; i < seatsList.size(); i++) {
-            res.add(calculatePercentage(seatsList.get(i), targetSeats));
+        double tmp = 0;
+        for (int i = 0; i < seatsList.size()-1; i++) {
+            String percentage = calculatePercentage(seatsList.get(i), targetSeats);
+            if(percentage.equals("0") && list.get(i)!=0){
+                percentage = "0.01";
+            }
+            tmp += Double.parseDouble(percentage);
+            res.add(percentage);
         }
 
+        DecimalFormat decimalFormat = new DecimalFormat("#.00");
+        res.add(decimalFormat.format(100-tmp));
         return res;
 
     }
