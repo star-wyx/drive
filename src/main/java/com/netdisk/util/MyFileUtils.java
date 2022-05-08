@@ -103,6 +103,72 @@ public final class MyFileUtils {
         }
     }
 
+    public String getPartMd5ByStream(File file) {
+        try (InputStream stream = Files.newInputStream(file.toPath(), StandardOpenOption.READ)) {
+            //lenght 为 3mb 的窗格
+            int length = fileProperties.getSliceSizeMB() * 1024 * 1024;
+            //王氏跳跃式超级md5算法 版权所有！
+            //获得最大chunk数 向上取整 *1.0就是变成double的意思 最后一个chunk一定小于等于3mb
+            int chunkNum = (int)Math.ceil(file.length() * 1.0 / length);
+            //跳跃窗格 总共取100个chunk 每隔固定的数量的分块就取一个分块进行计算 总共取100+1个 这个固定的数量就是就是skipInterval
+            //向下取整，意味着如果不足100个时 会变成0 即不跳跃
+            int skipInterval =  (int)Math.floor(chunkNum * 1.0 / 100);
+
+            //debug参数 可无视
+            int rightnow = 0;
+            int counter = 0 ;
+
+            //100+1个包 最后一个一定为结尾的最后一个包 以保证封闭完整性
+            int maxAccount = 100;
+            MessageDigest digest = MessageDigest.getInstance("MD5");
+            //窗口定义
+            byte[] buf = new byte[length];
+
+            //是否超过了我们的限制？注意 边界100划分到全读到条件中！
+            if(maxAccount < chunkNum){
+                while(maxAccount > 0){
+                    //debug 显示
+                    System.out.println(rightnow + "  " + counter);
+                    stream.read(buf);
+                    digest.update(buf, 0, length);
+                    //关键 跳跃包 如果间隔为0 就不跳跃，跳跃是根据上个包的终点跳n-1个包 （因为skipInterval为要的包和要跳的包的总和）
+                    stream.skip((skipInterval ==0 ? skipInterval : skipInterval-1 ) * length);
+                    //debug 显示
+                    rightnow = rightnow+skipInterval;
+                    counter++;
+                    //下一个
+                    maxAccount--;
+                }
+
+                //最后的结尾包 因为取整的缘故 一定会剩余大于间隔的包数
+                if(maxAccount == 0){
+                    //剩余包数
+                    int availableChunk =  (int)Math.ceil(stream.available()*1.0/length);
+                    //debug显示
+                    System.out.println((rightnow + availableChunk - 1) + "  " + counter++);
+                    //跳掉最后一个包之前的包
+                    stream.skip((availableChunk-1) * length);
+                    //注意！最后一个包长度不固定 必须另外取
+                    int len = stream.read(buf);
+                    digest.update(buf, 0, len);
+                }
+            }else{
+                //你懂的 这部分是个人都看得懂
+                for(int i = 0; i < chunkNum; i++){
+                    int len = stream.read(buf);
+                    digest.update(buf, 0, len);
+                }
+            }
+
+
+
+            return toHexString(digest.digest());
+        } catch (IOException | NoSuchAlgorithmException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     public String toHexString(byte[] data) {
         char[] hexCode = "0123456789ABCDEF".toCharArray();
         StringBuilder r = new StringBuilder(data.length * 2);
@@ -213,7 +279,6 @@ public final class MyFileUtils {
     }
 
 
-
     public String getPrintSize(long size) {
 
         long TB = 1024 * 1024 * 1024 * 1024L;//定义TB的计算常量
@@ -300,9 +365,9 @@ public final class MyFileUtils {
 
         List<String> res = new ArrayList<>();
         double tmp = 0;
-        for (int i = 0; i < seatsList.size()-1; i++) {
+        for (int i = 0; i < seatsList.size() - 1; i++) {
             String percentage = calculatePercentage(seatsList.get(i), targetSeats);
-            if(percentage.equals("0") && list.get(i)!=0){
+            if (percentage.equals("0") && list.get(i) != 0) {
                 percentage = "0.01";
             }
             tmp += Double.parseDouble(percentage);
@@ -310,7 +375,7 @@ public final class MyFileUtils {
         }
 
         DecimalFormat decimalFormat = new DecimalFormat("#.00");
-        res.add(decimalFormat.format(100-tmp));
+        res.add(decimalFormat.format(100 - tmp));
         return res;
 
     }

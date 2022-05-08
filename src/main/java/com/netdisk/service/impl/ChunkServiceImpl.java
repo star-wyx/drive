@@ -210,8 +210,8 @@ public class ChunkServiceImpl implements ChunkService {
             for (int i = 1; i <= chunk.getSerialNo(); i++) {
                 int len;
                 File slice = new File(chunk.getStorePath(), i + ".tmp");
-                if(!slice.exists()){
-                    abort(uuid,md5);
+                if (!slice.exists()) {
+                    abort(uuid, md5);
                     newFile.delete();
                     return 458;
                 }
@@ -234,15 +234,24 @@ public class ChunkServiceImpl implements ChunkService {
             e.printStackTrace();
         }
 
-        String newFileMd5 = myFileUtils.getMd5ByStream(newFile);
+        String newFileMd5 = null;
+        if (chunk.getSerialNo() <= 100) {
+            newFileMd5 = myFileUtils.getMd5ByStream(newFile);
+            log.info("new file md5: "+ newFileMd5);
+        }else{
+            newFileMd5 = myFileUtils.getPartMd5ByStream(newFile);
+            log.info("new file md5: "+ newFileMd5);
+        }
+
         if (newFileMd5 == null || !newFileMd5.toLowerCase(Locale.ROOT).equals(md5)) {
             System.out.println(newFileMd5);
             newFile.delete();
+            mongoTemplate.remove(query, Chunk.class, CHUNK_COLLECTION);
             return 458;
         }
-
         userService.updateSize(user.getUserId(), newFile.length());
         fileService.insertFileNode(user, chunk.getNodeId(), chunk.getFileName(), md5, newFile.length());
+        mongoTemplate.remove(query, Chunk.class, CHUNK_COLLECTION);
         return 200;
     }
 

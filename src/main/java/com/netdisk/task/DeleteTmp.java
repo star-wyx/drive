@@ -79,7 +79,7 @@ public class DeleteTmp extends QuartzJobBean {
         Date date = new Date();
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(date);
-        calendar.add(Calendar.DATE, -10);
+        calendar.add(Calendar.DATE, -7);
 //        calendar.add(Calendar.MINUTE, -1);
         query.addCriteria(Criteria.where("recordDate").lte(calendar.getTime()));
         mongoTemplate.remove(query, UploadRecord.class, ChunkServiceImpl.UPLOADRECORD_COLLECTION);
