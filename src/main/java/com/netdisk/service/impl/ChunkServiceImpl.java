@@ -237,7 +237,7 @@ public class ChunkServiceImpl implements ChunkService {
         String newFileMd5 = null;
         if (chunk.getSerialNo() <= 100) {
             newFileMd5 = myFileUtils.getMd5ByStream(newFile);
-            log.info("new file md5: "+ newFileMd5);
+            log.info("getMd5ByStream new file md5: "+ newFileMd5);
         }else{
             newFileMd5 = myFileUtils.getPartMd5ByStream(newFile);
             log.info("new file md5: "+ newFileMd5);

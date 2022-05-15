@@ -35,8 +35,12 @@ public class FileDTO {
     private String base64;
     @JsonProperty("isFavorite")
     private boolean isFavorite;
+    private Long fileSize;
+    private String fileSizeInUnit;
+    private String uploadTime;
 
     public FileDTO(FileNode fileNode) {
+        MyFileUtils myFileUtils = new MyFileUtils();
         this.nodeId = fileNode.getNodeId();
         this.fileName = fileNode.getFileName();
         this.filePath = fileNode.getFilePath();
@@ -45,6 +49,9 @@ public class FileDTO {
         if(fileNode.getBase64() != null){
             this.base64 = fileNode.getBase64();
         }
+        this.fileSize = fileNode.getFileSize();
+        this.uploadTime = fileNode.getUploadTime();
+//        this.fileSizeInUnit =  myFileUtils.getPrintSize(fileNode.getFileSize());
     }
 
     public static List<FileDTO> listConvert(List<FileNode> fileNodes) {

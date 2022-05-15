@@ -16,10 +16,10 @@ class MyFileUtilsTest {
 
     @Test
     public void testReadStream(){
-
-        //顺便提一句 傻逼mac移动文件跟搬家一样难按:(
-        File file = new File("/Users/star_wyx/Downloads/300MiB.bin");
-        System.out.println(myFileUtils.getPartMd5ByStream(file));
+//
+//        //顺便提一句 傻逼mac移动文件跟搬家一样难按:(
+//        File file = new File("/Users/star_wyx/Downloads/300MiB.bin");
+//        System.out.println(myFileUtils.getPartMd5ByStream(file));
 
     }
 

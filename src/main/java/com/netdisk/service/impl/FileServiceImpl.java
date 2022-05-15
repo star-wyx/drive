@@ -265,6 +265,7 @@ public class FileServiceImpl implements FileService {
                     }
                     fileDTO.setBase64(f.getBase64());
                 }
+                fileDTO.setFileSizeInUnit(myFileUtils.getPrintSize(f.getFileSize()));
                 files.add(fileDTO);
             }
         }
@@ -494,11 +495,11 @@ public class FileServiceImpl implements FileService {
         query.addCriteria(Criteria.where("nodeId").is(nodeId));
         FileNode fileNode = mongoTemplate.findOne(query, FileNode.class, FILE_COLLECTION);
         ParamDTO paramDTO = new ParamDTO();
-        paramDTO.setUploadTime(fileNode.getUploadTime());
+//        paramDTO.setUploadTime(fileNode.getUploadTime());
         paramDTO.setFilePath(fileNode.getFilePath());
         paramDTO.setFilename(fileNode.getFileName());
         if (!fileNode.isFolder()) {
-            paramDTO.setSize(myFileUtils.getPrintSize(fileNode.getFileSize()));
+//            paramDTO.setSize(myFileUtils.getPrintSize(fileNode.getFileSize()));
             paramDTO.setContentType(fileNode.getFileName().substring(fileNode.getFileName().lastIndexOf(".") + 1));
         } else {
             List<FileNode> list = nodeRepository.getSubTree(userId, nodeId, null).get(0).getDescendants();

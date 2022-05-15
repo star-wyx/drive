@@ -199,6 +199,9 @@ public class FileController {
         if (Objects.equals(paramDTO.getNewNodeId(), parentNode.getParentId())) {
             return assembly.fail(404, "fail to move");
         }
+        if (Objects.equals(paramDTO.getNewNodeId(), paramDTO.getNodeId())) {
+            return assembly.fail(459, "fail to move");
+        }
         if (fileService.moveFile(paramDTO.getUserId(), paramDTO.getNewNodeId(), paramDTO.getNodeId())) {
             return assembly.success("successfully");
         } else {
