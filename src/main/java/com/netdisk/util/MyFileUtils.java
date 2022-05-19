@@ -279,12 +279,15 @@ public final class MyFileUtils {
     }
 
 
-    public String getPrintSize(long size) {
+    public String getPrintSize(Long size) {
 
         long TB = 1024 * 1024 * 1024 * 1024L;//定义TB的计算常量
         int GB = 1024 * 1024 * 1024;//定义GB的计算常量
         int MB = 1024 * 1024;//定义MB的计算常量
         int KB = 1024;//定义KB的计算常量
+        if(size == null){
+            return null;
+        }
         try {
             // 格式化小数
             DecimalFormat df = new DecimalFormat("0.00");

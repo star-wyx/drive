@@ -51,7 +51,7 @@ public class FileDTO {
         }
         this.fileSize = fileNode.getFileSize();
         this.uploadTime = fileNode.getUploadTime();
-//        this.fileSizeInUnit =  myFileUtils.getPrintSize(fileNode.getFileSize());
+//        this.fileSizeInUnit =  myFileUtils.getPrintSize(fileNode.getFileSize()); 无法调用myFileUtils
     }
 
     public static List<FileDTO> listConvert(List<FileNode> fileNodes) {

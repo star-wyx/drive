@@ -331,7 +331,13 @@ public class FileServiceImpl implements FileService {
         if (!contentType.equals("")) {
             query.addCriteria(Criteria.where("contentType").is(contentType));
         }
-        List<FileDTO> fileDTOList = FileDTO.listConvert(mongoTemplate.find(query, FileNode.class, FILE_COLLECTION));
+        List<FileNode> fileNodeList = mongoTemplate.find(query, FileNode.class, FILE_COLLECTION);
+        List<FileDTO> fileDTOList = new ArrayList<>();
+        for(FileNode fileNode : fileNodeList){
+            FileDTO fileDTO = new FileDTO(fileNode);
+            fileDTO.setFileSizeInUnit(myFileUtils.getPrintSize(fileNode.getFileSize()));
+            fileDTOList.add(fileDTO);
+        }
         Collections.sort(fileDTOList, typeComparator);
         ParamDTO paramDTO = new ParamDTO();
         paramDTO.setContent(fileDTOList);
@@ -353,8 +359,13 @@ public class FileServiceImpl implements FileService {
     public ParamDTO queryFavorites(Long userId) {
         Query query = new Query(Criteria.where("userId").is(userId));
         query.addCriteria(Criteria.where("isFavorites").is(true));
-        List<FileDTO> fileDTOList = FileDTO.listConvert(mongoTemplate.find(query, FileNode.class, FILE_COLLECTION));
-//        Collections.sort(fileDTOList);
+        List<FileNode> fileNodeList = mongoTemplate.find(query, FileNode.class, FILE_COLLECTION);
+        List<FileDTO> fileDTOList = new ArrayList<>();
+        for(FileNode fileNode : fileNodeList){
+            FileDTO fileDTO = new FileDTO(fileNode);
+            fileDTO.setFileSizeInUnit(myFileUtils.getPrintSize(fileNode.getFileSize()));
+            fileDTOList.add(fileDTO);
+        }
         Collections.sort(fileDTOList, typeComparator);
         ParamDTO paramDTO = new ParamDTO();
         paramDTO.setContent(fileDTOList);
@@ -393,15 +404,29 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public boolean moveFile(Long userId, Long newParentNodeId, Long nodeId) {
+    public int moveFile(Long userId, Long newParentNodeId, Long nodeId) {
         FileNode newParent = queryFolderById(userId, newParentNodeId);
-        if (!newParent.isFolder()) {
-            return false;
-        }
         Query query = new Query();
         query.addCriteria(Criteria.where("userId").is(userId));
         query.addCriteria(Criteria.where("nodeId").is(nodeId));
         FileNode fileNode = mongoTemplate.findOne(query, FileNode.class, FILE_COLLECTION);
+
+        if (Objects.equals(newParentNodeId, fileNode.getParentId())) {
+            return 459;
+        }
+        if (Objects.equals(newParentNodeId, fileNode.getNodeId())) {
+            return 459;
+        }
+        List<FileNode> childrenNode = nodeRepository.getSubTree(userId, nodeId, null, true).get(0).getDescendants();
+        for(FileNode node: childrenNode){
+            if(Objects.equals(node.getNodeId(),newParentNodeId)){
+                return 459;
+            }
+        }
+
+        if (!newParent.isFolder()) {
+            return 404;
+        }
         String fileName = fileNode.getFileName();
         if (queryFolderByNameId(fileNode.getUserId(), newParentNodeId, fileNode.getFileName()) != null) {
             fileName = availableFoldereName(userId, newParentNodeId, fileName);
@@ -425,7 +450,7 @@ public class FileServiceImpl implements FileService {
             fileNode.setFilePath(newPath);
             chChildPath(fileNode);
         }
-        return true;
+        return 200;
     }
 
     @Override
@@ -546,7 +571,7 @@ public class FileServiceImpl implements FileService {
             String suffix = fileName.substring(fileName.lastIndexOf(".") + 1);
             newName = newName + "." + suffix;
             String filePath = fileNode.getFilePath();
-            filePath = filePath.substring(0, filePath.lastIndexOf("/")+1) + newName;
+            filePath = filePath.substring(0, filePath.lastIndexOf("/") + 1) + newName;
             Update update = new Update();
             update.set("fileName", newName);
             update.set("filePath", filePath);

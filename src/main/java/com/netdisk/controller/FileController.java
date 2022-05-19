@@ -195,17 +195,11 @@ public class FileController {
     @ResponseBody
     public Response moveFile(@RequestBody ParamDTO paramDTO) {
         AssemblyResponse<String> assembly = new AssemblyResponse<>();
-        FileNode parentNode = fileService.queryFolderById(paramDTO.getUserId(), paramDTO.getNodeId());
-        if (Objects.equals(paramDTO.getNewNodeId(), parentNode.getParentId())) {
-            return assembly.fail(404, "fail to move");
-        }
-        if (Objects.equals(paramDTO.getNewNodeId(), paramDTO.getNodeId())) {
-            return assembly.fail(459, "fail to move");
-        }
-        if (fileService.moveFile(paramDTO.getUserId(), paramDTO.getNewNodeId(), paramDTO.getNodeId())) {
+        int res = fileService.moveFile(paramDTO.getUserId(), paramDTO.getNewNodeId(), paramDTO.getNodeId());
+        if (res == 200) {
             return assembly.success("successfully");
         } else {
-            return assembly.fail(404, "fail to move");
+            return assembly.fail(res, "fail to move");
         }
     }
 

@@ -112,7 +112,7 @@ public interface FileService {
     /**
      * 移动文件夹
      */
-    boolean moveFile(Long userId, Long newNodeId, Long oldNodeId);
+    int moveFile(Long userId, Long newNodeId, Long oldNodeId);
 
     /**
      * 改变子节点路径
