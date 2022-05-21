@@ -333,7 +333,7 @@ public class FileServiceImpl implements FileService {
         }
         List<FileNode> fileNodeList = mongoTemplate.find(query, FileNode.class, FILE_COLLECTION);
         List<FileDTO> fileDTOList = new ArrayList<>();
-        for(FileNode fileNode : fileNodeList){
+        for (FileNode fileNode : fileNodeList) {
             FileDTO fileDTO = new FileDTO(fileNode);
             fileDTO.setFileSizeInUnit(myFileUtils.getPrintSize(fileNode.getFileSize()));
             fileDTOList.add(fileDTO);
@@ -361,7 +361,7 @@ public class FileServiceImpl implements FileService {
         query.addCriteria(Criteria.where("isFavorites").is(true));
         List<FileNode> fileNodeList = mongoTemplate.find(query, FileNode.class, FILE_COLLECTION);
         List<FileDTO> fileDTOList = new ArrayList<>();
-        for(FileNode fileNode : fileNodeList){
+        for (FileNode fileNode : fileNodeList) {
             FileDTO fileDTO = new FileDTO(fileNode);
             fileDTO.setFileSizeInUnit(myFileUtils.getPrintSize(fileNode.getFileSize()));
             fileDTOList.add(fileDTO);
@@ -404,29 +404,53 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
-    public int moveFile(Long userId, Long newParentNodeId, Long nodeId) {
+    public int checkMoveFile(FileNode newParent, FileNode fileNode) {
+        if (!newParent.isFolder()) {
+            return 404;
+        }
+        if (Objects.equals(newParent.getNodeId(), fileNode.getParentId())) {
+            return 459;
+        }
+        if (Objects.equals(newParent.getNodeId(), fileNode.getNodeId())) {
+            return 459;
+        }
+        if (fileNode.isFolder()) {
+            List<FileNode> childrenNode = nodeRepository.getSubTree(fileNode.getUserId(), fileNode.getNodeId(), null, true).get(0).getDescendants();
+            for (FileNode node : childrenNode) {
+                if (Objects.equals(node.getNodeId(), newParent.getNodeId())) {
+                    return 459;
+                }
+            }
+        }
+
+        return 200;
+    }
+
+    @Override
+    public int checkMoveFile(long newParentNodeId, long nodeId, long userId) {
+        FileNode newParent = queryFolderById(userId, newParentNodeId);
+        Query query = new Query();
+        query.addCriteria(Criteria.where("userId").is(userId));
+        query.addCriteria(Criteria.where("nodeId").is(nodeId));
+        FileNode fileNode = mongoTemplate.findOne(query, FileNode.class, FILE_COLLECTION);
+        return checkMoveFile(newParent,fileNode);
+    }
+
+    @Override
+    public int moveFile(Long userId, Long newParentNodeId, Long nodeId, boolean needCheck) {
         FileNode newParent = queryFolderById(userId, newParentNodeId);
         Query query = new Query();
         query.addCriteria(Criteria.where("userId").is(userId));
         query.addCriteria(Criteria.where("nodeId").is(nodeId));
         FileNode fileNode = mongoTemplate.findOne(query, FileNode.class, FILE_COLLECTION);
 
-        if (Objects.equals(newParentNodeId, fileNode.getParentId())) {
-            return 459;
-        }
-        if (Objects.equals(newParentNodeId, fileNode.getNodeId())) {
-            return 459;
-        }
-        List<FileNode> childrenNode = nodeRepository.getSubTree(userId, nodeId, null, true).get(0).getDescendants();
-        for(FileNode node: childrenNode){
-            if(Objects.equals(node.getNodeId(),newParentNodeId)){
-                return 459;
+        if (needCheck) {
+            int check = checkMoveFile(newParent, fileNode);
+            if (check != 200) {
+                return check;
             }
         }
 
-        if (!newParent.isFolder()) {
-            return 404;
-        }
         String fileName = fileNode.getFileName();
         if (queryFolderByNameId(fileNode.getUserId(), newParentNodeId, fileNode.getFileName()) != null) {
             fileName = availableFoldereName(userId, newParentNodeId, fileName);

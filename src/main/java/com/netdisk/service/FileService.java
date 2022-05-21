@@ -110,9 +110,19 @@ public interface FileService {
     FileNode checkMd5(String md5);
 
     /**
-     * 移动文件夹
+     * 移动文件前检查是否可移动
      */
-    int moveFile(Long userId, Long newNodeId, Long oldNodeId);
+    int checkMoveFile(FileNode newParent, FileNode fileNode);
+
+    /**
+     * 移动文件前检查是否可移动
+     */
+    int checkMoveFile(long newParentNodeId, long nodeId, long userId);
+
+    /**
+     * 移动文件
+     */
+    int moveFile(Long userId, Long newNodeId, Long oldNodeId, boolean needCheck);
 
     /**
      * 改变子节点路径

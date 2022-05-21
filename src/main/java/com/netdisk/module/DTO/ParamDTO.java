@@ -159,4 +159,10 @@ public class ParamDTO {
      */
     @JsonProperty("percentage")
     String percentage;
+
+    /**
+     * 文件list
+     */
+    @JsonProperty("file_list")
+    List<Long> fileNodes;
 }

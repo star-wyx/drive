@@ -7,6 +7,7 @@ spring:
       uri: mongodb://localhost:27017/netdisk
 
 #      host: 172.17.0.1 #(for real server)
+
 #      host: 192.168.1.169 #(for test server)
 #      database: vnetdisk
 #      username: user1

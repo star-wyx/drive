@@ -8,11 +8,14 @@ import com.netdisk.module.User;
 import com.netdisk.service.FileService;
 import com.netdisk.service.SeqService;
 import com.netdisk.service.UserService;
+import com.netdisk.service.impl.FileServiceImpl;
 import com.netdisk.util.AssemblyResponse;
 import com.netdisk.util.MyFileUtils;
 import com.netdisk.util.Response;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -195,12 +198,33 @@ public class FileController {
     @ResponseBody
     public Response moveFile(@RequestBody ParamDTO paramDTO) {
         AssemblyResponse<String> assembly = new AssemblyResponse<>();
-        int res = fileService.moveFile(paramDTO.getUserId(), paramDTO.getNewNodeId(), paramDTO.getNodeId());
+        int res = fileService.moveFile(paramDTO.getUserId(), paramDTO.getNewNodeId(), paramDTO.getNodeId(), true);
         if (res == 200) {
             return assembly.success("successfully");
         } else {
             return assembly.fail(res, "fail to move");
         }
+    }
+
+    /**
+     * 批量移动文件
+     * userId, file_list, new_nodeId
+     */
+    @PostMapping(value = "moveFiles")
+    @ResponseBody
+    public Response moveFiles(@RequestBody ParamDTO paramDTO) {
+        AssemblyResponse<String> assembly = new AssemblyResponse<>();
+        List<Long> fileList = paramDTO.getFileNodes();
+        for (long nodeId : fileList) {
+            int tmp = fileService.checkMoveFile(paramDTO.getNewNodeId(), nodeId, paramDTO.getUserId());
+            if (tmp != 200) {
+                return assembly.fail(tmp, "fail to move");
+            }
+        }
+        for (long nodeId : fileList) {
+            fileService.moveFile(paramDTO.getUserId(), paramDTO.getNewNodeId(), nodeId, false);
+        }
+        return assembly.success("successfully");
     }
 
     /**
@@ -212,6 +236,23 @@ public class FileController {
     public Response deleteFile(@RequestBody ParamDTO paramDTO) {
         AssemblyResponse<String> assembly = new AssemblyResponse<>();
         long deleteSize = fileService.deleteFile(paramDTO.getUserId(), paramDTO.getNodeId());
+        userService.updateSize(paramDTO.getUserId(), -deleteSize);
+        return assembly.success("successfully");
+    }
+
+    /**
+     * 批量删除文件
+     * userId, node_id
+     */
+    @PostMapping(value = "deleteFiles")
+    @ResponseBody
+    public Response deleteFiles(@RequestBody ParamDTO paramDTO) {
+        AssemblyResponse<String> assembly = new AssemblyResponse<>();
+        long deleteSize = 0L;
+        List<Long> fileNodes = paramDTO.getFileNodes();
+        for (long nodeId : fileNodes) {
+            deleteSize += fileService.deleteFile(paramDTO.getUserId(), nodeId);
+        }
         userService.updateSize(paramDTO.getUserId(), -deleteSize);
         return assembly.success("successfully");
     }
