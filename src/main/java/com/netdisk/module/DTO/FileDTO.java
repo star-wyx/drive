@@ -38,6 +38,8 @@ public class FileDTO {
     private Long fileSize;
     private String fileSizeInUnit;
     private String uploadTime;
+    @JsonProperty("isShared")
+    private boolean isShared;
 
     public FileDTO(FileNode fileNode) {
         MyFileUtils myFileUtils = new MyFileUtils();
@@ -51,6 +53,7 @@ public class FileDTO {
         }
         this.fileSize = fileNode.getFileSize();
         this.uploadTime = fileNode.getUploadTime();
+        this.isShared = fileNode.isShared();
 //        this.fileSizeInUnit =  myFileUtils.getPrintSize(fileNode.getFileSize()); 无法调用myFileUtils
     }
 

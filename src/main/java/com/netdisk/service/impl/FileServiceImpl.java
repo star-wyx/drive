@@ -4,15 +4,20 @@ import ch.qos.logback.core.util.FileUtil;
 import com.netdisk.config.FileProperties;
 import com.netdisk.module.DTO.FileDTO;
 import com.netdisk.module.DTO.ParamDTO;
+import com.netdisk.module.DTO.ShareFileDTO;
 import com.netdisk.module.FileNode;
+import com.netdisk.module.Share;
 import com.netdisk.module.User;
 import com.netdisk.repository.NodeRepository;
 import com.netdisk.service.FileService;
+import com.netdisk.service.Md5Service;
 import com.netdisk.service.SeqService;
+import com.netdisk.service.SharedService;
 import com.netdisk.util.AssemblyResponse;
 import com.netdisk.util.MyFileUtils;
 import com.netdisk.util.Response;
 import com.netdisk.util.TypeComparator;
+import com.zaxxer.hikari.util.FastList;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
 import org.apache.commons.io.FileUtils;
@@ -52,9 +57,14 @@ public class FileServiceImpl implements FileService {
     @Autowired
     FileProperties fileProperties;
 
+    @Autowired
+    Md5Service md5Service;
 
     @Autowired
     MyFileUtils myFileUtils;
+
+    @Autowired
+    SharedService sharedService;
 
     @Autowired
     TypeComparator typeComparator;
@@ -120,7 +130,8 @@ public class FileServiceImpl implements FileService {
                     md5,
                     null,
                     null,
-                    null
+                    null,
+                    false
             );
             FileNode origin = checkMd5(md5);
             if (origin != null) {
@@ -159,12 +170,14 @@ public class FileServiceImpl implements FileService {
         String fileType = fileName.substring(fileName.lastIndexOf(".") + 1);
         fileType = fileType.toLowerCase(Locale.ROOT);
         fileType = fileProperties.getIcon().containsKey(fileType) ? fileProperties.getIcon().get(fileType) : fileProperties.getOtherIcon();
+        String suf = fileName.substring(fileName.lastIndexOf(".") + 1);
         FileNode fileNode = new FileNode(null,
                 user.getUserId(),
                 seqService.getNextSeqId(user.getUserName()),
                 fileName,
                 folder.getFilePath() + "/" + fileName,
-                folder.getFilePath() + "/" + fileName,
+//                folder.getFilePath() + "/" + fileName,
+                "/" + user.getUserName() + "/" + md5 + "." + suf,
                 false,
                 null,
                 folder.getNodeId(),
@@ -173,7 +186,8 @@ public class FileServiceImpl implements FileService {
                 md5,
                 null,
                 size,
-                getTime()
+                myFileUtils.getTime(),
+                false
         );
         if (isImage(fileNode.getContentType())) {
             String srcPath = fileProperties.getRootDir() + fileNode.getStorePath();
@@ -182,6 +196,7 @@ public class FileServiceImpl implements FileService {
             fileNode.setBase64(myFileUtils.commpressPicForScale(srcPath, desPath, 50, 0.7));
         }
         mongoTemplate.save(fileNode, FILE_COLLECTION);
+        updateFolderSize(user.getUserId(), fileNode.getParentId(), fileNode.getFileSize());
     }
 
     @Override
@@ -201,7 +216,7 @@ public class FileServiceImpl implements FileService {
                 seqService.getNextSeqId(user.getUserName()),
                 fileName,
                 current.getFilePath() + "/" + fileName,
-                current.getFilePath() + "/" + fileName,
+                null,
                 true,
                 null,
                 current.getNodeId(),
@@ -209,10 +224,11 @@ public class FileServiceImpl implements FileService {
                 false,
                 null,
                 null,
-                null,
-                getTime()
+                0L,
+                myFileUtils.getTime(),
+                false
         );
-        myFileUtils.createFolder(fileNode.getFilePath());
+//        myFileUtils.createFolder(fileNode.getFilePath());
         mongoTemplate.save(fileNode, FILE_COLLECTION);
         return true;
     }
@@ -233,8 +249,9 @@ public class FileServiceImpl implements FileService {
                 false,
                 null,
                 null,
-                null,
-                getTime()
+                0L,
+                myFileUtils.getTime(),
+                false
         );
         myFileUtils.createFolder(fileNode.getFilePath());
         mongoTemplate.save(fileNode, FILE_COLLECTION);
@@ -248,6 +265,8 @@ public class FileServiceImpl implements FileService {
         for (FileNode f : list) {
             FileDTO fileDTO = new FileDTO(f);
             if (f.isFolder()) {
+                fileDTO.setFileSizeInUnit(myFileUtils.getPrintSize(f.getFileSize()));
+                fileDTO.setFileSize(f.getFileSize());
                 folders.add(fileDTO);
             } else {
                 if (isImage(f.getContentType())) {
@@ -266,6 +285,7 @@ public class FileServiceImpl implements FileService {
                     fileDTO.setBase64(f.getBase64());
                 }
                 fileDTO.setFileSizeInUnit(myFileUtils.getPrintSize(f.getFileSize()));
+                fileDTO.setFileSize(f.getFileSize());
                 files.add(fileDTO);
             }
         }
@@ -433,7 +453,7 @@ public class FileServiceImpl implements FileService {
         query.addCriteria(Criteria.where("userId").is(userId));
         query.addCriteria(Criteria.where("nodeId").is(nodeId));
         FileNode fileNode = mongoTemplate.findOne(query, FileNode.class, FILE_COLLECTION);
-        return checkMoveFile(newParent,fileNode);
+        return checkMoveFile(newParent, fileNode);
     }
 
     @Override
@@ -451,6 +471,7 @@ public class FileServiceImpl implements FileService {
             }
         }
 
+
         String fileName = fileNode.getFileName();
         if (queryFolderByNameId(fileNode.getUserId(), newParentNodeId, fileNode.getFileName()) != null) {
             fileName = availableFoldereName(userId, newParentNodeId, fileName);
@@ -459,16 +480,23 @@ public class FileServiceImpl implements FileService {
         String newPath = newParent.getFilePath() + File.separator + fileName;
         update.set("parentId", newParent.getNodeId());
         update.set("filePath", newPath);
-        update.set("storePath", newPath);
+//        update.set("storePath", newPath);
         update.set("fileName", fileName);
         mongoTemplate.findAndModify(query, update, FileNode.class, FILE_COLLECTION);
 
-        try {
-            Files.move(new File(fileProperties.getRootDir() + fileNode.getStorePath()).toPath(),
-                    new File(fileProperties.getRootDir() + newPath).toPath());
-        } catch (IOException e) {
-            e.printStackTrace();
+        updateFolderSize(userId, newParent.getNodeId(), fileNode.getFileSize());
+        updateFolderSize(userId, fileNode.getParentId(), -fileNode.getFileSize());
+
+        if (fileNode.isShared()) {
+            sharedService.updateMoveFile(newParent, fileNode);
         }
+
+//        try {
+//            Files.move(new File(fileProperties.getRootDir() + fileNode.getStorePath()).toPath(),
+//                    new File(fileProperties.getRootDir() + newPath).toPath());
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
         if (fileNode.isFolder()) {
             fileNode.setFilePath(newPath);
@@ -487,7 +515,7 @@ public class FileServiceImpl implements FileService {
             Update update = new Update();
             String newPath = fileNode.getFilePath() + File.separator + child.getFileName();
             update.set("filePath", newPath);
-            update.set("storePath", newPath);
+//            update.set("storePath", newPath);
             mongoTemplate.findAndModify(query, update, FileNode.class, FILE_COLLECTION);
             child.setFilePath(newPath);
             chChildPath(child);
@@ -508,20 +536,38 @@ public class FileServiceImpl implements FileService {
             for (FileNode fn : list) {
                 if (!fn.isFolder()) {
                     filesize += fn.getFileSize();
+                    if (md5Service.decreaseIndex(fn.getMd5()) == 0) {
+                        File f = new File(fileProperties.getRootDir() + fn.getStorePath());
+                        f.delete();
+                    }
                 }
                 Query q = new Query();
                 q.addCriteria(Criteria.where("userId").is(fn.getUserId()));
                 q.addCriteria(Criteria.where("nodeId").is(fn.getNodeId()));
                 mongoTemplate.remove(q, FILE_COLLECTION);
+
+                if (fn.isShared()) {
+                    mongoTemplate.remove(q, Share.class, SharedServiceImpl.SHARED_COLLECTION);
+                }
+
             }
             mongoTemplate.remove(query, FILE_COLLECTION);
-            FileUtils.deleteQuietly(file);
+//            FileUtils.deleteQuietly(file);
         } else {
             filesize += fileNode.getFileSize();
             mongoTemplate.remove(query, FILE_COLLECTION);
-            file.delete();
+            if (md5Service.decreaseIndex(fileNode.getMd5()) == 0) {
+                file.delete();
+            }
         }
-        return filesize;
+
+        if (fileNode.isShared()) {
+            mongoTemplate.remove(query, Share.class, SharedServiceImpl.SHARED_COLLECTION);
+        }
+
+//        return filesize;
+        updateFolderSize(userId, fileNode.getParentId(), -fileNode.getFileSize());
+        return fileNode.getFileSize();
     }
 
     @Override
@@ -529,13 +575,6 @@ public class FileServiceImpl implements FileService {
         return fileProperties.getIcon().get("picture").equals(contentType);
     }
 
-
-    @Override
-    public String getTime() {
-        Date date = new Date();
-        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-        return formatter.format(date);
-    }
 
     @Override
     public ParamDTO getDetail(Long userId, Long nodeId) {
@@ -547,20 +586,25 @@ public class FileServiceImpl implements FileService {
 //        paramDTO.setUploadTime(fileNode.getUploadTime());
         paramDTO.setFilePath(fileNode.getFilePath());
         paramDTO.setFilename(fileNode.getFileName());
-        if (!fileNode.isFolder()) {
+        paramDTO.setContentType(fileNode.getFileName().substring(fileNode.getFileName().lastIndexOf(".") + 1));
+        paramDTO.setFileSize(fileNode.getFileSize());
+        paramDTO.setFileSizeInUnit(myFileUtils.getPrintSize(fileNode.getFileSize()));
+
+//        if (!fileNode.isFolder()) {
 //            paramDTO.setSize(myFileUtils.getPrintSize(fileNode.getFileSize()));
-            paramDTO.setContentType(fileNode.getFileName().substring(fileNode.getFileName().lastIndexOf(".") + 1));
-        } else {
-            List<FileNode> list = nodeRepository.getSubTree(userId, nodeId, null).get(0).getDescendants();
-            long size = 0L;
-            for (FileNode f : list) {
-                if (!f.isFolder()) {
-                    size += f.getFileSize();
-                }
-            }
-            paramDTO.setSize(myFileUtils.getPrintSize(size));
-            paramDTO.setContentType("folder");
-        }
+//            paramDTO.setContentType(fileNode.getFileName().substring(fileNode.getFileName().lastIndexOf(".") + 1));
+//        } else {
+//            List<FileNode> list = nodeRepository.getSubTree(userId, nodeId, null).get(0).getDescendants();
+//            long size = 0L;
+//            for (FileNode f : list) {
+//                if (!f.isFolder()) {
+//                    size += f.getFileSize();
+//                }
+//            }
+//            paramDTO.setSize(myFileUtils.getPrintSize(size));
+//            paramDTO.setContentType("folder");
+//        }
+
         return paramDTO;
     }
 
@@ -582,14 +626,13 @@ public class FileServiceImpl implements FileService {
             String newFilePath = filePath.substring(0, filePath.lastIndexOf("/") + 1) + newName;
             update.set("fileName", newName);
             update.set("filePath", newFilePath);
-            update.set("storePath", newFilePath);
+//            update.set("storePath", newFilePath);
             mongoTemplate.findAndModify(query, update, FileNode.class, FILE_COLLECTION);
-            File src = new File(fileProperties.getRootDir() + fileNode.getFilePath());
-            File des = new File(fileProperties.getRootDir() + newFilePath);
-            src.renameTo(des);
+//            File src = new File(fileProperties.getRootDir() + fileNode.getFilePath());
+//            File des = new File(fileProperties.getRootDir() + newFilePath);
+//            src.renameTo(des);
             fileNode.setFilePath(newFilePath);
             chChildPath(fileNode);
-            return true;
         } else {
             String fileName = fileNode.getFileName();
             String suffix = fileName.substring(fileName.lastIndexOf(".") + 1);
@@ -599,14 +642,33 @@ public class FileServiceImpl implements FileService {
             Update update = new Update();
             update.set("fileName", newName);
             update.set("filePath", filePath);
-            update.set("storePath", filePath);
+//            update.set("storePath", filePath);
             mongoTemplate.findAndModify(query, update, FileNode.class, FILE_COLLECTION);
-            File src = new File(fileProperties.getRootDir() + fileNode.getFilePath());
-            File des = new File(fileProperties.getRootDir() + filePath);
-            src.renameTo(des);
-            return true;
+//            File src = new File(fileProperties.getRootDir() + fileNode.getFilePath());
+//            File des = new File(fileProperties.getRootDir() + filePath);
+//            src.renameTo(des);
         }
+
+        if (fileNode.isShared()) {
+            sharedService.updateRename(fileNode.getUserId(), fileNode.getNodeId(), newName);
+        }
+
+        return true;
+
     }
 
+    @Override
+    public void updateFolderSize(long userId, long nodeId, long fileSize) {
+        while (nodeId >= 1) {
+            Query query = new Query();
+            query.addCriteria(Criteria.where("userId").is(userId));
+            query.addCriteria(Criteria.where("nodeId").is(nodeId));
+            FileNode fileNode = mongoTemplate.findOne(query, FileNode.class, FILE_COLLECTION);
+            Update update = new Update();
+            update.set("fileSize", fileNode.getFileSize() + fileSize);
+            mongoTemplate.updateFirst(query, update, FileNode.class, FILE_COLLECTION);
+            nodeId = fileNode.getParentId();
+        }
+    }
 
 }

@@ -32,6 +32,7 @@ public class FileNode implements Comparable<FileNode> {
     private String base64;
     private Long fileSize;
     private String uploadTime;
+    private boolean isShared;
 
 
 

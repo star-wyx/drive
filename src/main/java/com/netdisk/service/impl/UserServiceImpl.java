@@ -23,7 +23,9 @@ import java.awt.image.RenderedImage;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 
 
 @Service
@@ -75,6 +77,7 @@ public class UserServiceImpl implements UserService {
             User user = userDTO.ToUser(seqService.getNextUserId());
             user.setUsedSize(0L);
             user.setTotalSize(fileProperties.getDefaultSpace());
+            user.setHaveShared(false);
             mongoTemplate.save(user, USER_COLLECTION);
             seqService.insertUser(userDTO.getUserName());
 
@@ -196,5 +199,29 @@ public class UserServiceImpl implements UserService {
         Update update = new Update();
         update.set("usedSize", remain);
         mongoTemplate.findAndModify(query,update,User.class, USER_COLLECTION);
+    }
+
+    @Override
+    public void setHaveShared(long userId, boolean isShared) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("userId").is(userId));
+        Update update = new Update();
+        update.set("isShared", isShared);
+        mongoTemplate.updateFirst(query,update,User.class, USER_COLLECTION);
+    }
+
+    @Override
+    public List querySharedUser() {
+        List<UserDTO> res = new ArrayList<>();
+        Query query = new Query();
+        query.addCriteria(Criteria.where("isShared").is(true));
+        List<User> users = mongoTemplate.find(query, User.class, USER_COLLECTION);
+        for(User u: users){
+            UserDTO tmp = new UserDTO();
+            tmp.setUserId(String.valueOf(u.getUserId()));
+            tmp.setUserName(u.getUserName());
+            res.add(tmp);
+        }
+        return res;
     }
 }

@@ -40,6 +40,9 @@ public class JwtInterceptor implements HandlerInterceptor {
             if(token.contains("&time=")){
                 token = token.substring(0,token.lastIndexOf("&time="));
             }
+            if(token.contains("&fullfilename=")){
+                token = token.substring(0,token.lastIndexOf("&fullfilename="));
+            }
 //            token = url.substring(url.lastIndexOf("=") + 1);
         }
         log.info("token is " + token);

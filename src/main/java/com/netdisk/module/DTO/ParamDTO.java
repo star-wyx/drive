@@ -38,6 +38,12 @@ public class ParamDTO {
     @JsonProperty("user_id")
     Long userId;
 
+    /**
+     * 用户Id
+     */
+    @JsonProperty("new_userid")
+    Long newUserId;
+
 
     /**
      * 在登陆时用content来返回用户根目录内容
@@ -77,6 +83,12 @@ public class ParamDTO {
     Boolean isFavorites;
 
     /**
+     * 是否分享FileNode
+     */
+    @JsonProperty("is_shared")
+    Boolean isShared;
+
+    /**
      * 文件md5值
      */
     @JsonProperty("hash")
@@ -87,6 +99,18 @@ public class ParamDTO {
      */
     @JsonProperty("size")
     String size;
+
+    /**
+     * 文件大小, 单位KB,MB,GB
+     */
+    @JsonProperty("fileSizeInUnit")
+    String fileSizeInUnit;
+
+    /**
+     * 文件大小, 单位bit
+     */
+    @JsonProperty("fileSize")
+    Long fileSize;
 
     /**
      * 文件类型
@@ -165,4 +189,10 @@ public class ParamDTO {
      */
     @JsonProperty("file_list")
     List<Long> fileNodes;
+
+    /**
+     * 是否从所有分享接口进来
+     */
+    @JsonProperty("isAll")
+    Boolean isAll;
 }

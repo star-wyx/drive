@@ -1,5 +1,6 @@
 package com.netdisk.service;
 
+import com.netdisk.module.DTO.FileDTO;
 import com.netdisk.module.DTO.ParamDTO;
 import com.netdisk.module.FileNode;
 import com.netdisk.module.User;
@@ -141,11 +142,6 @@ public interface FileService {
 
 
     /**
-     * 获取当前时间
-     */
-    String getTime();
-
-    /**
      * 获取文件详细信息
      */
     ParamDTO getDetail(Long userId, Long nodeId);
@@ -159,4 +155,9 @@ public interface FileService {
      * 更改文件、文件夹名称
      */
     boolean chName(FileNode fileNode, String newName);
+
+    /**
+     * 更新所有nodeId及其父文件夹的大小， 从nodeId开始
+     */
+    void updateFolderSize(long userId, long nodeId, long fileSize);
 }

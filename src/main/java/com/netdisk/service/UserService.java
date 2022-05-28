@@ -61,4 +61,14 @@ public interface UserService {
      * 设置可用空间
      */
     void setAvailableSpace(Long userId, Long remain);
+
+    /**
+     * 更改用户分享状态
+     */
+    void setHaveShared(long userId, boolean isShared);
+
+    /**
+     * 返回所有分享文件的用户
+     */
+    List querySharedUser();
 }

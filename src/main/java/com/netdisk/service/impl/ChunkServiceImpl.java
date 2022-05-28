@@ -7,10 +7,7 @@ import com.netdisk.module.DTO.ParamDTO;
 import com.netdisk.module.FileNode;
 import com.netdisk.module.Mp4;
 import com.netdisk.module.User;
-import com.netdisk.service.ChunkService;
-import com.netdisk.service.FileService;
-import com.netdisk.service.Mp4Service;
-import com.netdisk.service.UserService;
+import com.netdisk.service.*;
 import com.netdisk.util.AssemblyResponse;
 import com.netdisk.util.MyFileUtils;
 import com.netdisk.util.Response;
@@ -64,6 +61,9 @@ public class ChunkServiceImpl implements ChunkService {
 
     @Autowired
     UserService userService;
+
+    @Autowired
+    Md5Service md5Service;
 
     @Autowired
     MyFileUtils myFileUtils;
@@ -201,31 +201,37 @@ public class ChunkServiceImpl implements ChunkService {
         }
         User user = userService.getUserById(chunk.getUserId());
 //        String availableFileName = availableFileName(user, chunk.getNodeId(), chunk.getFileName());
-        File newFile = new File(fileProperties.getRootDir() + folder.getFilePath(), chunk.getFileName());
+//        File newFile = new File(fileProperties.getRootDir() + folder.getFilePath(), chunk.getFileName());
+        String suffix = chunk.getFileName().substring(chunk.getFileName().lastIndexOf(".") + 1);
+        File newFile = new File(fileProperties.getRootDir() + "/" + user.getUserName() + "/" + md5 + "." + suffix);
         byte[] byt = new byte[fileProperties.getSliceSizeMB() * 1024 * 1024];
-        try {
-            newFile.createNewFile();
-            FileInputStream in = null;
-            FileOutputStream out = new FileOutputStream(newFile, true);
-            for (int i = 1; i <= chunk.getSerialNo(); i++) {
-                int len;
-                File slice = new File(chunk.getStorePath(), i + ".tmp");
-                if (!slice.exists()) {
-                    abort(uuid, md5);
-                    newFile.delete();
-                    return 458;
-                }
-                in = new FileInputStream(new File(chunk.getStorePath(), i + ".tmp"));
-                while ((len = in.read(byt)) != -1) {
+        if (!newFile.exists()) {
+
+            try {
+                newFile.createNewFile();
+                FileInputStream in = null;
+                FileOutputStream out = new FileOutputStream(newFile, true);
+                for (int i = 1; i <= chunk.getSerialNo(); i++) {
+                    int len;
+                    File slice = new File(chunk.getStorePath(), i + ".tmp");
+                    if (!slice.exists()) {
+                        abort(uuid, md5);
+                        newFile.delete();
+                        return 458;
+                    }
+                    in = new FileInputStream(new File(chunk.getStorePath(), i + ".tmp"));
+                    while ((len = in.read(byt)) != -1) {
 //                    System.out.println("------" + len);
-                    out.write(byt, 0, len);
+                        out.write(byt, 0, len);
+                    }
                 }
+                in.close();
+                out.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+                return 500;
             }
-            in.close();
-            out.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return 500;
+
         }
 
         try {
@@ -237,10 +243,10 @@ public class ChunkServiceImpl implements ChunkService {
         String newFileMd5 = null;
         if (chunk.getSerialNo() <= 100) {
             newFileMd5 = myFileUtils.getMd5ByStream(newFile);
-            log.info("getMd5ByStream new file md5: "+ newFileMd5);
-        }else{
+            log.info("getMd5ByStream new file md5: " + newFileMd5);
+        } else {
             newFileMd5 = myFileUtils.getPartMd5ByStream(newFile);
-            log.info("new file md5: "+ newFileMd5);
+            log.info("new file md5: " + newFileMd5);
         }
 
         if (newFileMd5 == null || !newFileMd5.toLowerCase(Locale.ROOT).equals(md5)) {
@@ -249,6 +255,10 @@ public class ChunkServiceImpl implements ChunkService {
             mongoTemplate.remove(query, Chunk.class, CHUNK_COLLECTION);
             return 458;
         }
+
+        // 添加索引
+        md5Service.increaseIndex(md5);
+
         userService.updateSize(user.getUserId(), newFile.length());
         fileService.insertFileNode(user, chunk.getNodeId(), chunk.getFileName(), md5, newFile.length());
         mongoTemplate.remove(query, Chunk.class, CHUNK_COLLECTION);

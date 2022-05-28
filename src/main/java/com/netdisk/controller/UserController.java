@@ -10,6 +10,7 @@ import com.netdisk.module.Profile;
 import com.netdisk.module.User;
 import com.netdisk.service.FileService;
 import com.netdisk.service.SeqService;
+import com.netdisk.service.SharedService;
 import com.netdisk.service.UserService;
 import com.netdisk.util.AssemblyResponse;
 import com.netdisk.util.JwtUtil;
@@ -57,6 +58,9 @@ public class UserController {
     @Autowired
     private MyFileUtils myFileUtils;
 
+    @Autowired
+    private SharedService sharedService;
+
     /**
      * 用户登陆，成功则返回根目录
      *
@@ -95,6 +99,7 @@ public class UserController {
         Response response = userService.add(userDTO);
         if (response.getCode() == 200) {
             User user = userService.getUserByName(userDTO.getUserName());
+            sharedService.createUserRoot(user.getUserId(), user.getUserName());
             fileService.createUserFile(user);
             File defaultAvatar = new File(fileProperties.getProfileDir() + File.separator + "default.png");
 //            File defaultAvatar = new File("classpath:/resources/default.png");

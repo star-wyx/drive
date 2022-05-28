@@ -173,7 +173,7 @@ public class TransferController {
                                   HttpServletRequest request,
                                   HttpServletResponse response) {
         FileNode fileNode = fileService.queryFolderById(userId, nodeId);
-        chunkService.fileChunkDownload(range, fileProperties.getRootDir() + File.separator + fileNode.getFilePath(), request, response);
+        chunkService.fileChunkDownload(range, fileProperties.getRootDir() + File.separator + fileNode.getStorePath(), request, response);
     }
 
 
