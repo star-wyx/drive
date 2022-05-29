@@ -70,5 +70,5 @@ public interface UserService {
     /**
      * 返回所有分享文件的用户
      */
-    List querySharedUser();
+    List querySharedUser(long querySharedUser);
 }

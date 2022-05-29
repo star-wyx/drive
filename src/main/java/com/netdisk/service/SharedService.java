@@ -48,9 +48,14 @@ public interface SharedService {
     List querySharedFile(long userId, long nodeId,  boolean isAll);
 
     /**
+     * 查看分享的contentType
+     */
+    ParamDTO queryAll(long userId, String contentType);
+
+    /**
      * 返回piazza
      */
-    List queryPiazza();
+    List queryPiazza(long realUserId);
 
     /**
      * 返回分享路径浏览路径的每一层文件夹id

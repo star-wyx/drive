@@ -195,4 +195,7 @@ public class ParamDTO {
      */
     @JsonProperty("isAll")
     Boolean isAll;
+
+    @JsonProperty("real_user_id")
+    Long realUserId;
 }

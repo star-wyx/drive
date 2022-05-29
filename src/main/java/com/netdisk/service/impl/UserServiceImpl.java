@@ -77,7 +77,7 @@ public class UserServiceImpl implements UserService {
             User user = userDTO.ToUser(seqService.getNextUserId());
             user.setUsedSize(0L);
             user.setTotalSize(fileProperties.getDefaultSpace());
-            user.setHaveShared(false);
+            user.setIsShared(false);
             mongoTemplate.save(user, USER_COLLECTION);
             seqService.insertUser(userDTO.getUserName());
 
@@ -122,7 +122,7 @@ public class UserServiceImpl implements UserService {
         }
 
         File picture = new File(fileProperties.getProfileDir() + File.separator + userId + ".png");
-        if(picture.exists()){
+        if (picture.exists()) {
             picture.delete();
         }
         InputStream is = null;
@@ -133,7 +133,7 @@ public class UserServiceImpl implements UserService {
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
-            if (is != null){
+            if (is != null) {
                 try {
                     is.close();
                 } catch (IOException e) {
@@ -198,7 +198,7 @@ public class UserServiceImpl implements UserService {
         query.addCriteria(Criteria.where("userId").is(userId));
         Update update = new Update();
         update.set("usedSize", remain);
-        mongoTemplate.findAndModify(query,update,User.class, USER_COLLECTION);
+        mongoTemplate.findAndModify(query, update, User.class, USER_COLLECTION);
     }
 
     @Override
@@ -207,16 +207,18 @@ public class UserServiceImpl implements UserService {
         query.addCriteria(Criteria.where("userId").is(userId));
         Update update = new Update();
         update.set("isShared", isShared);
-        mongoTemplate.updateFirst(query,update,User.class, USER_COLLECTION);
+        mongoTemplate.updateFirst(query, update, User.class, USER_COLLECTION);
     }
 
     @Override
-    public List querySharedUser() {
+    public List querySharedUser(long userId) {
         List<UserDTO> res = new ArrayList<>();
         Query query = new Query();
-        query.addCriteria(Criteria.where("isShared").is(true));
+        Criteria criteria = Criteria.where("isShared").is(true);
+        criteria.norOperator(Criteria.where("userId").is(userId));
+        query.addCriteria(criteria);
         List<User> users = mongoTemplate.find(query, User.class, USER_COLLECTION);
-        for(User u: users){
+        for (User u : users) {
             UserDTO tmp = new UserDTO();
             tmp.setUserId(String.valueOf(u.getUserId()));
             tmp.setUserName(u.getUserName());

@@ -18,5 +18,5 @@ public class User {
     private String base64;
     private Long usedSize;
     private Long totalSize;
-    private Boolean haveShared;
+    private Boolean isShared;
 }

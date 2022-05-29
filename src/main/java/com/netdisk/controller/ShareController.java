@@ -1,12 +1,16 @@
 package com.netdisk.controller;
 
+import com.netdisk.config.FileProperties;
 import com.netdisk.module.DTO.ParamDTO;
 import com.netdisk.module.FileNode;
+import com.netdisk.module.Share;
 import com.netdisk.module.User;
+import com.netdisk.repository.NodeRepository;
 import com.netdisk.service.FileService;
 import com.netdisk.service.SharedService;
 import com.netdisk.service.UserService;
 import com.netdisk.service.impl.FileServiceImpl;
+import com.netdisk.service.impl.SharedServiceImpl;
 import com.netdisk.util.AssemblyResponse;
 import com.netdisk.util.Response;
 import io.swagger.annotations.Api;
@@ -40,7 +44,13 @@ public class ShareController {
     MongoTemplate mongoTemplate;
 
     @Autowired
+    NodeRepository nodeRepository;
+
+    @Autowired
     SharedService sharedService;
+
+    @Autowired
+    FileProperties fileProperties;
 
     /**
      * 更改文件可分享状态
@@ -55,7 +65,41 @@ public class ShareController {
             userService.setHaveShared(paramDTO.getUserId(), true);
         } else {
             sharedService.cancelShare(paramDTO.getUserId(), paramDTO.getNodeId());
-            if (sharedService.querySharedFile(paramDTO.getUserId(), 1L, paramDTO.getIsAll()) == null) {
+            List<Share> children = nodeRepository.getShareSubTree(paramDTO.getUserId(), 1L, 0L).get(0).getDescendants();
+            if (children == null) {
+                userService.setHaveShared(paramDTO.getUserId(), false);
+            }
+        }
+        return assembly.success(null);
+    }
+
+    /**
+     * 批量更改文件可分享状态
+     * file_list, userId, isShared
+     */
+    @PostMapping("/shareFiles")
+    @ResponseBody
+    public Response shareFiles(@RequestBody ParamDTO paramDTO) {
+        AssemblyResponse assembly = new AssemblyResponse();
+        List<Long> list = paramDTO.getFileNodes();
+        if (paramDTO.getIsShared()) {
+            for (Long nodeId : list) {
+                Query query = new Query();
+                query.addCriteria(Criteria.where("userId").is(paramDTO.getUserId()));
+                query.addCriteria(Criteria.where("nodeId").is(nodeId));
+                FileNode fileNode = mongoTemplate.findOne(query, FileNode.class, FileServiceImpl.FILE_COLLECTION);
+                if(fileNode.isShared()){
+                    sharedService.cancelShare(paramDTO.getUserId(), nodeId);
+                }
+                sharedService.shareFile(paramDTO.getUserId(), nodeId);
+            }
+            userService.setHaveShared(paramDTO.getUserId(), true);
+        } else {
+            for (Long nodeId : list) {
+                sharedService.cancelShare(paramDTO.getUserId(), nodeId);
+            }
+            List<Share> children = nodeRepository.getShareSubTree(paramDTO.getUserId(), 1L, 0L).get(0).getDescendants();
+            if (children == null) {
                 userService.setHaveShared(paramDTO.getUserId(), false);
             }
         }
@@ -64,17 +108,50 @@ public class ShareController {
 
     /**
      * 查看分享文件
-     * userId, nodeId, isAll
+     * userId, nodeId, isAll, realUserId
      */
     @PostMapping("/query")
     @ResponseBody
     public Response query(@RequestBody ParamDTO paramDTO) {
         AssemblyResponse assembly = new AssemblyResponse();
         if (paramDTO.getUserId() == 0L && paramDTO.getNodeId() == 0L) {
-            return assembly.success(sharedService.queryPiazza());
+            return assembly.success(sharedService.queryPiazza(paramDTO.getRealUserId()));
         } else {
             return assembly.success(sharedService.querySharedFile(paramDTO.getUserId(), paramDTO.getNodeId(), paramDTO.getIsAll()));
         }
+    }
+
+    /**
+     * 查看所有图片
+     * userId
+     */
+    @PostMapping("/queryImage")
+    @ResponseBody
+    public Response queryImage(@RequestBody ParamDTO paramDTO) {
+        AssemblyResponse assembly = new AssemblyResponse();
+        return assembly.success(sharedService.queryAll(paramDTO.getUserId(), fileProperties.getIcon().get("picture")));
+    }
+
+    /**
+     * 查看所有视频
+     * userId
+     */
+    @PostMapping("/queryVideo")
+    @ResponseBody
+    public Response queryVideo(@RequestBody ParamDTO paramDTO) {
+        AssemblyResponse assembly = new AssemblyResponse();
+        return assembly.success(sharedService.queryAll(paramDTO.getUserId(), fileProperties.getIcon().get("film")));
+    }
+
+    /**
+     * 查看所有音乐
+     * userId
+     */
+    @PostMapping("/queryMusic")
+    @ResponseBody
+    public Response queryMusic(@RequestBody ParamDTO paramDTO) {
+        AssemblyResponse assembly = new AssemblyResponse();
+        return assembly.success(sharedService.queryAll(paramDTO.getUserId(), fileProperties.getIcon().get("music")));
     }
 
     /**
@@ -108,9 +185,9 @@ public class ShareController {
      */
     @GetMapping("/queryUser")
     @ResponseBody
-    public Response queryUser() {
+    public Response queryUser(@RequestParam(value = "user_id") Long userId) {
         AssemblyResponse assembly = new AssemblyResponse();
-        return assembly.success(userService.querySharedUser());
+        return assembly.success(userService.querySharedUser(userId));
     }
 
     /**

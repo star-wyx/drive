@@ -147,6 +147,9 @@ public class SharedServiceImpl implements SharedService {
         query.addCriteria(Criteria.where("userId").is(userId));
         query.addCriteria(Criteria.where("nodeId").is(nodeId));
         FileNode fileNode = mongoTemplate.findOne(query, FileNode.class, FileServiceImpl.FILE_COLLECTION);
+        if(!fileNode.isShared()){
+            return 0;
+        }
         Update update = new Update();
         update.set("isShared", false);
         mongoTemplate.updateFirst(query, update, FileNode.class, FileServiceImpl.FILE_COLLECTION);
@@ -263,12 +266,33 @@ public class SharedServiceImpl implements SharedService {
     }
 
     @Override
-    public List queryPiazza() {
+    public ParamDTO queryAll(long userId, String contentType) {
+        Query query = new Query();
+        List<ShareFileDTO> list = new ArrayList<>();
+        if (userId != 0) {
+            query.addCriteria(Criteria.where("userId").is(userId));
+        }
+        query.addCriteria(Criteria.where("contentType").is(contentType));
+        List<Share> shares = mongoTemplate.find(query, Share.class, SHARED_COLLECTION);
+        for (Share share : shares) {
+            ShareFileDTO tmp = new ShareFileDTO(share, myFileUtils.getPrintSize(share.getFileSize()));
+            list.add(tmp);
+        }
+        ParamDTO paramDTO = new ParamDTO();
+        paramDTO.setContent(list);
+        paramDTO.setContentSize(list.size());
+        return paramDTO;
+    }
+
+    @Override
+    public List queryPiazza(long realUserId) {
         List<ShareFileDTO> folders = new ArrayList<>();
         List<ShareFileDTO> files = new ArrayList<>();
 
         Query query = new Query();
-        query.addCriteria(Criteria.where("parentId").is(1L));
+        Criteria criteria = Criteria.where("parentId").is(1L);
+        criteria.norOperator(Criteria.where("userId").is(realUserId));
+        query.addCriteria(criteria);
         List<Share> shares = mongoTemplate.find(query, Share.class, SHARED_COLLECTION);
 
         for (Share share : shares) {
