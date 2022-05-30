@@ -581,6 +581,20 @@ public class ChunkServiceImpl implements ChunkService {
 
         String fileName = fileNode.getFileName();
         String contentType = request.getServletContext().getMimeType(file.getName());
+        response.setHeader("Content-Type", contentType);
+        response.setContentType(contentType);
+
+        if (fileNode.getContentType().equals(fileProperties.getIcon().get("picture"))) {
+            response.addHeader("Cache-Control", "max-age=15, must-revalidate");
+            String ifNoneMatch = request.getHeader("If-None-Match");
+            response.setHeader("Last-Modified", fileNode.getUploadTime());
+            response.setHeader("ETag", fileNode.getMd5());
+            if (ifNoneMatch != null && ifNoneMatch.equals(fileNode.getMd5())) {
+                response.setStatus(response.SC_NOT_MODIFIED);
+                System.out.println(response.getStatus());
+                return;
+            }
+        }
 
 
         long endByte = file.length() - 1;
@@ -596,8 +610,6 @@ public class ChunkServiceImpl implements ChunkService {
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
-        response.setHeader("Content-Type", contentType);
-        response.setContentType(contentType);
 
         OutputStream os = null;
         BufferedInputStream bis = null;

@@ -266,13 +266,16 @@ public class SharedServiceImpl implements SharedService {
     }
 
     @Override
-    public ParamDTO queryAll(long userId, String contentType) {
+    public ParamDTO queryAll(long userId, long realUserId, String contentType) {
         Query query = new Query();
         List<ShareFileDTO> list = new ArrayList<>();
+        Criteria criteria = Criteria.where("contentType").is(contentType);
         if (userId != 0) {
             query.addCriteria(Criteria.where("userId").is(userId));
+        }else{
+            criteria.norOperator(Criteria.where("userId").is(realUserId));
         }
-        query.addCriteria(Criteria.where("contentType").is(contentType));
+        query.addCriteria(criteria);
         List<Share> shares = mongoTemplate.find(query, Share.class, SHARED_COLLECTION);
         for (Share share : shares) {
             ShareFileDTO tmp = new ShareFileDTO(share, myFileUtils.getPrintSize(share.getFileSize()));

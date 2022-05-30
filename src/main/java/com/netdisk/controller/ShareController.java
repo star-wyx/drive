@@ -88,7 +88,7 @@ public class ShareController {
                 query.addCriteria(Criteria.where("userId").is(paramDTO.getUserId()));
                 query.addCriteria(Criteria.where("nodeId").is(nodeId));
                 FileNode fileNode = mongoTemplate.findOne(query, FileNode.class, FileServiceImpl.FILE_COLLECTION);
-                if(fileNode.isShared()){
+                if (fileNode.isShared()) {
                     sharedService.cancelShare(paramDTO.getUserId(), nodeId);
                 }
                 sharedService.shareFile(paramDTO.getUserId(), nodeId);
@@ -129,7 +129,7 @@ public class ShareController {
     @ResponseBody
     public Response queryImage(@RequestBody ParamDTO paramDTO) {
         AssemblyResponse assembly = new AssemblyResponse();
-        return assembly.success(sharedService.queryAll(paramDTO.getUserId(), fileProperties.getIcon().get("picture")));
+        return assembly.success(sharedService.queryAll(paramDTO.getUserId(), paramDTO.getRealUserId(), fileProperties.getIcon().get("picture")));
     }
 
     /**
@@ -140,7 +140,7 @@ public class ShareController {
     @ResponseBody
     public Response queryVideo(@RequestBody ParamDTO paramDTO) {
         AssemblyResponse assembly = new AssemblyResponse();
-        return assembly.success(sharedService.queryAll(paramDTO.getUserId(), fileProperties.getIcon().get("film")));
+        return assembly.success(sharedService.queryAll(paramDTO.getUserId(), paramDTO.getRealUserId(), fileProperties.getIcon().get("film")));
     }
 
     /**
@@ -151,7 +151,7 @@ public class ShareController {
     @ResponseBody
     public Response queryMusic(@RequestBody ParamDTO paramDTO) {
         AssemblyResponse assembly = new AssemblyResponse();
-        return assembly.success(sharedService.queryAll(paramDTO.getUserId(), fileProperties.getIcon().get("music")));
+        return assembly.success(sharedService.queryAll(paramDTO.getUserId(), paramDTO.getRealUserId(), fileProperties.getIcon().get("music")));
     }
 
     /**

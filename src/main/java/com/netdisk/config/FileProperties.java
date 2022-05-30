@@ -36,4 +36,6 @@ public class FileProperties {
     private String ffmpegPath;
 
     private String ffprobePath;
+
+    private String isUpdate;
 }

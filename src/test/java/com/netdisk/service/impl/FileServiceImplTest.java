@@ -43,4 +43,8 @@ class FileServiceImplTest {
     @Autowired
     NodeRepository nodeRepository;
 
+    @Test
+    public void test(){
+        System.out.println(fileProperties.getIsUpdate());
+    }
 }

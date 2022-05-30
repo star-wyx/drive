@@ -2,6 +2,7 @@ package com.netdisk.task;
 
 import com.netdisk.config.FileProperties;
 import com.netdisk.util.FfmpegUtil;
+import com.netdisk.util.UpdateInitial;
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
@@ -22,6 +23,9 @@ public class Bootstrap implements ApplicationRunner {
 
     @Autowired
     FfmpegUtil ffmpegUtil;
+
+    @Autowired
+    UpdateInitial updateInitial;
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
@@ -44,6 +48,16 @@ public class Bootstrap implements ApplicationRunner {
         }
 
         ffmpegUtil.checkEncoders();
+
+        if(fileProperties.getIsUpdate().equals("")){
+            updateInitial.changeFileSystem();
+            updateInitial.setMd5();
+            updateInitial.setShared();
+            updateInitial.setFolderSize();
+            updateInitial.setUserIsShared();
+            updateInitial.setShareRootNode();
+            fileProperties.setIsUpdate("false");
+        }
 
     }
 

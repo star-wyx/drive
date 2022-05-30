@@ -50,7 +50,7 @@ public interface SharedService {
     /**
      * 查看分享的contentType
      */
-    ParamDTO queryAll(long userId, String contentType);
+    ParamDTO queryAll(long userId, long realUserId, String contentType);
 
     /**
      * 返回piazza
