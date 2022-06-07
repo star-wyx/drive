@@ -1,36 +1,36 @@
-package com.netdisk.util;
+package com.netdisk.controller;
 
 import com.netdisk.config.FileProperties;
 import com.netdisk.module.FileNode;
 import com.netdisk.module.Share;
 import com.netdisk.module.User;
 import com.netdisk.repository.NodeRepository;
-import com.netdisk.service.FileService;
 import com.netdisk.service.Md5Service;
 import com.netdisk.service.SharedService;
 import com.netdisk.service.impl.FileServiceImpl;
 import com.netdisk.service.impl.SharedServiceImpl;
 import com.netdisk.service.impl.UserServiceImpl;
-import org.junit.jupiter.api.Test;
+import com.netdisk.util.AssemblyResponse;
+import com.netdisk.util.Response;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
-import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
 
-@Component
+@Slf4j
+@Controller
 public class UpdateInitial {
 
-    @Autowired
-    FileService fileService;
 
     @Autowired
     MongoTemplate mongoTemplate;
@@ -47,7 +47,27 @@ public class UpdateInitial {
     @Autowired
     NodeRepository nodeRepository;
 
+    @GetMapping("/updateSystem")
+    @ResponseBody
+    public Response update() {
+        AssemblyResponse<String> assembly = new AssemblyResponse<>();
+        setUserIsShared();
+        setShared();
+        setMd5();
+        setShareRootNode();
+        setFolderSize();
+        changeFileSystem();
+        return assembly.success(null);
+    }
+
+    /**
+     * fileNode: isShared
+     * user: isShared
+     */
+
+
     public void changeFileSystem() {
+        log.info("===============changeFileSystem=================");
         List<User> userList = mongoTemplate.findAll(User.class, UserServiceImpl.USER_COLLECTION);
         for (User user : userList) {
             Query query = new Query();
@@ -89,10 +109,12 @@ public class UpdateInitial {
                 }
             }
         }
+        log.info("===============changeFileSystem END=================");
     }
 
 
     public void setMd5() {
+        log.info("===============setMd5=================");
         List<User> userList = mongoTemplate.findAll(User.class, UserServiceImpl.USER_COLLECTION);
         for (User user : userList) {
             Query query = new Query();
@@ -104,17 +126,21 @@ public class UpdateInitial {
                 }
             }
         }
+        log.info("===============setMd5 END=================");
     }
 
 
     public void setShared() {
+        log.info("===============setShared=================");
         Update update = new Update();
         update.set("isShared", false);
         mongoTemplate.updateMulti(new Query(), update, FileServiceImpl.FILE_COLLECTION);
+        log.info("===============setShared END=================");
     }
 
 
     public void setFolderSize() {
+        log.info("===============setFolderSize=================");
         List<User> userList = mongoTemplate.findAll(User.class, UserServiceImpl.USER_COLLECTION);
         for (User user : userList) {
             Query query = new Query();
@@ -137,27 +163,46 @@ public class UpdateInitial {
                 mongoTemplate.updateFirst(q, update, FileNode.class, FileServiceImpl.FILE_COLLECTION);
             }
         }
+        log.info("===============setFolderSize END=================");
     }
 
 
     public void setUserIsShared() {
+        log.info("===============setUserIsShared=================");
         Update update = new Update();
         update.set("isShared", false);
         mongoTemplate.updateMulti(new Query(), update, UserServiceImpl.USER_COLLECTION);
+        log.info("===============setUserIsShared END=================");
     }
 
 
     public void setShareRootNode() {
-        Query query = new Query();
-        query.addCriteria(Criteria.where("nodeId").is(0));
-        FileNode fileNode = mongoTemplate.findOne(query, FileNode.class, FileServiceImpl.FILE_COLLECTION);
-        Share share = new Share(fileNode, 0L, "/all", "root");
+        log.info("===============setShareRootNode=================");
+        Share share = new Share(
+                null,
+                0L,
+                "root",
+                0L,
+                "root",
+                "/",
+                "/",
+                true,
+                null,
+                0L,
+                "root",
+                null,
+                null,
+                0L,
+                ","
+
+        );
         mongoTemplate.save(share, SharedServiceImpl.SHARED_COLLECTION);
 
         List<User> userList = mongoTemplate.findAll(User.class, UserServiceImpl.USER_COLLECTION);
         for (User user : userList) {
             sharedService.createUserRoot(user.getUserId(), user.getUserName());
         }
+        log.info("===============setShareRootNode END=================");
     }
 
 }

@@ -1,5 +1,7 @@
 package com.netdisk;
 
+import com.corundumstudio.socketio.SocketIOServer;
+import com.corundumstudio.socketio.annotation.SpringAnnotationScanner;
 import com.netdisk.config.FileProperties;
 import org.apache.catalina.connector.Connector;
 import org.springframework.boot.SpringApplication;
@@ -43,6 +45,49 @@ public class DriveSpringbootApplication {
             }
         });
         return factory;
+    }
+
+    /**
+     * 注册netty-socketio服务端
+     * @author liangxifeng 2018-07-07
+     * @return
+     */
+    @Bean
+    public SocketIOServer socketIOServer() {
+        com.corundumstudio.socketio.Configuration config = new com.corundumstudio.socketio.Configuration();
+
+        String os = System.getProperty("os.name");
+        if(os.equals("Mac OS X")){   //在本地window环境测试时用localhost
+            System.out.println("this is Mac OS X");
+            config.setHostname("192.168.1.143");
+        } else {
+            config.setHostname("192.168.9.209");
+        }
+        config.setPort(27000);
+
+        /*config.setAuthorizationListener(new AuthorizationListener() {//类似过滤器
+            @Override
+            public boolean isAuthorized(HandshakeData data) {
+                //http://localhost:8081?username=test&password=test
+                //例如果使用上面的链接进行connect，可以使用如下代码获取用户密码信息，本文不做身份验证
+                // String username = data.getSingleUrlParam("username");
+                // String password = data.getSingleUrlParam("password");
+                return true;
+            }
+        });*/
+
+        final SocketIOServer server = new SocketIOServer(config);
+        return server;
+    }
+
+    /**
+     * tomcat启动时候，扫码socket服务器并注册
+     * @param socketServer
+     * @return
+     */
+    @Bean
+    public SpringAnnotationScanner springAnnotationScanner(SocketIOServer socketServer) {
+        return new SpringAnnotationScanner(socketServer);
     }
 }
 

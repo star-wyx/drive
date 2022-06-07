@@ -110,14 +110,14 @@ public final class MyFileUtils {
             int length = fileProperties.getSliceSizeMB() * 1024 * 1024;
             //王氏跳跃式超级md5算法 版权所有！
             //获得最大chunk数 向上取整 *1.0就是变成double的意思 最后一个chunk一定小于等于3mb
-            int chunkNum = (int)Math.ceil(file.length() * 1.0 / length);
+            int chunkNum = (int) Math.ceil(file.length() * 1.0 / length);
             //跳跃窗格 总共取100个chunk 每隔固定的数量的分块就取一个分块进行计算 总共取100+1个 这个固定的数量就是就是skipInterval
             //向下取整，意味着如果不足100个时 会变成0 即不跳跃
-            int skipInterval =  (int)Math.floor(chunkNum * 1.0 / 100);
+            int skipInterval = (int) Math.floor(chunkNum * 1.0 / 100);
 
             //debug参数 可无视
             int rightnow = 0;
-            int counter = 0 ;
+            int counter = 0;
 
             //100+1个包 最后一个一定为结尾的最后一个包 以保证封闭完整性
             int maxAccount = 100;
@@ -126,41 +126,40 @@ public final class MyFileUtils {
             byte[] buf = new byte[length];
 
             //是否超过了我们的限制？注意 边界100划分到全读到条件中！
-            if(maxAccount < chunkNum){
-                while(maxAccount > 0){
+            if (maxAccount < chunkNum) {
+                while (maxAccount > 0) {
                     //debug 显示
                     System.out.println(rightnow + "  " + counter);
                     stream.read(buf);
                     digest.update(buf, 0, length);
                     //关键 跳跃包 如果间隔为0 就不跳跃，跳跃是根据上个包的终点跳n-1个包 （因为skipInterval为要的包和要跳的包的总和）
-                    stream.skip((skipInterval ==0 ? skipInterval : skipInterval-1 ) * length);
+                    stream.skip((skipInterval == 0 ? skipInterval : skipInterval - 1) * length);
                     //debug 显示
-                    rightnow = rightnow+skipInterval;
+                    rightnow = rightnow + skipInterval;
                     counter++;
                     //下一个
                     maxAccount--;
                 }
 
                 //最后的结尾包 因为取整的缘故 一定会剩余大于间隔的包数
-                if(maxAccount == 0){
+                if (maxAccount == 0) {
                     //剩余包数
-                    int availableChunk =  (int)Math.ceil(stream.available()*1.0/length);
+                    int availableChunk = (int) Math.ceil(stream.available() * 1.0 / length);
                     //debug显示
                     System.out.println((rightnow + availableChunk - 1) + "  " + counter++);
                     //跳掉最后一个包之前的包
-                    stream.skip((availableChunk-1) * length);
+                    stream.skip((availableChunk - 1) * length);
                     //注意！最后一个包长度不固定 必须另外取
                     int len = stream.read(buf);
                     digest.update(buf, 0, len);
                 }
-            }else{
+            } else {
                 //你懂的 这部分是个人都看得懂
-                for(int i = 0; i < chunkNum; i++){
+                for (int i = 0; i < chunkNum; i++) {
                     int len = stream.read(buf);
                     digest.update(buf, 0, len);
                 }
             }
-
 
 
             return toHexString(digest.digest());
@@ -193,22 +192,149 @@ public final class MyFileUtils {
         File desFile = null;
         try {
             File srcFile = new File(srcPath);
-            long srcFilesize = srcFile.length();
-            System.out.println("原图片:" + srcPath + ",大小:" + srcFilesize / 1024 + "kb");
-            //递归压缩,直到目标文件大小小于desFileSize
-            Thumbnails.of(srcPath).scale(1f).toFile(desPath);
-            commpressPicCycle(desPath, desFileSize, accuracy);
-
-            desFile = new File(desPath);
-            System.out.println("目标图片:" + desPath + ",大小" + desFile.length() / 1024 + "kb");
-            System.out.println("图片压缩完成!");
-            byte[] bytes = FileUtils.readFileToByteArray(desFile);
-            desFile.delete();
-            return Base64.getEncoder().encodeToString(bytes);
+//            long srcFilesize = srcFile.length();
+//            System.out.println("原图片:" + srcPath + ",大小:" + srcFilesize / 1024 + "kb");
+//            //递归压缩,直到目标文件大小小于desFileSize
+//            Thumbnails.of(srcPath).scale(1f).toFile(desPath);
+//            commpressPicCycle(desPath, desFileSize, accuracy);
+//
+//            desFile = new File(desPath);
+//            System.out.println("目标图片:" + desPath + ",大小" + desFile.length() / 1024 + "kb");
+//            System.out.println("图片压缩完成!");
+//            byte[] bytes = FileUtils.readFileToByteArray(desFile);
+//            desFile.delete();
+//            return Base64.getEncoder().encodeToString(bytes);
+            return resizeImageTo50K(getBase64(srcFile));
         } catch (Exception e) {
             e.printStackTrace();
         }
         return null;
+    }
+
+
+
+    public static String resizeImageTo50K(String base64Img) {
+        try {
+            BufferedImage src = base64String2BufferedImage(base64Img);
+            BufferedImage output = Thumbnails.of(src).size(src.getWidth() / 5, src.getHeight() / 5).asBufferedImage();
+            String base64 = imageToBase64(output);
+            if (base64.length() - base64.length() / 8 * 2 > 200000) {
+                output = Thumbnails.of(output).scale(1f).asBufferedImage();
+                base64 = imageToBase64(output);
+            }
+            System.out.println("压缩后"+imageSize(base64));
+            return base64;
+        } catch (Exception e) {
+            return base64Img;
+        }
+    }
+
+    public static Integer imageSize(String imageBase64Str){
+
+        //1.找到等号，把等号也去掉(=用来填充base64字符串长度用)
+        Integer equalIndex= imageBase64Str.indexOf("=");
+        if(imageBase64Str.indexOf("=")>0) {
+            imageBase64Str=imageBase64Str.substring(0, equalIndex);
+        }
+        //2.原来的字符流大小，单位为字节
+        Integer strLength=imageBase64Str.length();
+        System.out.println("imageBase64Str Length = "+strLength);
+        //3.计算后得到的文件流大小，单位为字节
+        Integer size=strLength-(strLength/8)*2;
+        return size;
+    }
+
+    public static String imageToBase64(BufferedImage bufferedImage) {
+        Base64.Encoder encoder = Base64.getEncoder();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try {
+            ImageIO.write(bufferedImage, "jpg", baos);
+        } catch (IOException e) {
+        }
+        return new String(encoder.encode((baos.toByteArray())));
+    }
+
+    /**
+     * 将base64 转为流
+     * @param base64string
+     * @return
+     */
+    public static BufferedImage base64String2BufferedImage(String base64string) {
+        BufferedImage image = null;
+        try {
+            InputStream stream = BaseToInputStream(base64string);
+            image = ImageIO.read(stream);
+        } catch (IOException e) {
+        }
+        return image;
+    }
+
+    private static InputStream BaseToInputStream(String base64string) {
+        ByteArrayInputStream stream = null;
+        try {
+            Base64.Decoder decoder = Base64.getDecoder();
+            byte[] bytes1 = decoder.decode(base64string);
+            stream = new ByteArrayInputStream(bytes1);
+        } catch (Exception e) {
+            // TODO: handle exception
+        }
+        return stream;
+    }
+
+
+
+
+
+    public String getBase64(File file) {
+        ByteArrayOutputStream os1 = new ByteArrayOutputStream();
+        InputStream file1 = null;
+        try {
+            file1 = new FileInputStream(file);
+
+            byte[] byteBuf = new byte[3 * 1024 * 1024];
+            byte[] base64ByteBuf;
+            int count1; //每次从文件中读取到的有效字节数
+            while ((count1 = file1.read(byteBuf)) != -1) {
+                if (count1 != byteBuf.length) {//如果有效字节数不为3*1000，则说明文件已经读到尾了，不够填充满byteBuf了
+                    byte[] copy = Arrays.copyOf(byteBuf, count1); //从byteBuf中截取包含有效字节数的字节段
+                    base64ByteBuf = Base64.getEncoder().encode(copy); //对有效字节段进行编码
+                } else {
+                    base64ByteBuf = Base64.getEncoder().encode(byteBuf);
+                }
+                os1.write(base64ByteBuf, 0, base64ByteBuf.length);
+                os1.flush();
+            }
+            file1.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return os1.toString();
+    }
+
+    public String getBase64(byte[] bytes) {
+        ByteArrayOutputStream os1 = new ByteArrayOutputStream();
+        InputStream is = null;
+        try {
+            is = new ByteArrayInputStream(bytes);
+
+            byte[] byteBuf = new byte[3 * 1024 * 1024];
+            byte[] base64ByteBuf;
+            int count1; //每次从文件中读取到的有效字节数
+            while ((count1 = is.read(byteBuf)) != -1) {
+                if (count1 != byteBuf.length) {//如果有效字节数不为3*1000，则说明文件已经读到尾了，不够填充满byteBuf了
+                    byte[] copy = Arrays.copyOf(byteBuf, count1); //从byteBuf中截取包含有效字节数的字节段
+                    base64ByteBuf = Base64.getEncoder().encode(copy); //对有效字节段进行编码
+                } else {
+                    base64ByteBuf = Base64.getEncoder().encode(byteBuf);
+                }
+                os1.write(base64ByteBuf, 0, base64ByteBuf.length);
+                os1.flush();
+            }
+            is.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return os1.toString();
     }
 
     public void commpressPicCycle(String desPath, long desFileSize,
@@ -286,7 +412,7 @@ public final class MyFileUtils {
         int GB = 1024 * 1024 * 1024;//定义GB的计算常量
         int MB = 1024 * 1024;//定义MB的计算常量
         int KB = 1024;//定义KB的计算常量
-        if(size == null){
+        if (size == null) {
             return null;
         }
         try {
