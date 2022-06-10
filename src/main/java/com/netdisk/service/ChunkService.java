@@ -56,8 +56,6 @@ public interface ChunkService {
      */
     void vOpenPdf(FileNode fileNode, HttpServletRequest request, HttpServletResponse response);
 
-    String availableFileName(Long userId, Long nodeId, String fileName);
-
     Chunk queryByNameId(Long userId, Long nodeId, String fileName);
 
     void abortAll(Long userId);

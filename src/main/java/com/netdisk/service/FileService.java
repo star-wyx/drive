@@ -22,11 +22,6 @@ public interface FileService {
      */
     int uploadFile(User user, Long nodeId, MultipartFile[] list);
 
-    /**
-     * 返回当前文件夹可用的文件名
-     */
-
-    String availableFoldereName(Long userId, Long nodeId, String fileName);
 
 
     /**
@@ -99,6 +94,11 @@ public interface FileService {
      * 查找已收藏的FileNode
      */
     ParamDTO queryFavorites(Long userId);
+
+    /**
+     * 查找已收藏的FileNode
+     */
+    ParamDTO queryShared(Long userId);
 
     /**
      * 查找目录下的所有文件夹

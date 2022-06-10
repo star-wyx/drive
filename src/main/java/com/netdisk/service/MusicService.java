@@ -18,7 +18,7 @@ public interface MusicService {
     /**
      * 往数据库添加Song
      */
-    SongDTO setSong(FileNode fileNode, String token);
+    SongDTO setSong(FileNode fileNode, String token, long list_userId);
 
     /**
      * 获取同一用户的所有Clinet

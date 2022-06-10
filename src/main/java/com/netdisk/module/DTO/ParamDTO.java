@@ -198,4 +198,7 @@ public class ParamDTO {
 
     @JsonProperty("real_user_id")
     Long realUserId;
+
+    @JsonProperty("share_files")
+    List shareFileDTOS;
 }

@@ -151,6 +151,17 @@ public class FileController {
     }
 
     /**
+     * 返回用户所有的分享文件
+     * userId
+     */
+    @PostMapping(value = "/queryShare")
+    @ResponseBody
+    public Response queryShare(@RequestBody ParamDTO paramDTO) {
+        AssemblyResponse<ParamDTO> assembly = new AssemblyResponse<>();
+        return assembly.success(fileService.queryShared(paramDTO.getUserId()));
+    }
+
+    /**
      * 收藏文件或文件夹
      * userId, nodeId, isFavorites
      */

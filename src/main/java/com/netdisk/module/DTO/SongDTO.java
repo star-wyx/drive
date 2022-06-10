@@ -20,6 +20,8 @@ public class SongDTO {
 
     private long node_id;
 
+    private long user_id;
+
     private String file_name;
 
     private String artist;
@@ -32,6 +34,7 @@ public class SongDTO {
         this.shared = song.isShared();
         this.favorited = song.isFavorites();
         this.node_id = song.getNodeId();
+        this.user_id = song.getUserId();
         this.file_name = song.getFileName();
         this.artist = song.getSinger();
         this.cover = song.getBase64();

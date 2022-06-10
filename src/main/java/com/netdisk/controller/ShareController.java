@@ -2,6 +2,7 @@ package com.netdisk.controller;
 
 import com.netdisk.config.FileProperties;
 import com.netdisk.module.DTO.ParamDTO;
+import com.netdisk.module.DTO.ShareFileDTO;
 import com.netdisk.module.FileNode;
 import com.netdisk.module.Share;
 import com.netdisk.module.User;
@@ -22,6 +23,8 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 @Api(value = "分享")
@@ -176,6 +179,42 @@ public class ShareController {
         }
 
         sharedService.saveSharedFile(paramDTO.getUserId(), newUser, fileNode, paramDTO.getNewNodeId());
+
+        return assembly.success(null);
+    }
+
+    /**
+     * 批量转存文件
+     * , newUserId, newNodeId
+     */
+    @PostMapping("/saveSharedFiles")
+    @ResponseBody
+    public Response saveSharedFiles(@RequestBody ParamDTO paramDTO) {
+        AssemblyResponse assembly = new AssemblyResponse();
+        FileNode des = fileService.queryFolderById(paramDTO.getNewUserId(), paramDTO.getNewNodeId());
+        if (!des.isFolder()) {
+            return assembly.fail(461, "destination is not a folder");
+        }
+
+        long fileSize = 0;
+        List<FileNode> list = new ArrayList<>();
+        for (int i = 0; i < paramDTO.getShareFileDTOS().size(); i++) {
+            LinkedHashMap map = (LinkedHashMap) paramDTO.getShareFileDTOS().get(i);
+            Query query = new Query();
+            query.addCriteria(Criteria.where("userId").is(map.get("user_id")));
+            query.addCriteria(Criteria.where("nodeId").is(map.get("node_id")));
+            FileNode fileNode = mongoTemplate.findOne(query, FileNode.class, FileServiceImpl.FILE_COLLECTION);
+            list.add(fileNode);
+            fileSize += fileNode.getFileSize();
+        }
+        User newUser = userService.getUserById(paramDTO.getNewUserId());
+        if (userService.availableSpace(paramDTO.getNewUserId()) < fileSize) {
+            return assembly.fail(455, "not enough space");
+        }
+
+        for (FileNode fileNode : list) {
+            sharedService.saveSharedFile(fileNode.getUserId(), newUser, fileNode, paramDTO.getNewNodeId());
+        }
 
         return assembly.success(null);
     }

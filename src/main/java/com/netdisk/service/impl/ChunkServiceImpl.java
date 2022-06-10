@@ -70,38 +70,6 @@ public class ChunkServiceImpl implements ChunkService {
 
 
     @Override
-    public String availableFileName(Long userId, Long nodeId, String fileName) {
-        String suffix = fileName.substring(fileName.lastIndexOf("."));
-        String prefix = fileName.substring(0, fileName.lastIndexOf("."));
-        StringBuilder sb = new StringBuilder();
-        sb.append(fileName);
-        int i = 1;
-        while (true) {
-            FileNode fileNode = fileService.queryFileByNameId(userId, nodeId, sb.toString());
-            if (fileNode == null) {
-                break;
-            } else {
-                sb = new StringBuilder();
-                sb.append(prefix).append(" (").append(i).append(")").append(suffix);
-                i++;
-            }
-        }
-
-        while (true) {
-            Chunk chunk = queryByNameId(userId, nodeId, sb.toString());
-            if (chunk == null) {
-                break;
-            } else {
-                sb = new StringBuilder();
-                sb.append(prefix).append(" (").append(i).append(")").append(suffix);
-                i++;
-            }
-        }
-
-        return sb.toString();
-    }
-
-    @Override
     public Chunk queryByNameId(Long userId, Long nodeId, String fileName) {
         Query query = new Query();
         query.addCriteria(Criteria.where("userId").is(userId));
@@ -139,7 +107,7 @@ public class ChunkServiceImpl implements ChunkService {
             if (!tmpFolder.exists()) {
                 tmpFolder.mkdirs();
             }
-            String availableName = availableFileName(userId, nodeId, fileName);
+            String availableName = myFileUtils.availableFileName(userId, nodeId, fileName);
             chunk = new Chunk(null, 0L, uuid, md5, userId, nodeId, availableName, tmpPath, new Date());
             mongoTemplate.save(chunk, CHUNK_COLLECTION);
             res = -1L;

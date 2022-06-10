@@ -29,6 +29,8 @@ public class Song {
 
     private Long nodeId;
 
+    private Long list_userId;
+
     private boolean isShared;
 
     private boolean isFavorites;

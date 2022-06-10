@@ -8,6 +8,7 @@ import com.netdisk.module.FileNode;
 import com.netdisk.module.Song;
 import com.netdisk.service.MusicService;
 import com.netdisk.util.MyFileUtils;
+import org.apache.commons.io.FileUtils;
 import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.AudioFileIO;
 import org.jaudiotagger.audio.exceptions.CannotReadException;
@@ -17,6 +18,8 @@ import org.jaudiotagger.tag.FieldKey;
 import org.jaudiotagger.tag.Tag;
 import org.jaudiotagger.tag.TagException;
 import org.jaudiotagger.tag.TagField;
+import org.jaudiotagger.tag.mp4.Mp4FieldKey;
+import org.jaudiotagger.tag.mp4.Mp4Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -54,10 +57,20 @@ public class MusicServiceImpl implements MusicService {
     }
 
     @Override
-    public SongDTO setSong(FileNode fileNode, String token) {
+    public SongDTO setSong(FileNode fileNode, String token, long list_userId) {
         Song tmp = getSong(fileNode.getMd5());
+
         if (tmp != null) {
-            if (!Objects.equals(tmp.getUserId(), fileNode.getUserId()) && !Objects.equals(tmp.getNodeId(), fileNode.getNodeId())) {
+            Query query = new Query();
+            query.addCriteria(Criteria.where("userId").is(fileNode.getUserId()));
+            query.addCriteria(Criteria.where("nodeId").is(fileNode.getNodeId()));
+            query.addCriteria(Criteria.where("list_userId").is(list_userId));
+            Song check = mongoTemplate.findOne(query, Song.class, MUSIC_COLLECTION);
+            if (check != null) {
+                return new SongDTO(tmp, token);
+            } else {
+                boolean isShared = fileNode.getUserId() == list_userId && fileNode.isShared();
+                boolean isFavorites = fileNode.getUserId() == list_userId && fileNode.isFavorites();
                 Song song = new Song(
                         null,
                         fileNode.getFileName(),
@@ -67,12 +80,11 @@ public class MusicServiceImpl implements MusicService {
                         tmp.getBase64(),
                         fileNode.getUserId(),
                         fileNode.getNodeId(),
-                        fileNode.isShared(),
-                        fileNode.isFavorites());
+                        list_userId,
+                        isShared,
+                        isFavorites);
                 mongoTemplate.save(song, MUSIC_COLLECTION);
                 return new SongDTO(song, token);
-            } else {
-                return new SongDTO(tmp, token);
             }
         }
 
@@ -85,13 +97,21 @@ public class MusicServiceImpl implements MusicService {
             f = AudioFileIO.read(file);
             Tag tag = f.getTag();
             TagField binaryField = tag.getFirstField(FieldKey.COVER_ART);
-            String name = tag.getFirst(FieldKey.TITLE) != null ? tag.getFirst(FieldKey.TITLE) : fileNode.getFileName();
-            String artist = tag.getFirst(FieldKey.ARTIST) != null ? tag.getFirst(FieldKey.ARTIST) : "unkown 未知";
-            byte[] imageRawData = tag.getFirstArtwork().getBinaryData();
+            String name = (!tag.getFirst(FieldKey.TITLE).equals("") && (tag.getFirst(FieldKey.TITLE) != null)) ? tag.getFirst(FieldKey.TITLE) : fileNode.getFileName();
+            String artist = (!tag.getFirst(FieldKey.ARTIST).equals("") && tag.getFirst(FieldKey.ARTIST) != null) ? tag.getFirst(FieldKey.ARTIST) : "unkown 未知";
+            byte[] imageRawData = null;
+            if (tag.getFirstArtwork() != null) {
+                imageRawData = tag.getFirstArtwork().getBinaryData();
+            } else {
+                File defaultImage = new File(fileProperties.getProfileDir() + File.separator + "defaultImage.png");
+                imageRawData = FileUtils.readFileToByteArray(defaultImage);
+            }
             String base64 = null;
             if (imageRawData.length != 0) {
                 base64 = "data:image/png;base64," + myFileUtils.getBase64(imageRawData);
             }
+            boolean isShared = fileNode.getUserId() == list_userId && fileNode.isShared();
+            boolean isFavorites = fileNode.getUserId() == list_userId && fileNode.isFavorites();
             Song song = new Song(
                     null,
                     fileNode.getFileName(),
@@ -101,8 +121,9 @@ public class MusicServiceImpl implements MusicService {
                     base64,
                     fileNode.getUserId(),
                     fileNode.getNodeId(),
-                    fileNode.isShared(),
-                    fileNode.isFavorites());
+                    list_userId,
+                    isShared,
+                    isFavorites);
             mongoTemplate.save(song, MUSIC_COLLECTION);
 //            tag.getFirst(FieldKey.ALBUM);
 //            tag.getFirst(FieldKey.COMMENT);
@@ -133,7 +154,7 @@ public class MusicServiceImpl implements MusicService {
     public List<SongDTO> getSongList(long userId, String token) {
         List<SongDTO> res = new ArrayList<>();
         Query query = new Query();
-        query.addCriteria(Criteria.where("userId").is(userId));
+        query.addCriteria(Criteria.where("list_userId").is(userId));
         List<Song> songs = mongoTemplate.find(query, Song.class, MusicServiceImpl.MUSIC_COLLECTION);
         for (Song s : songs) {
             SongDTO songDTO = new SongDTO(s, token);

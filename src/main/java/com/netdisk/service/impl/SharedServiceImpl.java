@@ -147,7 +147,7 @@ public class SharedServiceImpl implements SharedService {
         query.addCriteria(Criteria.where("userId").is(userId));
         query.addCriteria(Criteria.where("nodeId").is(nodeId));
         FileNode fileNode = mongoTemplate.findOne(query, FileNode.class, FileServiceImpl.FILE_COLLECTION);
-        if(!fileNode.isShared()){
+        if (!fileNode.isShared()) {
             return 0;
         }
         Update update = new Update();
@@ -184,6 +184,7 @@ public class SharedServiceImpl implements SharedService {
             query.addCriteria(Criteria.where("userId").is(newUser.getUserId()));
             FileNode folder = mongoTemplate.findOne(query, FileNode.class, FileServiceImpl.FILE_COLLECTION);
 
+            fileNode.setFileName(myFileUtils.availableFileName(newUser.getUserId(), folderId, fileNode.getFileName()));
             fileNode.setId(null);
             fileNode.setUserId(newUser.getUserId());
             fileNode.setNodeId(seqService.getNextSeqId(newUser.getUserName()));
@@ -206,6 +207,7 @@ public class SharedServiceImpl implements SharedService {
         query.addCriteria(Criteria.where("userId").is(newUser.getUserId()));
         FileNode folder = mongoTemplate.findOne(query, FileNode.class, FileServiceImpl.FILE_COLLECTION);
 
+        fileNode.setFileName(myFileUtils.availableFolderName(newUser.getUserId(), folderId, fileNode.getFileName()));
         fileNode.setId(null);
         fileNode.setUserId(newUser.getUserId());
         fileNode.setNodeId(seqService.getNextSeqId(newUser.getUserName()));
@@ -223,7 +225,7 @@ public class SharedServiceImpl implements SharedService {
                 f.setParentId(fileNode.getNodeId());
                 f.setShared(false);
                 mongoTemplate.save(f);
-                md5Service.increaseIndex(fileNode.getMd5());
+                md5Service.increaseIndex(f.getMd5());
             } else {
                 saveSharedFolder(userId, newUser, f, fileNode.getNodeId());
             }
@@ -272,7 +274,7 @@ public class SharedServiceImpl implements SharedService {
         Criteria criteria = Criteria.where("contentType").is(contentType);
         if (userId != 0) {
             query.addCriteria(Criteria.where("userId").is(userId));
-        }else{
+        } else {
             criteria.norOperator(Criteria.where("userId").is(realUserId));
         }
         query.addCriteria(criteria);

@@ -16,6 +16,8 @@ import com.netdisk.service.impl.FileServiceImpl;
 import com.netdisk.service.impl.MusicServiceImpl;
 import com.netdisk.service.impl.UserServiceImpl;
 import com.netdisk.util.JwtUtil;
+import lombok.extern.slf4j.Slf4j;
+import org.checkerframework.checker.units.qual.C;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -33,6 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @authoer liangxifeng 2018-07-07
  */
 @Component
+@Slf4j
 public class MessageEventHandler {
     public static SocketIOServer socketIoServer;
     static ArrayList<UUID> listClient = new ArrayList<UUID>();
@@ -100,53 +103,110 @@ public class MessageEventHandler {
     }
 
     @OnEvent(value = "addNewSong")
-    public void addNewSong(SocketIOClient client, AckRequest request, Long nodeId, String token) {
-        Long userId = webSocketMap.get(client);
+    public void addNewSong(SocketIOClient client, AckRequest request, Long nodeId, String token, Long song_userId) {
+        Long list_userId = webSocketMap.get(client);
 //        Query userQuery = new Query();
 //        userQuery.addCriteria(Criteria.where("userId").is(userId));
 //        User user = mongoTemplate.findOne(userQuery, User.class, UserServiceImpl.USER_COLLECTION);
         Query fileQuery = new Query();
         fileQuery.addCriteria(Criteria.where("nodeId").is(nodeId));
-        fileQuery.addCriteria(Criteria.where("userId").is(userId));
+        fileQuery.addCriteria(Criteria.where("userId").is(song_userId));
         FileNode fileNode = mongoTemplate.findOne(fileQuery, FileNode.class, FileServiceImpl.FILE_COLLECTION);
-        SongDTO songDTO = musicService.setSong(fileNode, token);
-        List<SocketIOClient> clients = musicService.getClients(userId, webSocketMap);
+        SongDTO songDTO = musicService.setSong(fileNode, token, list_userId);
+        List<SocketIOClient> clients = musicService.getClients(list_userId, webSocketMap);
         for (SocketIOClient c : clients) {
             c.sendEvent("newSongAdded", songDTO);
         }
     }
 
+    @OnEvent(value = "addNewSongs")
+    public void addNewSongs(SocketIOClient client, AckRequest request, List<Integer> nodeIds, String token, Long userId) {
+        Long list_userId = webSocketMap.get(client);
+//        Query userQuery = new Query();
+//        userQuery.addCriteria(Criteria.where("userId").is(userId));
+//        User user = mongoTemplate.findOne(userQuery, User.class, UserServiceImpl.USER_COLLECTION);
+        List<SongDTO> res = new ArrayList<>();
+        for (int i = 0; i < nodeIds.size(); i++) {
+            long nodeId = (long) nodeIds.get(i);
+            Query fileQuery = new Query();
+            fileQuery.addCriteria(Criteria.where("nodeId").is(nodeId));
+            fileQuery.addCriteria(Criteria.where("userId").is(userId));
+            FileNode fileNode = mongoTemplate.findOne(fileQuery, FileNode.class, FileServiceImpl.FILE_COLLECTION);
+            SongDTO songDTO = musicService.setSong(fileNode, token, list_userId);
+            res.add(songDTO);
+        }
+        List<SocketIOClient> clients = musicService.getClients(list_userId, webSocketMap);
+        for (SocketIOClient c : clients) {
+            c.sendEvent("newSongsAdded", res);
+        }
+    }
+
+    @OnEvent(value = "addNewSongsShared")
+    public void addNewSongsShared(SocketIOClient client, AckRequest request, List nodeIds, String token) {
+        Long list_userId = webSocketMap.get(client);
+        long userId = 0;
+//        Query userQuery = new Query();
+//        userQuery.addCriteria(Criteria.where("userId").is(userId));
+//        User user = mongoTemplate.findOne(userQuery, User.class, UserServiceImpl.USER_COLLECTION);
+        List<SongDTO> res = new ArrayList<>();
+        for (int i = 0; i < nodeIds.size(); i++) {
+            LinkedHashMap map = (LinkedHashMap) nodeIds.get(i);
+            Query fileQuery = new Query();
+            fileQuery.addCriteria(Criteria.where("nodeId").is(map.get("node_id")));
+            fileQuery.addCriteria(Criteria.where("userId").is(map.get("user_id")));
+            FileNode fileNode = mongoTemplate.findOne(fileQuery, FileNode.class, FileServiceImpl.FILE_COLLECTION);
+            SongDTO songDTO = musicService.setSong(fileNode, token, list_userId);
+            res.add(songDTO);
+        }
+        List<SocketIOClient> clients = musicService.getClients(list_userId, webSocketMap);
+        for (SocketIOClient c : clients) {
+            c.sendEvent("newSongsAdded", res);
+        }
+    }
+
     @OnEvent(value = "deleteSong")
-    public void deleteSong(SocketIOClient client, AckRequest request, Long nodeId) {
-        long userId = webSocketMap.get(client);
+    public void deleteSong(SocketIOClient client, AckRequest request, Long nodeId, Long userId) {
+        long list_userId = webSocketMap.get(client);
         Query query = new Query();
         query.addCriteria(Criteria.where("nodeId").is(nodeId));
         query.addCriteria(Criteria.where("userId").is(userId));
+        query.addCriteria(Criteria.where("list_userId").is(list_userId));
         mongoTemplate.findAndRemove(query, Song.class, MusicServiceImpl.MUSIC_COLLECTION);
-        client.sendEvent("songDeleted", nodeId);
+        List<SocketIOClient> clients = musicService.getClients(list_userId, webSocketMap);
+        for (SocketIOClient c : clients) {
+            c.sendEvent("songDeleted", nodeId, userId);
+        }
     }
 
     @OnEvent(value = "changeShare")
-    public void changeShare(SocketIOClient client, AckRequest request, Long nodeId) {
-        long userId = webSocketMap.get(client);
+    public void changeShare(SocketIOClient client, AckRequest request, Long nodeId, Long userId, Boolean isShared) {
+        long list_userId = webSocketMap.get(client);
+        if (list_userId != userId) {
+            return;
+        }
         Query query = new Query();
         query.addCriteria(Criteria.where("nodeId").is(nodeId));
         query.addCriteria(Criteria.where("userId").is(userId));
-        Song song = mongoTemplate.findOne(query, Song.class, MusicServiceImpl.MUSIC_COLLECTION);
+        query.addCriteria(Criteria.where("list_userId").is(list_userId));
+//        Song song = mongoTemplate.findOne(query, Song.class, MusicServiceImpl.MUSIC_COLLECTION);
         Update update = new Update();
-        update.set("isShared", !song.isShared());
+        update.set("isShared", isShared);
         mongoTemplate.findAndModify(query, update, Song.class, MusicServiceImpl.MUSIC_COLLECTION);
     }
 
     @OnEvent(value = "changeFav")
-    public void changeFav(SocketIOClient client, AckRequest request, Long nodeId) {
-        long userId = webSocketMap.get(client);
+    public void changeFav(SocketIOClient client, AckRequest request, Long nodeId, Long userId, Boolean isFav) {
+        long list_userId = webSocketMap.get(client);
+        if (list_userId != userId) {
+            return;
+        }
         Query query = new Query();
         query.addCriteria(Criteria.where("nodeId").is(nodeId));
         query.addCriteria(Criteria.where("userId").is(userId));
-        Song song = mongoTemplate.findOne(query, Song.class, MusicServiceImpl.MUSIC_COLLECTION);
+        query.addCriteria(Criteria.where("list_userId").is(list_userId));
+//        Song song = mongoTemplate.findOne(query, Song.class, MusicServiceImpl.MUSIC_COLLECTION);
         Update update = new Update();
-        update.set("isFavorites", !song.isFavorites());
+        update.set("isFavorites", isFav);
         mongoTemplate.findAndModify(query, update, Song.class, MusicServiceImpl.MUSIC_COLLECTION);
     }
 

@@ -146,23 +146,6 @@ public class FileServiceImpl implements FileService {
         return 200;
     }
 
-    @Override
-    public String availableFoldereName(Long userId, Long nodeId, String fileName) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(fileName);
-        int i = 1;
-        while (true) {
-            FileNode fileNode = queryFolderByNameId(userId, nodeId, sb.toString());
-            if (fileNode == null) {
-                break;
-            } else {
-                sb = new StringBuilder();
-                sb.append(fileName).append(" (").append(i).append(")");
-                i++;
-            }
-        }
-        return sb.toString();
-    }
 
     @Override
     public void insertFileNode(User user, Long nodeId, String fileName, String md5, long size) {
@@ -208,7 +191,7 @@ public class FileServiceImpl implements FileService {
     @Override
     public boolean createDir(User user, Long nodeId, String fileName) {
         if (queryFolderByNameId(user.getUserId(), nodeId, fileName) != null) {
-            fileName = availableFoldereName(user.getUserId(), nodeId, fileName);
+            fileName = myFileUtils.availableFolderName(user.getUserId(), nodeId, fileName);
         }
         FileNode current = queryFolderById(user.getUserId(), nodeId);
         FileNode fileNode = new FileNode(null,
@@ -393,6 +376,25 @@ public class FileServiceImpl implements FileService {
         return paramDTO;
     }
 
+    @Override
+    public ParamDTO queryShared(Long userId) {
+        List<Share> shares = nodeRepository.getShareSubTree(userId, 1L, 0L).get(0).getDescendants();
+        List<FileDTO> fileNodeList = new ArrayList<>();
+        for(Share share : shares){
+            Query query = new Query();
+            query.addCriteria(Criteria.where("userId").is(share.getUserId()));
+            query.addCriteria(Criteria.where("nodeId").is(share.getNodeId()));
+            FileNode fileNode = mongoTemplate.findOne(query, FileNode.class, FILE_COLLECTION);
+            FileDTO fileDTO = new FileDTO(fileNode);
+            fileNodeList.add(fileDTO);
+        }
+        Collections.sort(fileNodeList, typeComparator);
+        ParamDTO paramDTO = new ParamDTO();
+        paramDTO.setContent(fileNodeList);
+        paramDTO.setContentSize(fileNodeList.size());
+        return paramDTO;
+    }
+
 
     @Override
     public ParamDTO queryAllFolder(User user, Long nodeId) {
@@ -471,10 +473,14 @@ public class FileServiceImpl implements FileService {
             }
         }
 
-
-        String fileName = fileNode.getFileName();
+        String fileName = null;
+        if(fileNode.isFolder()){
+            fileName = myFileUtils.availableFolderName(userId, newParentNodeId, fileNode.getFileName());
+        }else{
+            fileName = myFileUtils.availableFileName(userId, newParentNodeId, fileNode.getFileName());
+        }
         if (queryFolderByNameId(fileNode.getUserId(), newParentNodeId, fileNode.getFileName()) != null) {
-            fileName = availableFoldereName(userId, newParentNodeId, fileName);
+            fileName = myFileUtils.availableFolderName(userId, newParentNodeId, fileName);
         }
         Update update = new Update();
         String newPath = newParent.getFilePath() + File.separator + fileName;

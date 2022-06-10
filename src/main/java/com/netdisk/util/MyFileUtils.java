@@ -1,6 +1,10 @@
 package com.netdisk.util;
 
 import com.netdisk.config.FileProperties;
+import com.netdisk.module.Chunk;
+import com.netdisk.module.FileNode;
+import com.netdisk.service.impl.ChunkServiceImpl;
+import com.netdisk.service.impl.FileServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import net.bramp.ffmpeg.FFmpeg;
 import net.bramp.ffmpeg.FFmpegExecutor;
@@ -17,6 +21,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.logging.LoggerGroup;
 import org.springframework.context.annotation.Bean;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
@@ -47,6 +54,9 @@ public final class MyFileUtils {
 
     @Autowired
     FileProperties fileProperties;
+
+    @Autowired
+    MongoTemplate mongoTemplate;
 
     public void createFolder(String dictionary) {
         Path path = Paths.get(fileProperties.getRootDir() + dictionary);
@@ -212,7 +222,6 @@ public final class MyFileUtils {
     }
 
 
-
     public static String resizeImageTo50K(String base64Img) {
         try {
             BufferedImage src = base64String2BufferedImage(base64Img);
@@ -222,25 +231,25 @@ public final class MyFileUtils {
                 output = Thumbnails.of(output).scale(1f).asBufferedImage();
                 base64 = imageToBase64(output);
             }
-            System.out.println("压缩后"+imageSize(base64));
+            System.out.println("压缩后" + imageSize(base64));
             return base64;
         } catch (Exception e) {
             return base64Img;
         }
     }
 
-    public static Integer imageSize(String imageBase64Str){
+    public static Integer imageSize(String imageBase64Str) {
 
         //1.找到等号，把等号也去掉(=用来填充base64字符串长度用)
-        Integer equalIndex= imageBase64Str.indexOf("=");
-        if(imageBase64Str.indexOf("=")>0) {
-            imageBase64Str=imageBase64Str.substring(0, equalIndex);
+        Integer equalIndex = imageBase64Str.indexOf("=");
+        if (imageBase64Str.indexOf("=") > 0) {
+            imageBase64Str = imageBase64Str.substring(0, equalIndex);
         }
         //2.原来的字符流大小，单位为字节
-        Integer strLength=imageBase64Str.length();
-        System.out.println("imageBase64Str Length = "+strLength);
+        Integer strLength = imageBase64Str.length();
+        System.out.println("imageBase64Str Length = " + strLength);
         //3.计算后得到的文件流大小，单位为字节
-        Integer size=strLength-(strLength/8)*2;
+        Integer size = strLength - (strLength / 8) * 2;
         return size;
     }
 
@@ -256,6 +265,7 @@ public final class MyFileUtils {
 
     /**
      * 将base64 转为流
+     *
      * @param base64string
      * @return
      */
@@ -280,9 +290,6 @@ public final class MyFileUtils {
         }
         return stream;
     }
-
-
-
 
 
     public String getBase64(File file) {
@@ -575,5 +582,50 @@ public final class MyFileUtils {
         Date date = new Date();
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm");
         return formatter.format(date);
+    }
+
+    public String availableFileName(Long userId, Long parentId, String fileName) {
+        String suffix = fileName.substring(fileName.lastIndexOf("."));
+        String prefix = fileName.substring(0, fileName.lastIndexOf("."));
+        StringBuilder sb = new StringBuilder();
+        sb.append(fileName);
+        int i = 1;
+        while (true) {
+            Query query = new Query(Criteria.where("userId").is(userId));
+            query.addCriteria(Criteria.where("parentId").is(parentId));
+            query.addCriteria(Criteria.where("fileName").is(sb.toString()));
+            query.addCriteria(Criteria.where("isFolder").is(false));
+            FileNode fileNode = mongoTemplate.findOne(query, FileNode.class, FileServiceImpl.FILE_COLLECTION);
+            if (fileNode == null) {
+                break;
+            } else {
+                sb = new StringBuilder();
+                sb.append(prefix).append(" (").append(i).append(")").append(suffix);
+                i++;
+            }
+        }
+
+        return sb.toString();
+    }
+
+    public String availableFolderName(Long userId, Long parentId, String fileName) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(fileName);
+        int i = 1;
+        while (true) {
+            Query query = new Query(Criteria.where("userId").is(userId));
+            query.addCriteria(Criteria.where("parentId").is(parentId));
+            query.addCriteria(Criteria.where("fileName").is(sb.toString()));
+            query.addCriteria(Criteria.where("isFolder").is(true));
+            FileNode fileNode = mongoTemplate.findOne(query, FileNode.class, FileServiceImpl.FILE_COLLECTION);
+            if (fileNode == null) {
+                break;
+            } else {
+                sb = new StringBuilder();
+                sb.append(fileName).append(" (").append(i).append(")");
+                i++;
+            }
+        }
+        return sb.toString();
     }
 }
