@@ -176,6 +176,8 @@ public class ShareController {
         User newUser = userService.getUserById(paramDTO.getNewUserId());
         if (userService.availableSpace(paramDTO.getNewUserId()) < fileNode.getFileSize()) {
             return assembly.fail(455, "not enough space");
+        }else{
+            userService.updateSize(newUser.getUserId(), fileNode.getFileSize());
         }
 
         sharedService.saveSharedFile(paramDTO.getUserId(), newUser, fileNode, paramDTO.getNewNodeId());
@@ -210,6 +212,8 @@ public class ShareController {
         User newUser = userService.getUserById(paramDTO.getNewUserId());
         if (userService.availableSpace(paramDTO.getNewUserId()) < fileSize) {
             return assembly.fail(455, "not enough space");
+        }else{
+            userService.updateSize(newUser.getUserId(), fileSize);
         }
 
         for (FileNode fileNode : list) {

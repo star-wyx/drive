@@ -1,6 +1,5 @@
 package com.netdisk.controller;
 
-import com.netdisk.WebSocket.MessageEventHandler;
 import com.netdisk.config.FileProperties;
 import com.netdisk.module.DTO.ParamDTO;
 import com.netdisk.module.FileNode;
@@ -72,8 +71,6 @@ public class TransferController {
     @Autowired
     MongoTemplate mongoTemplate;
 
-    @Autowired
-    MessageEventHandler messageEventHandler;
 
     /**
      * 创建上传任务
