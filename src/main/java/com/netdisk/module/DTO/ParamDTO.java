@@ -201,4 +201,7 @@ public class ParamDTO {
 
     @JsonProperty("share_files")
     List shareFileDTOS;
+
+    @JsonProperty("MessageEnd")
+    Boolean messageEnd;
 }

@@ -6,18 +6,19 @@ import com.corundumstudio.socketio.SocketIOServer;
 import com.corundumstudio.socketio.annotation.OnConnect;
 import com.corundumstudio.socketio.annotation.OnDisconnect;
 import com.corundumstudio.socketio.annotation.OnEvent;
-import com.netdisk.module.DTO.ParamDTO;
-import com.netdisk.module.DTO.SongDTO;
+import com.netdisk.module.DTO.*;
 import com.netdisk.module.FileNode;
 import com.netdisk.module.Song;
 import com.netdisk.module.User;
+import com.netdisk.module.chat.Room;
+import com.netdisk.module.chat.RoomUser;
+import com.netdisk.service.ChatService;
 import com.netdisk.service.MusicService;
 import com.netdisk.service.impl.FileServiceImpl;
 import com.netdisk.service.impl.MusicServiceImpl;
 import com.netdisk.service.impl.UserServiceImpl;
-import com.netdisk.util.JwtUtil;
+import com.netdisk.util.MyFileUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.checkerframework.checker.units.qual.C;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -42,7 +43,8 @@ public class MessageEventHandler {
     static final int limitSeconds = 60;
     static Map<Long, UUID> map = new HashMap<>();
     //线程安全的map
-    public static ConcurrentHashMap<SocketIOClient, Long> webSocketMap = new ConcurrentHashMap<SocketIOClient, Long>();
+    public static ConcurrentHashMap<SocketIOClient, Long> client_id = new ConcurrentHashMap<SocketIOClient, Long>();
+    public static ConcurrentHashMap<Long, List<SocketIOClient>> id_client = new ConcurrentHashMap<>();
 
     @Autowired
     public MessageEventHandler(SocketIOServer server) {
@@ -54,6 +56,12 @@ public class MessageEventHandler {
 
     @Autowired
     MusicService musicService;
+
+    @Autowired
+    ChatService chatService;
+
+    @Autowired
+    MyFileUtils myFileUtils;
 
     /**
      * 客户端连接的时候触发，前端js触发：socket = io.connect("http://192.168.9.209:9092");
@@ -80,8 +88,23 @@ public class MessageEventHandler {
      */
     @OnDisconnect
     public void onDisconnect(SocketIOClient client) {
-        Long userId = webSocketMap.get(client);
-        webSocketMap.remove(client);
+        Long userId = client_id.get(client);
+        client_id.remove(client);
+
+        List<SocketIOClient> list = id_client.get(userId);
+        list.remove(client);
+        if (list == null) {
+            id_client.remove(userId);
+            Query userQuery = new Query(Criteria.where("userId").is(userId));
+            User user = mongoTemplate.findOne(userQuery, User.class, UserServiceImpl.USER_COLLECTION);
+            Update update = new Update();
+            user.getStatus().setState("offline");
+            user.getStatus().setLastChanged(new Date().toString());
+            update.set("status", user.getStatus());
+            mongoTemplate.findAndModify(userQuery, update, User.class, UserServiceImpl.USER_COLLECTION);
+        } else {
+            id_client.put(userId, list);
+        }
         System.out.println("客户端:" + client.getSessionId() + "userId: " + userId + "断开连接");
     }
 
@@ -97,14 +120,31 @@ public class MessageEventHandler {
 //        client.sendEvent("message", "我是服务器都安发送的信息");
 
         Long userId = Long.valueOf(user_id);
-        webSocketMap.put(client, userId);
+        client_id.put(client, userId);
+
+        List<SocketIOClient> list = id_client.get(userId);
+        if (list == null) {
+            list = new ArrayList<SocketIOClient>();
+            Query userQuery = new Query(Criteria.where("userId").is(user_id));
+            User user = mongoTemplate.findOne(userQuery, User.class, UserServiceImpl.USER_COLLECTION);
+            Update update = new Update();
+            user.getStatus().setState("online");
+            update.set("status", user.getStatus());
+            mongoTemplate.findAndModify(userQuery, update, User.class, UserServiceImpl.USER_COLLECTION);
+        }
+        if (!list.contains(client)) {
+            list.add(client);
+        }
+        id_client.put(userId, list);
+
+
         System.out.println("userId: " + userId + " 连接成功");
         client.sendEvent("songList", musicService.getSongList(userId, token));
     }
 
     @OnEvent(value = "addNewSong")
     public void addNewSong(SocketIOClient client, AckRequest request, Long nodeId, String token, Long song_userId) {
-        Long list_userId = webSocketMap.get(client);
+        Long list_userId = client_id.get(client);
 //        Query userQuery = new Query();
 //        userQuery.addCriteria(Criteria.where("userId").is(userId));
 //        User user = mongoTemplate.findOne(userQuery, User.class, UserServiceImpl.USER_COLLECTION);
@@ -113,7 +153,7 @@ public class MessageEventHandler {
         fileQuery.addCriteria(Criteria.where("userId").is(song_userId));
         FileNode fileNode = mongoTemplate.findOne(fileQuery, FileNode.class, FileServiceImpl.FILE_COLLECTION);
         SongDTO songDTO = musicService.setSong(fileNode, token, list_userId);
-        List<SocketIOClient> clients = musicService.getClients(list_userId, webSocketMap);
+        List<SocketIOClient> clients = musicService.getClients(list_userId, client_id);
         for (SocketIOClient c : clients) {
             c.sendEvent("newSongAdded", songDTO);
         }
@@ -121,7 +161,7 @@ public class MessageEventHandler {
 
     @OnEvent(value = "addNewSongs")
     public void addNewSongs(SocketIOClient client, AckRequest request, List<Integer> nodeIds, String token, Long userId) {
-        Long list_userId = webSocketMap.get(client);
+        Long list_userId = client_id.get(client);
 //        Query userQuery = new Query();
 //        userQuery.addCriteria(Criteria.where("userId").is(userId));
 //        User user = mongoTemplate.findOne(userQuery, User.class, UserServiceImpl.USER_COLLECTION);
@@ -135,7 +175,7 @@ public class MessageEventHandler {
             SongDTO songDTO = musicService.setSong(fileNode, token, list_userId);
             res.add(songDTO);
         }
-        List<SocketIOClient> clients = musicService.getClients(list_userId, webSocketMap);
+        List<SocketIOClient> clients = musicService.getClients(list_userId, client_id);
         for (SocketIOClient c : clients) {
             c.sendEvent("newSongsAdded", res);
         }
@@ -143,7 +183,7 @@ public class MessageEventHandler {
 
     @OnEvent(value = "addNewSongsShared")
     public void addNewSongsShared(SocketIOClient client, AckRequest request, List nodeIds, String token) {
-        Long list_userId = webSocketMap.get(client);
+        Long list_userId = client_id.get(client);
         long userId = 0;
 //        Query userQuery = new Query();
 //        userQuery.addCriteria(Criteria.where("userId").is(userId));
@@ -158,7 +198,7 @@ public class MessageEventHandler {
             SongDTO songDTO = musicService.setSong(fileNode, token, list_userId);
             res.add(songDTO);
         }
-        List<SocketIOClient> clients = musicService.getClients(list_userId, webSocketMap);
+        List<SocketIOClient> clients = musicService.getClients(list_userId, client_id);
         for (SocketIOClient c : clients) {
             c.sendEvent("newSongsAdded", res);
         }
@@ -166,13 +206,13 @@ public class MessageEventHandler {
 
     @OnEvent(value = "deleteSong")
     public void deleteSong(SocketIOClient client, AckRequest request, Long nodeId, Long userId) {
-        long list_userId = webSocketMap.get(client);
+        long list_userId = client_id.get(client);
         Query query = new Query();
         query.addCriteria(Criteria.where("nodeId").is(nodeId));
         query.addCriteria(Criteria.where("userId").is(userId));
         query.addCriteria(Criteria.where("list_userId").is(list_userId));
         mongoTemplate.findAndRemove(query, Song.class, MusicServiceImpl.MUSIC_COLLECTION);
-        List<SocketIOClient> clients = musicService.getClients(list_userId, webSocketMap);
+        List<SocketIOClient> clients = musicService.getClients(list_userId, client_id);
         for (SocketIOClient c : clients) {
             c.sendEvent("songDeleted", nodeId, userId);
         }
@@ -180,7 +220,7 @@ public class MessageEventHandler {
 
     @OnEvent(value = "changeShare")
     public void changeShare(SocketIOClient client, AckRequest request, Long nodeId, Long userId, Boolean isShared) {
-        long list_userId = webSocketMap.get(client);
+        long list_userId = client_id.get(client);
         if (list_userId != userId) {
             return;
         }
@@ -196,7 +236,7 @@ public class MessageEventHandler {
 
     @OnEvent(value = "changeFav")
     public void changeFav(SocketIOClient client, AckRequest request, Long nodeId, Long userId, Boolean isFav) {
-        long list_userId = webSocketMap.get(client);
+        long list_userId = client_id.get(client);
         if (list_userId != userId) {
             return;
         }
@@ -215,5 +255,73 @@ public class MessageEventHandler {
         //String dateTime = new DateTime().toString("hh:mm:ss");
         socketIoServer.getClient(map.get(id)).sendEvent("message", "hello world!");
     }
+
+
+    @OnEvent(value = "initialRoomBegin")
+    public void initialRoomBegin(SocketIOClient client, AckRequest request) {
+        Room room = chatService.getRoom(1L);
+        List<RoomDTO> res = new ArrayList<>();
+        res.add(myFileUtils.roomToDTO(room));
+        client.sendEvent("initialRoom", res);
+    }
+
+    @OnEvent(value = "sendMessage")
+    public void sendMessage(SocketIOClient client, AckRequest request, Long roomId, String content, byte[] files,
+                            Long replyMessageId, List<Long> usersTag, Long senderId, Long dummyId) {
+        MessageDTO messageDTO = chatService.addMessageToRoom(roomId, content, null, replyMessageId, usersTag, senderId);
+
+        List<SocketIOClient> senderSocket = id_client.get(senderId);
+        for (SocketIOClient socketIOClient : senderSocket) {
+            if (socketIOClient != client) {
+                socketIOClient.sendEvent("senderNewMessageAdded", messageDTO);
+            } else {
+                ChatParamDTO chatParamDTO = new ChatParamDTO();
+                chatParamDTO.set_id(messageDTO.get_id());
+                chatParamDTO.setFiles(null);
+                chatParamDTO.setDummyId(dummyId);
+                chatParamDTO.setRoomId(roomId);
+                client.sendEvent("senderNewMessageSaved", chatParamDTO);
+            }
+        }
+
+        List<RoomUser> roomUsers = chatService.getRoomUser(roomId);
+        messageDTO.setDistributed(true);
+        for (RoomUser roomUser : roomUsers) {
+            if (roomUser.get_id() != senderId) {
+                List<SocketIOClient> tmp = id_client.get(roomUser.get_id());
+                if (tmp != null) {
+                    for (SocketIOClient socketIOClient : tmp) {
+                        socketIOClient.sendEvent("newMessageAdded", messageDTO);
+                    }
+                }
+            }
+            chatService.changeDistributed(roomUser.get_id(), roomId, messageDTO.get_id(), true);
+        }
+
+        for (SocketIOClient socketIOClient : senderSocket) {
+            socketIOClient.sendEvent("distributeFinished", roomId, messageDTO.get_id());
+        }
+    }
+
+    @OnEvent(value = "fetchmessages")
+    public void fetchmessages(SocketIOClient client, AckRequest request, Long roomId, Long messageId) {
+        long userId = client_id.get(client);
+        ParamDTO res = chatService.fetchmessages(userId, roomId, messageId);
+        client.sendEvent("renewMessage", res);
+    }
+
+    @OnEvent(value = "iSeen")
+    public void iSeen(SocketIOClient client, AckRequest request, Long roomId, Long messageId, Long userId) {
+        ChatParamDTO chatParamDTO = chatService.iSeen(roomId, messageId, userId);
+        if (chatParamDTO != null) {
+            long senderId = chatParamDTO.getUserId();
+            chatParamDTO.setUserId(null);
+            List<SocketIOClient> list = id_client.get(senderId);
+            for (SocketIOClient socketIOClient : list) {
+                socketIOClient.sendEvent("messageSeen", chatParamDTO);
+            }
+        }
+    }
+
 
 }

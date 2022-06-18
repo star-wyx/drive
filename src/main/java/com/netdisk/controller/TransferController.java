@@ -323,7 +323,7 @@ public class TransferController {
             e.printStackTrace();
         }
         log.info("avatar url is: " + url);
-        Pattern pattern = Pattern.compile("(.*/vavatar/)(\\d*)(.*?)");
+        Pattern pattern = Pattern.compile("(.*/vavatar/)(\\w*)(.*?)");
         Matcher matcher = pattern.matcher(url);
         matcher.find();
         String userId = matcher.group(2);

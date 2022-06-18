@@ -1,6 +1,7 @@
 package com.netdisk.module;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.netdisk.module.chat.Status;
 import com.netdisk.service.impl.UserServiceImpl;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -19,4 +20,6 @@ public class User {
     private Long usedSize;
     private Long totalSize;
     private Boolean isShared;
+
+    private Status status;
 }

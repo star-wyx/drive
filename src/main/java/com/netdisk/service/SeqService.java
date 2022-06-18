@@ -7,4 +7,6 @@ public interface SeqService {
     void insertUser(String userName);
 
     long getNextUserId();
+
+    long getNextRoomId();
 }

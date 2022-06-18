@@ -29,6 +29,7 @@ public class SongDTO {
     private String cover;
 
     public SongDTO(Song song, String token) {
+        ////todo change this
         this.source = "http://192.168.1.143:9090/vopen/" + song.getMd5() + "?token=" + token + "&fullfilename=" + song.getFileName();
         this.name = song.getName();
         this.shared = song.isShared();

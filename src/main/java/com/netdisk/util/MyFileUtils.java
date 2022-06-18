@@ -1,26 +1,17 @@
 package com.netdisk.util;
 
 import com.netdisk.config.FileProperties;
-import com.netdisk.module.Chunk;
+import com.netdisk.module.DTO.RoomDTO;
 import com.netdisk.module.FileNode;
-import com.netdisk.service.impl.ChunkServiceImpl;
+import com.netdisk.module.User;
+import com.netdisk.module.chat.Room;
+import com.netdisk.module.chat.RoomUser;
 import com.netdisk.service.impl.FileServiceImpl;
+import com.netdisk.service.impl.UserServiceImpl;
 import lombok.extern.slf4j.Slf4j;
-import net.bramp.ffmpeg.FFmpeg;
-import net.bramp.ffmpeg.FFmpegExecutor;
-import net.bramp.ffmpeg.FFmpegUtils;
-import net.bramp.ffmpeg.FFprobe;
-import net.bramp.ffmpeg.builder.FFmpegBuilder;
-import net.bramp.ffmpeg.job.FFmpegJob;
-import net.bramp.ffmpeg.probe.FFmpegProbeResult;
-import net.bramp.ffmpeg.progress.Progress;
-import net.bramp.ffmpeg.progress.ProgressListener;
 import net.coobird.thumbnailator.Thumbnails;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.logging.LoggerGroup;
-import org.springframework.context.annotation.Bean;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -44,9 +35,6 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
-//import java.util.regex.Pattern;
-import org.apache.oro.text.regex.*;
 
 @Component
 @Slf4j
@@ -627,5 +615,34 @@ public final class MyFileUtils {
             }
         }
         return sb.toString();
+    }
+
+    public RoomDTO roomToDTO(Room room) {
+
+        ////todo change ip
+        RoomDTO res = new RoomDTO();
+        res.setRoomId(room.getRoomId());
+        res.setRoomName(room.getRoomName());
+        res.setAvatar("http://192.168.1.143:9090/vavatar/" + room.getAvatar() + "?time=" + "time");
+        res.setUnreadCount(2L);
+        res.setIndex(1L);
+        res.setLastMessage(null);
+
+        List<RoomUser> list = new ArrayList<>();
+        for (Long userId : room.getUserList()) {
+            RoomUser tmp = new RoomUser();
+            Query query = new Query(Criteria.where("userId").is(userId));
+            User user = mongoTemplate.findOne(query, User.class, UserServiceImpl.USER_COLLECTION);
+            tmp.set_id(userId);
+            tmp.setUsername(user.getUserName());
+            ////todo change ip
+            tmp.setAvatar("http://192.168.1.143:9090/vavatar/" + tmp.get_id() + "?time=" + "time");
+            tmp.setStatus(user.getStatus());
+            list.add(tmp);
+        }
+
+        res.setUsers(list);
+
+        return res;
     }
 }
