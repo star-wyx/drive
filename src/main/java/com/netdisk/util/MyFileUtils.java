@@ -617,32 +617,5 @@ public final class MyFileUtils {
         return sb.toString();
     }
 
-    public RoomDTO roomToDTO(Room room) {
 
-        ////todo change ip
-        RoomDTO res = new RoomDTO();
-        res.setRoomId(room.getRoomId());
-        res.setRoomName(room.getRoomName());
-        res.setAvatar("http://192.168.1.143:9090/vavatar/" + room.getAvatar() + "?time=" + "time");
-        res.setUnreadCount(2L);
-        res.setIndex(1L);
-        res.setLastMessage(null);
-
-        List<RoomUser> list = new ArrayList<>();
-        for (Long userId : room.getUserList()) {
-            RoomUser tmp = new RoomUser();
-            Query query = new Query(Criteria.where("userId").is(userId));
-            User user = mongoTemplate.findOne(query, User.class, UserServiceImpl.USER_COLLECTION);
-            tmp.set_id(userId);
-            tmp.setUsername(user.getUserName());
-            ////todo change ip
-            tmp.setAvatar("http://192.168.1.143:9090/vavatar/" + tmp.get_id() + "?time=" + "time");
-            tmp.setStatus(user.getStatus());
-            list.add(tmp);
-        }
-
-        res.setUsers(list);
-
-        return res;
-    }
 }

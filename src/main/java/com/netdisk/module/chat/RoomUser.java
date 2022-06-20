@@ -9,6 +9,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class RoomUser {
 
+    /**
+     * userId
+     */
     long _id;
 
     String username;

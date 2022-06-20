@@ -11,14 +11,17 @@ import com.netdisk.module.FileNode;
 import com.netdisk.module.Song;
 import com.netdisk.module.User;
 import com.netdisk.module.chat.Room;
+import com.netdisk.module.chat.RoomInfo;
 import com.netdisk.module.chat.RoomUser;
 import com.netdisk.service.ChatService;
 import com.netdisk.service.MusicService;
+import com.netdisk.service.impl.ChatServiceImpl;
 import com.netdisk.service.impl.FileServiceImpl;
 import com.netdisk.service.impl.MusicServiceImpl;
 import com.netdisk.service.impl.UserServiceImpl;
 import com.netdisk.util.MyFileUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.checkerframework.checker.units.qual.C;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -45,6 +48,7 @@ public class MessageEventHandler {
     //线程安全的map
     public static ConcurrentHashMap<SocketIOClient, Long> client_id = new ConcurrentHashMap<SocketIOClient, Long>();
     public static ConcurrentHashMap<Long, List<SocketIOClient>> id_client = new ConcurrentHashMap<>();
+    public static ConcurrentHashMap<SocketIOClient, Long> socket_inRoom = new ConcurrentHashMap<>();
 
     @Autowired
     public MessageEventHandler(SocketIOServer server) {
@@ -90,6 +94,7 @@ public class MessageEventHandler {
     public void onDisconnect(SocketIOClient client) {
         Long userId = client_id.get(client);
         client_id.remove(client);
+        socket_inRoom.remove(client);
 
         List<SocketIOClient> list = id_client.get(userId);
         list.remove(client);
@@ -259,10 +264,7 @@ public class MessageEventHandler {
 
     @OnEvent(value = "initialRoomBegin")
     public void initialRoomBegin(SocketIOClient client, AckRequest request) {
-        Room room = chatService.getRoom(1L);
-        List<RoomDTO> res = new ArrayList<>();
-        res.add(myFileUtils.roomToDTO(room));
-        client.sendEvent("initialRoom", res);
+        client.sendEvent("initialRoom", chatService.getAllRoom(client_id.get(client)));
     }
 
     @OnEvent(value = "sendMessage")
@@ -272,9 +274,9 @@ public class MessageEventHandler {
 
         List<SocketIOClient> senderSocket = id_client.get(senderId);
         for (SocketIOClient socketIOClient : senderSocket) {
-            if (socketIOClient != client) {
+            if (socketIOClient != client && socket_inRoom.get(socketIOClient) == messageDTO.getRoomId()) {
                 socketIOClient.sendEvent("senderNewMessageAdded", messageDTO);
-            } else {
+            } else if (socket_inRoom.get(socketIOClient) == messageDTO.getRoomId()) {
                 ChatParamDTO chatParamDTO = new ChatParamDTO();
                 chatParamDTO.set_id(messageDTO.get_id());
                 chatParamDTO.setFiles(null);
@@ -289,17 +291,35 @@ public class MessageEventHandler {
         for (RoomUser roomUser : roomUsers) {
             if (roomUser.get_id() != senderId) {
                 List<SocketIOClient> tmp = id_client.get(roomUser.get_id());
-                if (tmp != null) {
+                if (tmp != null && tmp.size() != 0) {
                     for (SocketIOClient socketIOClient : tmp) {
-                        socketIOClient.sendEvent("newMessageAdded", messageDTO);
+                        if (socket_inRoom.get(socketIOClient) != null && socket_inRoom.get(socketIOClient) == messageDTO.getRoomId()) {
+                            socketIOClient.sendEvent("newMessageAdded", messageDTO);
+                        }
+
+                        if (socket_inRoom.get(socketIOClient) != null && socket_inRoom.get(socketIOClient) != messageDTO.getRoomId()) {
+                            ChatParamDTO chatParamDTO = new ChatParamDTO();
+                            chatParamDTO.setRoomId(roomId);
+                            long unread = chatService.incRoomInfoUnread(roomId, roomUser.get_id());
+                            Query query = new Query();
+                            query.addCriteria(Criteria.where("roomId").is(roomId));
+                            RoomInfo roomInfo = mongoTemplate.findOne(query, RoomInfo.class, ChatServiceImpl.ROOMINFO_COLLECTION);
+                            chatParamDTO.setIndex(roomInfo.getIndex());
+                            chatParamDTO.setUnreadCount(unread);
+                            socketIOClient.sendEvent("unreadUpdate", chatParamDTO);
+                        }
                     }
+                } else {
+                    chatService.incRoomInfoUnread(roomId, roomUser.get_id());
                 }
             }
             chatService.changeDistributed(roomUser.get_id(), roomId, messageDTO.get_id(), true);
         }
 
         for (SocketIOClient socketIOClient : senderSocket) {
-            socketIOClient.sendEvent("distributeFinished", roomId, messageDTO.get_id());
+            if (socket_inRoom.get(socketIOClient) == messageDTO.getRoomId()) {
+                socketIOClient.sendEvent("distributeFinished", roomId, messageDTO.get_id());
+            }
         }
     }
 
@@ -318,8 +338,19 @@ public class MessageEventHandler {
             chatParamDTO.setUserId(null);
             List<SocketIOClient> list = id_client.get(senderId);
             for (SocketIOClient socketIOClient : list) {
-                socketIOClient.sendEvent("messageSeen", chatParamDTO);
+                if (socket_inRoom.get(socketIOClient) == chatParamDTO.getRoomId()) {
+                    socketIOClient.sendEvent("messageSeen", chatParamDTO);
+                }
             }
+        }
+    }
+
+    @OnEvent(value = "rightNowRoom")
+    public void rightNowRoom(SocketIOClient client, AckRequest request, Long roomId) {
+        log.info("rightNowRoom");
+        socket_inRoom.put(client, roomId);
+        if (roomId != null) {
+            chatService.clearRoomInfoUnread(roomId, client_id.get(client));
         }
     }
 

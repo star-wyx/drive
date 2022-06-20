@@ -3,6 +3,7 @@ package com.netdisk.service.impl;
 import com.netdisk.WebSocket.MessageEventHandler;
 import com.netdisk.module.User;
 import com.netdisk.module.chat.Message;
+import com.netdisk.module.chat.RoomInfo;
 import com.netdisk.module.chat.Status;
 import com.netdisk.service.ChatService;
 import com.netdisk.service.UserService;
@@ -54,6 +55,16 @@ class ChatServiceImplTest {
     @Test
     public void mongoTest() {
         System.out.println(chatService.fetchmessages(3L, 1L, 10));
+    }
+
+
+    @Test
+    public void newRoom() {
+        List<Long> userList = new ArrayList<>();
+        userList.add(1L);
+        userList.add(2L);
+        userList.add(3L);
+        chatService.addRoom(userList,"test");
     }
 
 }

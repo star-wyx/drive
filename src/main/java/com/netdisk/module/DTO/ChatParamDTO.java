@@ -27,4 +27,10 @@ public class ChatParamDTO {
     @JsonProperty("userId")
     Long userId;
 
+    @JsonProperty("unreadCount")
+    Long unreadCount;
+
+    @JsonProperty("index")
+    Long index;
+
 }
