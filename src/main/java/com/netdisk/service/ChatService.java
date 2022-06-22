@@ -18,7 +18,7 @@ public interface ChatService {
     List<RoomDTO> getAllRoom(long userId);
 
     MessageDTO addMessageToRoom(Long roomId, String content, byte[] files,
-                                Long replyMessageId, List<Long> usersTag, Long senderId);
+                                List<Long> replyMessageId, List<Long> usersTag, Long senderId);
 
     long getNextMessageId(long roomId);
 
@@ -44,7 +44,9 @@ public interface ChatService {
 
     ChatParamDTO getUnreadDTO(long roomId, long unread, long userId);
 
-    LastMessage getLastMessage(long roomId, long lastId, long userId, long unread);
+    MessageDTO getMessageDTO(Message message, ChatInfo chatInfo);
+
+    LastMessage getLastMessage(long roomId, long lastId, long userId, long unread, boolean isAt);
 
     ChatParamDTO splitRoomUser(Long roomId, Long userId);
 
@@ -61,4 +63,14 @@ public interface ChatService {
     String welcoming(List<Long> userList);
 
     String newRoomName(List<Long> userList);
+
+    void changeIsAt(List<Long> userList, Long roomId, Boolean isAt);
+
+    void changeIsAt(Long userId, Long roomId, Boolean isAt);
+
+    boolean checkAtMe(Long userId);
+
+    void deleteMessage(Long roomId, Long messageId);
+
+    MessageDTO editMessage(Long roomId, Long messageId, String newContent, List<Long> replyMessage, List<Long> usersTag, Long senderId);
 }

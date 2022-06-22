@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
@@ -32,7 +34,11 @@ public class LastMessage {
     @JsonProperty("new")
     Boolean isNew;
 
-    public LastMessage(Message message, ChatInfo chatInfo, boolean isNew) {
+    Boolean isAt;
+
+    List<Long> usersTag;
+
+    public LastMessage(Message message, ChatInfo chatInfo, boolean isNew, boolean isAt) {
         this.content = message.getContent();
         this.senderId = message.getSenderId();
         this._id = message.getMessageId();
@@ -42,6 +48,8 @@ public class LastMessage {
         this.distributed = chatInfo.getDistributed();
         this.seen = chatInfo.getSeen();
         this.isNew = isNew;
+        this.isAt = isAt;
+        this.usersTag = message.getUsersTag();
     }
 
 }

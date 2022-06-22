@@ -265,12 +265,17 @@ public class MessageEventHandler {
     @OnEvent(value = "initialRoomBegin")
     public void initialRoomBegin(SocketIOClient client, AckRequest request) {
         client.sendEvent("initialRoom", chatService.getAllRoom(client_id.get(client)));
+        if (chatService.checkAtMe(client_id.get(client))) {
+            client.sendEvent("attedMe", true);
+        }
     }
 
     @OnEvent(value = "sendMessage")
     public void sendMessage(SocketIOClient client, AckRequest request, Long roomId, String content, byte[] files,
-                            Long replyMessageId, List<Long> usersTag, Long senderId, Long dummyId) {
-        MessageDTO messageDTO = chatService.addMessageToRoom(roomId, content, null, replyMessageId, usersTag, senderId);
+                            List<Integer> _replyMessage, List<Integer> _usersTag, Long senderId, Long dummyId) {
+        List<Long> replyMessage = myFileUtils.IntegerToLong(_replyMessage);
+        List<Long> usersTag = myFileUtils.IntegerToLong(_usersTag);
+        MessageDTO messageDTO = chatService.addMessageToRoom(roomId, content, null, replyMessage, usersTag, senderId);
 
         List<SocketIOClient> senderSocket = id_client.get(senderId);
         for (SocketIOClient socketIOClient : senderSocket) {
@@ -294,18 +299,27 @@ public class MessageEventHandler {
                 continue;
             }
             if (roomUser.get_id() != senderId) {
+                boolean isAt = chatService.checkAtMe(roomUser.get_id());
                 for (SocketIOClient socketIOClient : tmp) {
                     if (socket_inRoom.get(socketIOClient) != null && socket_inRoom.get(socketIOClient) == messageDTO.getRoomId()) {
                         socketIOClient.sendEvent("newMessageAdded", messageDTO);
                         socketIOClient.sendEvent("unreadUpdate", chatService.getUnreadDTO(roomId, 0, roomUser.get_id()));
+                        chatService.changeIsAt(roomUser.get_id(), roomId, false);
                     } else {
                         long unread = chatService.incRoomInfoUnread(roomId, roomUser.get_id());
                         socketIOClient.sendEvent("unreadUpdate", chatService.getUnreadDTO(roomId, unread, roomUser.get_id()));
                     }
+
+                    if (isAt) {
+                        socketIOClient.sendEvent("attedMe", true);
+                    }
+
                 }
             } else {
                 for (SocketIOClient socketIOClient : tmp) {
                     socketIOClient.sendEvent("unreadUpdate", chatService.getUnreadDTO(roomId, 0, roomUser.get_id()));
+                    chatService.changeIsAt(roomUser.get_id(), roomId, false);
+
                 }
             }
             chatService.changeDistributed(roomUser.get_id(), roomId, messageDTO.get_id(), true);
@@ -446,6 +460,60 @@ public class MessageEventHandler {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    @OnEvent("deleteMessage")
+    public void deleteMessage(SocketIOClient client, AckRequest request, Long roomId, Long messageId) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("roomId").is(roomId));
+        Room room = mongoTemplate.findOne(query, Room.class, ChatServiceImpl.ROOM_COLLECTION);
+        List<Long> userList = room.getUserList();
+        chatService.deleteMessage(roomId, messageId);
+        for (Long userId : userList) {
+            List<SocketIOClient> sockets = id_client.get(userId);
+            if (sockets != null && sockets.size() != 0) {
+                for (SocketIOClient socket : sockets) {
+                    if (socket_inRoom.get(socket) == roomId) {
+                        socket.sendEvent("messageDeleted", messageId);
+                    }
+                }
+            }
+        }
+    }
+
+    @OnEvent("editMessage")
+    public void editMessage(SocketIOClient client, AckRequest request, Long roomId, Long messageId, String content,
+                            List<Integer> _replyMessage, List<Integer> _usersTag, Long senderId, Long dummyId) {
+        List<Long> replyMessage = myFileUtils.IntegerToLong(_replyMessage);
+        List<Long> usersTag = myFileUtils.IntegerToLong(_usersTag);
+        MessageDTO messageDTO = chatService.editMessage(roomId, messageId, content, replyMessage, usersTag, client_id.get(client));
+
+        Query query = new Query();
+        query.addCriteria(Criteria.where("roomId").is(roomId));
+        Room room = mongoTemplate.findOne(query, Room.class, ChatServiceImpl.ROOM_COLLECTION);
+        List<Long> userList = room.getUserList();
+        for (Long userId : userList) {
+            List<SocketIOClient> sockets = id_client.get(userId);
+            boolean isAt = chatService.checkAtMe(userId);
+            if (sockets != null && sockets.size() != 0) {
+                for (SocketIOClient socket : sockets) {
+                    if (isAt) {
+                        socket.sendEvent("attedMe", true);
+                        socket.sendEvent("editAtYou", roomId);
+                    }
+
+                    if (socket_inRoom.get(socket) == messageDTO.getRoomId()) {
+                        socket.sendEvent("messageEdited", messageDTO);
+//                        socket.sendEvent("unreadUpdate", chatService.getUnreadDTO(roomId, 0, userId));
+                    } else {
+//                        long unread = chatService.incRoomInfoUnread(roomId, userId);
+//                        socket.sendEvent("unreadUpdate", chatService.getUnreadDTO(roomId, unread, userId));
+                    }
+                }
+            } else {
+//                long unread = chatService.incRoomInfoUnread(roomId, userId);
             }
         }
     }

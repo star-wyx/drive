@@ -27,4 +27,6 @@ public class RoomInfo {
 
     private Long startIndex;
 
+    private Boolean isAt;
+
 }

@@ -1,14 +1,13 @@
 package com.netdisk.module.DTO;
 
-import com.netdisk.module.chat.ChatInfo;
-import com.netdisk.module.chat.Message;
-import com.netdisk.module.chat.MessageFile;
-import com.netdisk.module.chat.Reactions;
+import com.netdisk.module.chat.*;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
 @Data
+@NoArgsConstructor
 public class MessageDTO {
 
     long _id;
@@ -50,27 +49,6 @@ public class MessageDTO {
 
     Reactions reactions;
 
-    public MessageDTO(Message message, ChatInfo chatInfo) {
-        this._id = message.getMessageId();
-        this.indexId = message.getMessageId();
-        this.roomId = message.getRoomId();
-        this.senderId = message.getSenderId();
-        this.content = message.getContent();
-        this.username = message.getUserName();
-        ////todo change this
-        this.avatar = "http://192.168.1.143:9090/vavatar/" + message.getAvatar() + "?time=" + "time";
-        this.date = message.getDate();
-        this.timestamp = message.getTimestamp();
-        this.system = chatInfo.getSystem();
-        this.saved = chatInfo.getSaved();
-        this.distributed = chatInfo.getDistributed();
-        this.seen = chatInfo.getSeen();
-        this.deleted = chatInfo.getDeleted();
-        this.failure = chatInfo.getFailure();
-        this.disableActions = chatInfo.getDisableActions();
-        this.disableReactions = chatInfo.getDisableReactions();
-        messageFile = message.getMessageFile();
-        this.reactions = message.getReactions();
-    }
+    ReplyMessage replyMessage;
 
 }
