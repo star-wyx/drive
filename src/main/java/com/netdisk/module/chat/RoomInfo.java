@@ -25,4 +25,6 @@ public class RoomInfo {
 
     private Long index;
 
+    private Long startIndex;
+
 }

@@ -617,5 +617,13 @@ public final class MyFileUtils {
         return sb.toString();
     }
 
+    public List<Long> IntegerToLong(List<Integer> list){
+        List<Long> res = new ArrayList<>();
+        for(Integer a: list){
+            res.add((long) a);
+        }
+        return res;
+    }
+
 
 }

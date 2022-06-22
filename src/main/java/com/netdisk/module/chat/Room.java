@@ -37,7 +37,7 @@ public class Room {
     /**
      * （需实时更新）房间的最后一条消息 其中为消息object
      */
-    LastMessage lastMessage;
+    Long lastMessageId;
 
     //房间所有用户 其中为用户object
     List<Long> userList;

@@ -1,6 +1,8 @@
 package com.netdisk.module.DTO;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.netdisk.module.chat.LastMessage;
+import com.netdisk.module.chat.RoomUser;
 import lombok.Data;
 
 import java.util.List;
@@ -33,4 +35,9 @@ public class ChatParamDTO {
     @JsonProperty("index")
     Long index;
 
+    LastMessage lastMessage;
+
+    List<RoomUser> userList;
+
+    List<RoomUser> userAlreadyInRoomList;
 }

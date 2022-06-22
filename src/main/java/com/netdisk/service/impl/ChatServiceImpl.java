@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.checkerframework.checker.units.qual.C;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.geo.Circle;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -25,10 +26,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 @Service
 @Slf4j
@@ -55,7 +53,7 @@ public class ChatServiceImpl implements ChatService {
     MongoClient mongoClient;
 
     @Override
-    public void addRoom(List<Long> userList, String roomName) {
+    public Room addRoom(List<Long> userList, String roomName) {
         Room room = new Room(
                 null,
                 seqService.getNextRoomId(),
@@ -68,18 +66,10 @@ public class ChatServiceImpl implements ChatService {
         mongoTemplate.save(room, ROOM_COLLECTION);
 
         for (Long i : userList) {
-            Query query = new Query();
-
-            Query otherQuery = new Query();
-            otherQuery.addCriteria(Criteria.where("userId").is(i));
-            otherQuery.addCriteria(Criteria.where("roomId").ne(1L));
-            Update otherUpdate = new Update();
-            otherUpdate.inc("index", 1);
-            mongoTemplate.updateMulti(otherQuery, otherUpdate, RoomInfo.class, ROOMINFO_COLLECTION);
-
-            RoomInfo roomInfo = new RoomInfo(null, room.getRoomId(), i, 0L, 2L);
-            mongoTemplate.save(roomInfo, ChatServiceImpl.ROOMINFO_COLLECTION);
+            RoomInfo roomInfo = new RoomInfo(null, room.getRoomId(), i, 0L, new Date().getTime(), 0L);
+            mongoTemplate.save(roomInfo, ROOMINFO_COLLECTION);
         }
+        return room;
     }
 
     @Override
@@ -90,14 +80,16 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public List<RoomDTO> getAllRoom(long userId) {
-        List<Room> roomList = mongoTemplate.find(new Query(), Room.class, ROOM_COLLECTION);
+        Query roomInfoQuery = new Query();
+        roomInfoQuery.addCriteria(Criteria.where("userId").is(userId));
+        List<RoomInfo> roomInfos = mongoTemplate.find(roomInfoQuery, RoomInfo.class, ROOMINFO_COLLECTION);
+
         List<RoomDTO> res = new ArrayList<>();
-        for (Room room : roomList) {
+        for (RoomInfo roomInfo : roomInfos) {
             Query query = new Query();
-            query.addCriteria(Criteria.where("roomId").is(room.getRoomId()));
-            query.addCriteria(Criteria.where("userId").is(userId));
-            RoomInfo roomInfo = mongoTemplate.findOne(query, RoomInfo.class, ROOMINFO_COLLECTION);
-            RoomDTO tmp = roomToDTO(room, roomInfo);
+            query.addCriteria(Criteria.where("roomId").is(roomInfo.getRoomId()));
+            Room room = mongoTemplate.findOne(query, Room.class, ROOM_COLLECTION);
+            RoomDTO tmp = roomToDTO(room, roomInfo, userId, roomInfo.getUnread());
             res.add(tmp);
         }
         return res;
@@ -108,9 +100,10 @@ public class ChatServiceImpl implements ChatService {
         Query userQuery = new Query(Criteria.where("userId").is(senderId));
         User user = mongoTemplate.findOne(userQuery, User.class, UserServiceImpl.USER_COLLECTION);
         Date date = new Date();
-        SimpleDateFormat dateFormat = new SimpleDateFormat("hh:mm");
-        String d = String.format("%tB", date) + " " + String.format("%te", date);
-        String timeStamp = dateFormat.format(date);
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd");
+        SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm");
+        String d = dateFormat.format(date);
+        String timeStamp = timeFormat.format(date);
         Message message = new Message(
                 null,
                 getNextMessageId(roomId),
@@ -125,6 +118,12 @@ public class ChatServiceImpl implements ChatService {
                 null,
                 new Reactions(null, null));
         mongoTemplate.save(message, MESSAGE_COLLECTION);
+
+        Query roomQuery = new Query();
+        roomQuery.addCriteria(Criteria.where("roomId").is(roomId));
+        Update update = new Update();
+        update.set("lastMessageId", message.getMessageId());
+        mongoTemplate.findAndModify(roomQuery, update, Room.class, ROOM_COLLECTION);
 
         ChatInfo chatInfo = new ChatInfo(null, roomId, message.getMessageId(), senderId, false, true, false, false, false, false, false, false);
         mongoTemplate.save(chatInfo, CHATINFO_COLLECTION);
@@ -156,15 +155,20 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
-    public List<RoomUser> getRoomUser(long roomId) {
+    public List<RoomUser> getRoomUser(long roomId, boolean needStatus) {
         Query query = new Query(Criteria.where("roomId").is(roomId));
         Room room = mongoTemplate.findOne(query, Room.class, ROOM_COLLECTION);
         List<RoomUser> res = new ArrayList<>();
         for (Long i : room.getUserList()) {
             Query userQuery = new Query(Criteria.where("userId").is(i));
             User user = mongoTemplate.findOne(userQuery, User.class, UserServiceImpl.USER_COLLECTION);
+            ////todo change this
             String avatar = "http://192.168.1.143:9090/vavatar/" + user.getUserId() + "?time=" + "time";
-            RoomUser roomUser = new RoomUser(user.getUserId(), user.getUserName(), avatar, user.getStatus());
+            Status status = null;
+            if (needStatus) {
+                status = user.getStatus();
+            }
+            RoomUser roomUser = new RoomUser(user.getUserId(), user.getUserName(), avatar, status);
             res.add(roomUser);
         }
         return res;
@@ -176,11 +180,16 @@ public class ChatServiceImpl implements ChatService {
         List<MessageDTO> list = new ArrayList<>();
         paramDTO.setMessageEnd(false);
 
+        Query roomInfoQuery = new Query();
+        roomInfoQuery.addCriteria(Criteria.where("userId").is(userId));
+        roomInfoQuery.addCriteria(Criteria.where("roomId").is(roomId));
+        RoomInfo roomInfo = mongoTemplate.findOne(roomInfoQuery, RoomInfo.class, ROOMINFO_COLLECTION);
+
         if (startId == 0L) {
             startId = Integer.MAX_VALUE;
         }
         Query messageQuery = new Query(Criteria.where("roomId").is(roomId));
-        messageQuery.addCriteria(Criteria.where("messageId").lt(startId));
+        messageQuery.addCriteria(Criteria.where("messageId").lt(startId).andOperator(Criteria.where("messageId").gte(roomInfo.getStartIndex())));
         messageQuery.with(Sort.by(Sort.Direction.DESC, "messageId"));
         messageQuery.limit(20);
         List<Message> messages = mongoTemplate.find(messageQuery, Message.class, MESSAGE_COLLECTION);
@@ -188,7 +197,7 @@ public class ChatServiceImpl implements ChatService {
 
         Query chatInfoQuery = new Query(Criteria.where("roomId").is(roomId));
         chatInfoQuery.addCriteria(Criteria.where("userId").is(userId));
-        chatInfoQuery.addCriteria(Criteria.where("messageId").lt(startId));
+        chatInfoQuery.addCriteria(Criteria.where("messageId").lt(startId).andOperator(Criteria.where("messageId").gte(roomInfo.getStartIndex())));
         chatInfoQuery.with(Sort.by(Sort.Direction.DESC, "messageId"));
         chatInfoQuery.limit(20);
         List<ChatInfo> chatInfos = mongoTemplate.find(chatInfoQuery, ChatInfo.class, CHATINFO_COLLECTION);
@@ -199,7 +208,7 @@ public class ChatServiceImpl implements ChatService {
             list.add(tmp);
         }
 
-        if (list.size() == 0 || list.get(0).get_id() == 1L) {
+        if (list.size() == 0 || list.get(0).get_id() == roomInfo.getStartIndex() || list.get(0).get_id() == 1L) {
             paramDTO.setMessageEnd(true);
         }
 
@@ -226,12 +235,35 @@ public class ChatServiceImpl implements ChatService {
         query.addCriteria(Criteria.where("messageId").is(messageId));
         Message message = mongoTemplate.findOne(query, Message.class, MESSAGE_COLLECTION);
 
+        Query roomInfoQuery = new Query();
+        roomInfoQuery.addCriteria(Criteria.where("roomId").is(roomId));
+        roomInfoQuery.addCriteria(Criteria.where("userId").is(userId));
+        RoomInfo roomInfo = mongoTemplate.findOne(roomInfoQuery, RoomInfo.class, ROOMINFO_COLLECTION);
+
+        if (message.getSenderId() == -1) {
+            query = new Query();
+            query.addCriteria(Criteria.where("roomId").is(roomId));
+            query.addCriteria(Criteria.where("senderId").ne(-1));
+            query.addCriteria(Criteria.where("messageId").lt(messageId));
+            query.with(Sort.by(Sort.Direction.DESC, "messageId"));
+            query.limit(1);
+            message = mongoTemplate.findOne(query, Message.class, MESSAGE_COLLECTION);
+        }
+
         if (userId == message.getSenderId()) {
             return null;
         }
 
-        query.addCriteria(Criteria.where("userId").is(message.getSenderId()));
-        ChatInfo chatInfo = mongoTemplate.findOne(query, ChatInfo.class, CHATINFO_COLLECTION);
+        if (roomInfo.getStartIndex() > message.getMessageId()) {
+            return null;
+        }
+
+        Query chatInfoQuery = new Query();
+        chatInfoQuery.addCriteria(Criteria.where("roomId").is(roomId));
+        chatInfoQuery.addCriteria(Criteria.where("messageId").is(message.getMessageId()));
+        chatInfoQuery.addCriteria(Criteria.where("userId").is(message.getSenderId()));
+        ChatInfo chatInfo = mongoTemplate.findOne(chatInfoQuery, ChatInfo.class, CHATINFO_COLLECTION);
+
         if (!chatInfo.getSeen()) {
             chatParamDTO = changeSeenFrom(roomId, messageId, message.getSenderId());
             chatParamDTO.setUserId(message.getSenderId());
@@ -320,7 +352,7 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
-    public RoomDTO roomToDTO(Room room, RoomInfo roomInfo) {
+    public RoomDTO roomToDTO(Room room, RoomInfo roomInfo, long uId, long unread) {
 
         ////todo change ip
         RoomDTO res = new RoomDTO();
@@ -329,7 +361,12 @@ public class ChatServiceImpl implements ChatService {
         res.setAvatar("http://192.168.1.143:9090/vavatar/" + room.getAvatar() + "?time=" + "time");
         res.setUnreadCount(roomInfo.getUnread());
         res.setIndex(roomInfo.getIndex());
-        res.setLastMessage(null);
+
+        if (room.getLastMessageId() == null) {
+            res.setLastMessage(null);
+        } else {
+            res.setLastMessage(getLastMessage(room.getRoomId(), room.getLastMessageId(), uId, unread));
+        }
 
         List<RoomUser> list = new ArrayList<>();
         for (Long userId : room.getUserList()) {
@@ -347,6 +384,215 @@ public class ChatServiceImpl implements ChatService {
         res.setUsers(list);
 
         return res;
+    }
+
+
+    @Override
+    public ChatParamDTO getUnreadDTO(long roomId, long unread, long userId) {
+        ChatParamDTO chatParamDTO = new ChatParamDTO();
+        Query query = new Query();
+        query.addCriteria(Criteria.where("roomId").is(roomId));
+        RoomInfo roomInfo = mongoTemplate.findOne(query, RoomInfo.class, ChatServiceImpl.ROOMINFO_COLLECTION);
+
+        Query roomQuery = new Query();
+        roomQuery.addCriteria(Criteria.where("roomId").is(roomId));
+        Room room = mongoTemplate.findOne(roomQuery, Room.class, ROOM_COLLECTION);
+        LastMessage last = getLastMessage(roomId, room.getLastMessageId(), userId, unread);
+
+        chatParamDTO.setRoomId(roomId);
+        chatParamDTO.setIndex(roomInfo.getIndex());
+        chatParamDTO.setUnreadCount(unread);
+        chatParamDTO.setLastMessage(last);
+
+        return chatParamDTO;
+    }
+
+    @Override
+    public LastMessage getLastMessage(long roomId, long lastId, long userId, long unread) {
+        Query lastQuery = new Query();
+        lastQuery.addCriteria(Criteria.where("roomId").is(roomId));
+        lastQuery.addCriteria(Criteria.where("messageId").is(lastId));
+        Message lastMessage = mongoTemplate.findOne(lastQuery, Message.class, MESSAGE_COLLECTION);
+        lastQuery.addCriteria(Criteria.where("userId").is(userId));
+        ChatInfo chatInfo = mongoTemplate.findOne(lastQuery, ChatInfo.class, CHATINFO_COLLECTION);
+        LastMessage last = new LastMessage(lastMessage, chatInfo, unread != 0);
+        return last;
+    }
+
+    @Override
+    public ChatParamDTO splitRoomUser(Long roomId, Long userId) {
+        ChatParamDTO res = new ChatParamDTO();
+        List<RoomUser> allUser = getRoomUser(1L, false);
+        List<RoomUser> userList = new ArrayList<>();
+        List<RoomUser> userAlreadyInRoomList = new ArrayList<>();
+        if (roomId == null) {
+            Query userQuery = new Query(Criteria.where("userId").is(userId));
+            User user = mongoTemplate.findOne(userQuery, User.class, UserServiceImpl.USER_COLLECTION);
+            ////todo change this
+            String avatar = "http://192.168.1.143:9090/vavatar/" + user.getUserId() + "?time=" + "time";
+            RoomUser roomUser = new RoomUser(user.getUserId(), user.getUserName(), avatar, null);
+            allUser.removeIf(u -> u.get_id() == userId);
+            userAlreadyInRoomList.add(roomUser);
+            userList = allUser;
+        } else {
+            Query query = new Query();
+            query.addCriteria(Criteria.where("roomId").is(roomId));
+            Room room = mongoTemplate.findOne(query, Room.class, ROOM_COLLECTION);
+            List<Long> userIds = room.getUserList();
+            for (RoomUser roomUser : allUser) {
+                if (userIds.contains(roomUser.get_id())) {
+                    userAlreadyInRoomList.add(roomUser);
+                } else {
+                    userList.add(roomUser);
+                }
+            }
+        }
+        res.setUserList(userList);
+        res.setUserAlreadyInRoomList(userAlreadyInRoomList);
+        return res;
+    }
+
+    @Override
+    public List<Long> deleteRoom(long roomId, long userId) {
+        Query query = new Query(Criteria.where("roomId").is(roomId));
+        Room room = mongoTemplate.findOne(query, Room.class, ROOM_COLLECTION);
+        if (room.getUserList().contains(userId)) {
+            mongoTemplate.remove(query, ROOM_COLLECTION);
+            mongoTemplate.remove(query, MESSAGE_COLLECTION);
+            mongoTemplate.remove(query, CHATINFO_COLLECTION);
+            mongoTemplate.remove(query, ROOMINFO_COLLECTION);
+            return room.getUserList();
+        } else {
+            return null;
+        }
+    }
+
+    @Override
+    public List<Long> removeUserFromUser(long roomId, long userId) {
+        Query query = new Query(Criteria.where("roomId").is(roomId));
+        Room room = mongoTemplate.findOne(query, Room.class, ROOM_COLLECTION);
+        if (room.getUserList().contains(userId)) {
+            room.getUserList().remove(userId);
+        }
+        Update update = new Update();
+        update.set("userList", room.getUserList());
+        mongoTemplate.findAndModify(query, update, Room.class, ROOM_COLLECTION);
+        query.addCriteria(Criteria.where("userId").is(userId));
+//        mongoTemplate.remove(query, CHATINFO_COLLECTION);
+        mongoTemplate.remove(query, ROOMINFO_COLLECTION);
+        return room.getUserList();
+    }
+
+    @Override
+    public MessageDTO sendSysMessage(Long roomId, String content) {
+        Date date = new Date();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd");
+        SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm");
+        String d = dateFormat.format(date);
+        String timeStamp = timeFormat.format(date);
+
+        Message message = new Message(
+                null,
+                getNextMessageId(roomId),
+                roomId,
+                -1,
+                content,
+                "system",
+                null,
+                d,
+                timeStamp,
+                null,
+                null,
+                new Reactions(null, null));
+        mongoTemplate.save(message, MESSAGE_COLLECTION);
+
+        Query roomQuery = new Query();
+        roomQuery.addCriteria(Criteria.where("roomId").is(roomId));
+        Update update = new Update();
+        update.set("lastMessageId", message.getMessageId());
+        mongoTemplate.findAndModify(roomQuery, update, Room.class, ROOM_COLLECTION);
+
+        ChatInfo chatInfo = new ChatInfo(null, roomId, message.getMessageId(), null, true, true, true, true, false, false, true, true);
+        Room room = getRoom(roomId);
+        for (Long roomUserId : room.getUserList()) {
+            ////todo
+            ChatInfo tmp = new ChatInfo(null, roomId, message.getMessageId(), roomUserId, true, true, true, true, false, false, true, true);
+            mongoTemplate.save(tmp, CHATINFO_COLLECTION);
+            updateRoomSeq(roomId, roomUserId);
+        }
+
+        MessageDTO res = new MessageDTO(message, chatInfo);
+        return res;
+    }
+
+    @Override
+    public Long addUserToRoom(long roomId, List<Long> newUserList, List<Long> addedUser) {
+        Long res = roomId;
+        if (roomId == 0L) {
+            Room room = addRoom(newUserList, newRoomName(newUserList));
+            res = room.getRoomId();
+        } else {
+            Query query = new Query();
+            query.addCriteria(Criteria.where("roomId").is(roomId));
+            Room room = mongoTemplate.findOne(query, Room.class, ROOM_COLLECTION);
+            Update update = new Update();
+            update.set("userList", newUserList);
+            mongoTemplate.findAndModify(query, update, Room.class, ROOM_COLLECTION);
+            for (Long newUser : addedUser) {
+                RoomInfo roomInfo = new RoomInfo(null, roomId, newUser, 0L, new Date().getTime(), room.getNextMessageId());
+                mongoTemplate.save(roomInfo, ROOMINFO_COLLECTION);
+            }
+        }
+        return res;
+    }
+
+    @Override
+    public RoomDTO getRoomDTO(long userId, long roomId) {
+        Query roomInfoQuery = new Query();
+        roomInfoQuery.addCriteria(Criteria.where("userId").is(userId));
+        roomInfoQuery.addCriteria(Criteria.where("roomId").is(roomId));
+        RoomInfo roomInfo = mongoTemplate.findOne(roomInfoQuery, RoomInfo.class, ROOMINFO_COLLECTION);
+
+        Query query = new Query();
+        query.addCriteria(Criteria.where("roomId").is(roomInfo.getRoomId()));
+        Room room = mongoTemplate.findOne(query, Room.class, ROOM_COLLECTION);
+        RoomDTO tmp = roomToDTO(room, roomInfo, userId, roomInfo.getUnread());
+        return tmp;
+    }
+
+    @Override
+    public String welcoming(List<Long> userList) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("欢迎: ");
+        for (int i = 0; i < userList.size(); i++) {
+            long userId = userList.get(i);
+            Query query = new Query();
+            query.addCriteria(Criteria.where("userId").is(userId));
+            User user = mongoTemplate.findOne(query, User.class, UserServiceImpl.USER_COLLECTION);
+            sb.append(user.getUserName());
+            if (i < userList.size() - 1) {
+                sb.append(", ");
+            } else {
+                sb.append("加入");
+            }
+        }
+        return sb.toString();
+    }
+
+    @Override
+    public String newRoomName(List<Long> userList) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < userList.size(); i++) {
+            long userId = userList.get(i);
+            Query query = new Query();
+            query.addCriteria(Criteria.where("userId").is(userId));
+            User user = mongoTemplate.findOne(query, User.class, UserServiceImpl.USER_COLLECTION);
+            sb.append(user.getUserName());
+            if (i < userList.size() - 1) {
+                sb.append(", ");
+            }
+        }
+        return sb.toString();
     }
 
 

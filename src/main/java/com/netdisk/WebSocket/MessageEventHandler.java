@@ -286,31 +286,26 @@ public class MessageEventHandler {
             }
         }
 
-        List<RoomUser> roomUsers = chatService.getRoomUser(roomId);
+        List<RoomUser> roomUsers = chatService.getRoomUser(roomId, true);
         messageDTO.setDistributed(true);
         for (RoomUser roomUser : roomUsers) {
+            List<SocketIOClient> tmp = id_client.get(roomUser.get_id());
+            if (tmp == null || tmp.size() == 0) {
+                continue;
+            }
             if (roomUser.get_id() != senderId) {
-                List<SocketIOClient> tmp = id_client.get(roomUser.get_id());
-                if (tmp != null && tmp.size() != 0) {
-                    for (SocketIOClient socketIOClient : tmp) {
-                        if (socket_inRoom.get(socketIOClient) != null && socket_inRoom.get(socketIOClient) == messageDTO.getRoomId()) {
-                            socketIOClient.sendEvent("newMessageAdded", messageDTO);
-                        }
-
-                        if (socket_inRoom.get(socketIOClient) != null && socket_inRoom.get(socketIOClient) != messageDTO.getRoomId()) {
-                            ChatParamDTO chatParamDTO = new ChatParamDTO();
-                            chatParamDTO.setRoomId(roomId);
-                            long unread = chatService.incRoomInfoUnread(roomId, roomUser.get_id());
-                            Query query = new Query();
-                            query.addCriteria(Criteria.where("roomId").is(roomId));
-                            RoomInfo roomInfo = mongoTemplate.findOne(query, RoomInfo.class, ChatServiceImpl.ROOMINFO_COLLECTION);
-                            chatParamDTO.setIndex(roomInfo.getIndex());
-                            chatParamDTO.setUnreadCount(unread);
-                            socketIOClient.sendEvent("unreadUpdate", chatParamDTO);
-                        }
+                for (SocketIOClient socketIOClient : tmp) {
+                    if (socket_inRoom.get(socketIOClient) != null && socket_inRoom.get(socketIOClient) == messageDTO.getRoomId()) {
+                        socketIOClient.sendEvent("newMessageAdded", messageDTO);
+                        socketIOClient.sendEvent("unreadUpdate", chatService.getUnreadDTO(roomId, 0, roomUser.get_id()));
+                    } else {
+                        long unread = chatService.incRoomInfoUnread(roomId, roomUser.get_id());
+                        socketIOClient.sendEvent("unreadUpdate", chatService.getUnreadDTO(roomId, unread, roomUser.get_id()));
                     }
-                } else {
-                    chatService.incRoomInfoUnread(roomId, roomUser.get_id());
+                }
+            } else {
+                for (SocketIOClient socketIOClient : tmp) {
+                    socketIOClient.sendEvent("unreadUpdate", chatService.getUnreadDTO(roomId, 0, roomUser.get_id()));
                 }
             }
             chatService.changeDistributed(roomUser.get_id(), roomId, messageDTO.get_id(), true);
@@ -351,6 +346,107 @@ public class MessageEventHandler {
         socket_inRoom.put(client, roomId);
         if (roomId != null) {
             chatService.clearRoomInfoUnread(roomId, client_id.get(client));
+        }
+    }
+
+    @OnEvent(value = "newRoomUserList")
+    public void newRoomUserList(SocketIOClient client, AckRequest request) {
+        client.sendEvent("userListAccessed", chatService.splitRoomUser(null, client_id.get(client)));
+    }
+
+    @OnEvent(value = "inviteUserList")
+    public void inviteUserList(SocketIOClient client, AckRequest request, Long roomId) {
+        client.sendEvent("userListAccessed", chatService.splitRoomUser(roomId, client_id.get(client)));
+    }
+
+    @OnEvent(value = "deleteRoom")
+    public void deleteRoom(SocketIOClient client, AckRequest request, Long roomId) {
+        List<Long> userList = chatService.deleteRoom(roomId, client_id.get(client));
+        for (Long userId : userList) {
+            List<SocketIOClient> sockets = id_client.get(userId);
+            if (sockets != null && sockets.size() != 0) {
+                for (SocketIOClient socket : sockets) {
+                    socket.sendEvent("roomDeleted", roomId);
+                }
+            }
+        }
+    }
+
+    @OnEvent(value = "removeUserFromRoom")
+    public void removeUserFromRoom(SocketIOClient client, AckRequest request, Long roomId) {
+        long userId = client_id.get(client);
+        List<Long> userList = chatService.removeUserFromUser(roomId, userId);
+        MessageDTO messageDTO = chatService.sendSysMessage(roomId, "user " + userId + "退出");
+        for (Long uId : userList) {
+            List<SocketIOClient> sockets = id_client.get(uId);
+            if (sockets != null && sockets.size() != 0) {
+                for (SocketIOClient socket : sockets) {
+                    if (socket_inRoom.get(socket) == messageDTO.getRoomId()) {
+                        socket.sendEvent("newMessageAdded", messageDTO);
+                        socket.sendEvent("unreadUpdate", chatService.getUnreadDTO(roomId, 0, uId));
+                    } else {
+                        long unread = chatService.incRoomInfoUnread(roomId, uId);
+                        socket.sendEvent("unreadUpdate", chatService.getUnreadDTO(roomId, unread, uId));
+                    }
+                }
+            }
+        }
+
+        List<SocketIOClient> socketIOClients = id_client.get(userId);
+        for (SocketIOClient socket : socketIOClients) {
+            socket.sendEvent("roomDeleted", roomId);
+        }
+    }
+
+    @OnEvent(value = "roomUserChanged")
+    public void roomUserChanged(SocketIOClient client, AckRequest request, List<Integer> _newUserList, Long roomId, List<Integer> _addedUser, List<Integer> _oldUserList) {
+        List<Long> newUserList = myFileUtils.IntegerToLong(_newUserList);
+        List<Long> addedUser = myFileUtils.IntegerToLong(_addedUser);
+        List<Long> oldUserList = myFileUtils.IntegerToLong(_oldUserList);
+
+        Long newRoomId = chatService.addUserToRoom(roomId, newUserList, addedUser);
+        if (roomId == 0L) {
+            for (Long userId : newUserList) {
+                List<SocketIOClient> sockets = id_client.get(userId);
+                if (sockets != null && sockets.size() != 0) {
+                    for (SocketIOClient socket : sockets) {
+                        socket.sendEvent("newRoomAdded", chatService.getRoomDTO(userId, newRoomId));
+                    }
+                }
+            }
+        } else {
+            MessageDTO messageDTO = chatService.sendSysMessage(roomId, chatService.welcoming(addedUser));
+
+            for (Long userId : oldUserList) {
+                List<SocketIOClient> sockets = id_client.get(userId);
+                if (sockets != null && sockets.size() != 0) {
+                    for (SocketIOClient socket : sockets) {
+                        if (socket_inRoom.get(socket) == messageDTO.getRoomId()) {
+                            socket.sendEvent("newMessageAdded", messageDTO);
+                            socket.sendEvent("unreadUpdate", chatService.getUnreadDTO(roomId, 0, userId));
+                        } else {
+                            long unread = chatService.incRoomInfoUnread(roomId, userId);
+                            socket.sendEvent("unreadUpdate", chatService.getUnreadDTO(roomId, unread, userId));
+                        }
+                    }
+                }
+            }
+
+            for (Long userId : addedUser) {
+                List<SocketIOClient> sockets = id_client.get(userId);
+                if (sockets != null && sockets.size() != 0) {
+                    for (SocketIOClient socket : sockets) {
+                        socket.sendEvent("newRoomAdded", chatService.getRoomDTO(userId, roomId));
+                        if (socket_inRoom.get(socket) == messageDTO.getRoomId()) {
+                            socket.sendEvent("newMessageAdded", messageDTO);
+                            socket.sendEvent("unreadUpdate", chatService.getUnreadDTO(roomId, 0, userId));
+                        } else {
+                            long unread = chatService.incRoomInfoUnread(roomId, userId);
+                            socket.sendEvent("unreadUpdate", chatService.getUnreadDTO(roomId, unread, userId));
+                        }
+                    }
+                }
+            }
         }
     }
 

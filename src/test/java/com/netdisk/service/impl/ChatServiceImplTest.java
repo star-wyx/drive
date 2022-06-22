@@ -3,6 +3,7 @@ package com.netdisk.service.impl;
 import com.netdisk.WebSocket.MessageEventHandler;
 import com.netdisk.module.User;
 import com.netdisk.module.chat.Message;
+import com.netdisk.module.chat.Room;
 import com.netdisk.module.chat.RoomInfo;
 import com.netdisk.module.chat.Status;
 import com.netdisk.service.ChatService;
@@ -14,7 +15,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.data.mongodb.repository.support.QuerydslAbstractMongodbQuery;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -64,7 +68,18 @@ class ChatServiceImplTest {
         userList.add(1L);
         userList.add(2L);
         userList.add(3L);
-        chatService.addRoom(userList,"test");
+        chatService.addRoom(userList, "main");
+    }
+
+    @Test
+    public void setLastMessageId() {
+        Date date = new Date();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd");
+        SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm");
+        String d = dateFormat.format(date);
+        String timeStamp = timeFormat.format(date);
+        System.out.println(d);
+        System.out.println(timeStamp);
     }
 
 }

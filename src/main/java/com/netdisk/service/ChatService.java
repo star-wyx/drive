@@ -5,16 +5,13 @@ import com.netdisk.module.DTO.MessageDTO;
 import com.netdisk.module.DTO.ParamDTO;
 import com.netdisk.module.DTO.RoomDTO;
 import com.netdisk.module.User;
-import com.netdisk.module.chat.Message;
-import com.netdisk.module.chat.Room;
-import com.netdisk.module.chat.RoomInfo;
-import com.netdisk.module.chat.RoomUser;
+import com.netdisk.module.chat.*;
 
 import java.util.List;
 
 public interface ChatService {
 
-    void addRoom(List<Long> userList, String roomName);
+    Room addRoom(List<Long> userList, String roomName);
 
     Room getRoom(long roomId);
 
@@ -25,7 +22,7 @@ public interface ChatService {
 
     long getNextMessageId(long roomId);
 
-    List<RoomUser> getRoomUser(long roomId);
+    List<RoomUser> getRoomUser(long roomId, boolean needStatus);
 
     ParamDTO fetchmessages(long userId, long roomId, long messageId);
 
@@ -43,6 +40,25 @@ public interface ChatService {
 
     long getRoomInfoUnread(long roomId, long userId);
 
-    public RoomDTO roomToDTO(Room room, RoomInfo roomInfo);
+    RoomDTO roomToDTO(Room room, RoomInfo roomInfo, long userId, long unread);
 
+    ChatParamDTO getUnreadDTO(long roomId, long unread, long userId);
+
+    LastMessage getLastMessage(long roomId, long lastId, long userId, long unread);
+
+    ChatParamDTO splitRoomUser(Long roomId, Long userId);
+
+    List<Long> deleteRoom(long roomId, long userId);
+
+    List<Long> removeUserFromUser(long roomId, long userId);
+
+    MessageDTO sendSysMessage(Long roomId, String content);
+
+    Long addUserToRoom(long roomId, List<Long> newUserList, List<Long> addedUser);
+
+    RoomDTO getRoomDTO(long userId, long roomId);
+
+    String welcoming(List<Long> userList);
+
+    String newRoomName(List<Long> userList);
 }
