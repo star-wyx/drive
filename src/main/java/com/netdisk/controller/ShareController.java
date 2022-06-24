@@ -69,7 +69,7 @@ public class ShareController {
         } else {
             sharedService.cancelShare(paramDTO.getUserId(), paramDTO.getNodeId());
             List<Share> children = nodeRepository.getShareSubTree(paramDTO.getUserId(), 1L, 0L).get(0).getDescendants();
-            if (children == null) {
+            if (children.size() == 0) {
                 userService.setHaveShared(paramDTO.getUserId(), false);
             }
         }
@@ -102,7 +102,7 @@ public class ShareController {
                 sharedService.cancelShare(paramDTO.getUserId(), nodeId);
             }
             List<Share> children = nodeRepository.getShareSubTree(paramDTO.getUserId(), 1L, 0L).get(0).getDescendants();
-            if (children == null) {
+            if (children.size() == 0) {
                 userService.setHaveShared(paramDTO.getUserId(), false);
             }
         }

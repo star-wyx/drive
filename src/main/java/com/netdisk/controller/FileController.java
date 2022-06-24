@@ -4,7 +4,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.netdisk.config.FileProperties;
 import com.netdisk.module.DTO.ParamDTO;
 import com.netdisk.module.FileNode;
+import com.netdisk.module.Share;
 import com.netdisk.module.User;
+import com.netdisk.repository.NodeRepository;
 import com.netdisk.service.FileService;
 import com.netdisk.service.SeqService;
 import com.netdisk.service.UserService;
@@ -28,9 +30,9 @@ import java.util.Objects;
 @Api(value = "文件管理")
 @Controller
 @RequestMapping("/file")
-@CrossOrigin(origins = {"http://172.17.0.1", "http://172.17.0.1:9070", "http://www.aijiangsb.com" ,"http://aijiangsb.com:9070",
-        "https://172.17.0.1", "https://172.17.0.1:9070", "https://www.aijiangsb.com" ,"https://aijiangsb.com:9070",
-        "https://www.aijiangsb.com:9070","http://www.aijiangsb.com:9070"}
+@CrossOrigin(origins = {"http://172.17.0.1", "http://172.17.0.1:9070", "http://www.aijiangsb.com", "http://aijiangsb.com:9070",
+        "https://172.17.0.1", "https://172.17.0.1:9070", "https://www.aijiangsb.com", "https://aijiangsb.com:9070",
+        "https://www.aijiangsb.com:9070", "http://www.aijiangsb.com:9070"}
         , allowCredentials = "true")
 //@CrossOrigin(origins = {"http://192.168.1.169:9070"}, allowCredentials = "true")
 public class FileController {
@@ -46,6 +48,9 @@ public class FileController {
 
     @Autowired
     private FileProperties fileProperties;
+
+    @Autowired
+    private NodeRepository nodeRepository;
 
     /**
      * 新建目录并记录在数据库 userId, nodeId, FileName
@@ -248,6 +253,12 @@ public class FileController {
         AssemblyResponse<String> assembly = new AssemblyResponse<>();
         long deleteSize = fileService.deleteFile(paramDTO.getUserId(), paramDTO.getNodeId());
         userService.updateSize(paramDTO.getUserId(), -deleteSize);
+
+        List<Share> children = nodeRepository.getShareSubTree(paramDTO.getUserId(), 1L, 0L).get(0).getDescendants();
+        if (children.size() == 0) {
+            userService.setHaveShared(paramDTO.getUserId(), false);
+        }
+
         return assembly.success("successfully");
     }
 
@@ -265,6 +276,12 @@ public class FileController {
             deleteSize += fileService.deleteFile(paramDTO.getUserId(), nodeId);
         }
         userService.updateSize(paramDTO.getUserId(), -deleteSize);
+
+        List<Share> children = nodeRepository.getShareSubTree(paramDTO.getUserId(), 1L, 0L).get(0).getDescendants();
+        if (children.size() == 0) {
+            userService.setHaveShared(paramDTO.getUserId(), false);
+        }
+
         return assembly.success("successfully");
     }
 

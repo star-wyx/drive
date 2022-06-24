@@ -11,7 +11,6 @@ import com.netdisk.module.FileNode;
 import com.netdisk.module.Song;
 import com.netdisk.module.User;
 import com.netdisk.module.chat.Room;
-import com.netdisk.module.chat.RoomInfo;
 import com.netdisk.module.chat.RoomUser;
 import com.netdisk.module.chat.Status;
 import com.netdisk.service.ChatService;
@@ -22,7 +21,6 @@ import com.netdisk.service.impl.MusicServiceImpl;
 import com.netdisk.service.impl.UserServiceImpl;
 import com.netdisk.util.MyFileUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.checkerframework.checker.units.qual.C;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -95,6 +93,10 @@ public class MessageEventHandler {
     @OnDisconnect
     public void onDisconnect(SocketIOClient client) {
         Long userId = client_id.get(client);
+        if (userId == null) {
+            System.out.println("注册时连接，断开");
+            return;
+        }
         client_id.remove(client);
         socket_inRoom.remove(client);
 
@@ -588,6 +590,45 @@ public class MessageEventHandler {
                     if (socket_inRoom.get(socket) == roomId) {
                         socket.sendEvent("reactionAdded", res);
                     }
+                }
+            }
+        }
+    }
+
+    @OnEvent("newUserToMainRoom")
+    public void newUserToMainRoom(String userName) {
+
+        Query query = new Query();
+        query.addCriteria(Criteria.where("userName").is(userName));
+        User user = mongoTemplate.findOne(query, User.class, UserServiceImpl.USER_COLLECTION);
+        List<Long> addedUser = new ArrayList<>();
+        addedUser.add(user.getUserId());
+
+        Query roomQuery = new Query();
+        roomQuery.addCriteria(Criteria.where("roomId").is(1L));
+        Room room = mongoTemplate.findOne(roomQuery, Room.class, ChatServiceImpl.ROOM_COLLECTION);
+        List<Long> oldUserList = room.getUserList();
+        oldUserList.remove(user.getUserId());
+
+        MessageDTO messageDTO = chatService.sendSysMessage(1L, chatService.welcoming(addedUser));
+
+        for (Long userId : oldUserList) {
+            RoomDTO roomDTO = chatService.getRoomDTO(userId, 1L);
+            ChatParamDTO res = new ChatParamDTO();
+            res.setRoomId(roomDTO.getRoomId());
+            res.setNewRoomName(roomDTO.getRoomName());
+            res.setUsers(roomDTO.getUsers());
+            List<SocketIOClient> sockets = id_client.get(userId);
+            if (sockets != null && sockets.size() != 0) {
+                for (SocketIOClient socket : sockets) {
+                    if (socket_inRoom.get(socket) == messageDTO.getRoomId()) {
+                        socket.sendEvent("newMessageAdded", messageDTO);
+                        socket.sendEvent("unreadUpdate", chatService.getUnreadDTO(1L, 0, userId));
+                    } else {
+                        long unread = chatService.incRoomInfoUnread(1L, userId);
+                        socket.sendEvent("unreadUpdate", chatService.getUnreadDTO(1L, unread, userId));
+                    }
+                    socket.sendEvent("roomInfoChange", res);
                 }
             }
         }

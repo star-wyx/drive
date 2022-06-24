@@ -13,6 +13,8 @@ import org.springframework.boot.web.servlet.server.ConfigurableServletWebServerF
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.filter.CommonsRequestLoggingFilter;
 
+import java.io.InputStream;
+
 @SpringBootApplication
 @EnableConfigurationProperties({
         FileProperties.class
