@@ -40,4 +40,16 @@ public class ChatParamDTO {
     List<RoomUser> userList;
 
     List<RoomUser> userAlreadyInRoomList;
+
+    List<RoomUser> users;
+
+    String newRoomName;
+
+    String roomName;
+
+    Long messageId;
+
+    Map<String, List> reactions;
+
+    Boolean isRemove;
 }

@@ -171,6 +171,7 @@ public class ChunkServiceImpl implements ChunkService {
 //        String availableFileName = availableFileName(user, chunk.getNodeId(), chunk.getFileName());
 //        File newFile = new File(fileProperties.getRootDir() + folder.getFilePath(), chunk.getFileName());
         String suffix = chunk.getFileName().substring(chunk.getFileName().lastIndexOf(".") + 1);
+        suffix = suffix.toLowerCase(Locale.ROOT);
         File newFile = new File(fileProperties.getRootDir() + "/" + user.getUserName() + "/" + md5 + "." + suffix);
         byte[] byt = new byte[fileProperties.getSliceSizeMB() * 1024 * 1024];
         if (!newFile.exists()) {
@@ -210,7 +211,7 @@ public class ChunkServiceImpl implements ChunkService {
 
         String newFileMd5 = null;
         if (chunk.getSerialNo() <= 100) {
-            newFileMd5 = myFileUtils.getMd5ByStream(newFile);
+            newFileMd5 = myFileUtils.getPartMd5ByStream(newFile);
             log.info("getMd5ByStream new file md5: " + newFileMd5);
         } else {
             newFileMd5 = myFileUtils.getPartMd5ByStream(newFile);

@@ -37,11 +37,11 @@ import java.util.regex.Pattern;
 @Api(value = "上传下载")
 @Controller
 @Slf4j
-//@CrossOrigin(origins = {"http://172.17.0.1", "http://172.17.0.1:9070", "http://www.aijiangsb.com" ,"http://aijiangsb.com:9070",
-//        "https://172.17.0.1", "https://172.17.0.1:9070", "https://www.aijiangsb.com" ,"https://aijiangsb.com:9070",
-//        "https://www.aijiangsb.com:9070","http://www.aijiangsb.com:9070"}
-//        , allowCredentials = "true")
-@CrossOrigin(origins = "http://192.168.1.169:9070", allowCredentials = "true")
+@CrossOrigin(origins = {"http://172.17.0.1", "http://172.17.0.1:9070", "http://www.aijiangsb.com" ,"http://aijiangsb.com:9070",
+        "https://172.17.0.1", "https://172.17.0.1:9070", "https://www.aijiangsb.com" ,"https://aijiangsb.com:9070",
+        "https://www.aijiangsb.com:9070","http://www.aijiangsb.com:9070"}
+        , allowCredentials = "true")
+//@CrossOrigin(origins = "http://192.168.1.169:9070", allowCredentials = "true")
 public class TransferController {
 
     @Autowired

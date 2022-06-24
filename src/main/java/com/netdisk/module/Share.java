@@ -30,7 +30,7 @@ public class Share {
 
     private String md5;
     private String base64;
-    private Long fileSize; ////todo 更新fileSize
+    private Long fileSize;
     private String uploadTime;
 
 

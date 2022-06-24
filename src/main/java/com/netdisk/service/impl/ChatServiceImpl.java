@@ -14,6 +14,7 @@ import com.netdisk.module.chat.*;
 import com.netdisk.service.ChatService;
 import com.netdisk.service.SeqService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 import org.checkerframework.checker.units.qual.C;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
@@ -25,6 +26,8 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -58,11 +61,21 @@ public class ChatServiceImpl implements ChatService {
                 null,
                 seqService.getNextRoomId(),
                 roomName,
-                "defaultImage",
+                "defaultRoomImage",
                 null,
                 userList,
                 null,
                 1L);
+
+        File defaultAvatar = new File(fileProperties.getProfileDir() + File.separator + "defaultRoomImage.png");
+        File newAvatar = new File(fileProperties.getProfileDir() + File.separator + "Room_" + room.getRoomId() + ".png");
+        try {
+            FileUtils.copyFile(defaultAvatar, newAvatar);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        room.setAvatar("Room_" + room.getRoomId());
+
         mongoTemplate.save(room, ROOM_COLLECTION);
 
         for (Long i : userList) {
@@ -86,11 +99,12 @@ public class ChatServiceImpl implements ChatService {
 
         List<RoomDTO> res = new ArrayList<>();
         for (RoomInfo roomInfo : roomInfos) {
-            Query query = new Query();
-            query.addCriteria(Criteria.where("roomId").is(roomInfo.getRoomId()));
-            Room room = mongoTemplate.findOne(query, Room.class, ROOM_COLLECTION);
-            RoomDTO tmp = roomToDTO(room, roomInfo, userId, roomInfo.getUnread());
-            res.add(tmp);
+//            Query query = new Query();
+//            query.addCriteria(Criteria.where("roomId").is(roomInfo.getRoomId()));
+//            Room room = mongoTemplate.findOne(query, Room.class, ROOM_COLLECTION);
+//            RoomDTO tmp = roomToDTO(room, roomInfo, userId, roomInfo.getUnread());
+//            res.add(tmp);
+            res.add(getRoomDTO(userId, roomInfo.getRoomId()));
         }
         return res;
     }
@@ -116,6 +130,7 @@ public class ChatServiceImpl implements ChatService {
 
         changeIsAt(usersTag, roomId, true);
 
+        Map<String, List> reactionMap = new HashMap<>();
         Message message = new Message(
                 null,
                 getNextMessageId(roomId),
@@ -128,7 +143,7 @@ public class ChatServiceImpl implements ChatService {
                 timeStamp,
                 replyMessageId,
                 null,
-                new Reactions(null, null),
+                reactionMap,
                 usersTag);
         mongoTemplate.save(message, MESSAGE_COLLECTION);
 
@@ -175,8 +190,7 @@ public class ChatServiceImpl implements ChatService {
         for (Long i : room.getUserList()) {
             Query userQuery = new Query(Criteria.where("userId").is(i));
             User user = mongoTemplate.findOne(userQuery, User.class, UserServiceImpl.USER_COLLECTION);
-            ////todo change this
-            String avatar = "http://192.168.1.143:9090/vavatar/" + user.getUserId() + "?time=" + "time";
+            String avatar = fileProperties.getAvatarPath() + user.getUserId() + "?time=" + "time";
             Status status = null;
             if (needStatus) {
                 status = user.getStatus();
@@ -185,6 +199,16 @@ public class ChatServiceImpl implements ChatService {
             res.add(roomUser);
         }
         return res;
+    }
+
+    @Override
+    public RoomUser getRoomUser(long userId) {
+        Query userQuery = new Query(Criteria.where("userId").is(userId));
+        User user = mongoTemplate.findOne(userQuery, User.class, UserServiceImpl.USER_COLLECTION);
+        String avatar = fileProperties.getAvatarPath() + user.getUserId() + "?time=" + "time";
+        Status status = user.getStatus();
+        RoomUser roomUser = new RoomUser(user.getUserId(), user.getUserName(), avatar, status);
+        return roomUser;
     }
 
     @Override
@@ -311,7 +335,7 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public void updateRoomSeq(long roomId, long userId) {
-        if (roomId == Long.MAX_VALUE) {
+        if (roomId == 1L) {
             return;
         }
         Query query = new Query();
@@ -368,11 +392,10 @@ public class ChatServiceImpl implements ChatService {
     @Override
     public RoomDTO roomToDTO(Room room, RoomInfo roomInfo, long uId, long unread) {
 
-        ////todo change ip
         RoomDTO res = new RoomDTO();
         res.setRoomId(room.getRoomId());
         res.setRoomName(room.getRoomName());
-        res.setAvatar("http://192.168.1.143:9090/vavatar/" + room.getAvatar() + "?time=" + "time");
+        res.setAvatar(fileProperties.getAvatarPath() + room.getAvatar() + "?time=" + "time");
         res.setUnreadCount(roomInfo.getUnread());
         res.setIndex(roomInfo.getIndex());
 
@@ -389,8 +412,7 @@ public class ChatServiceImpl implements ChatService {
             User user = mongoTemplate.findOne(query, User.class, UserServiceImpl.USER_COLLECTION);
             tmp.set_id(userId);
             tmp.setUsername(user.getUserName());
-            ////todo change ip
-            tmp.setAvatar("http://192.168.1.143:9090/vavatar/" + tmp.get_id() + "?time=" + "time");
+            tmp.setAvatar(fileProperties.getAvatarPath() + tmp.get_id() + "?time=" + "time");
             tmp.setStatus(user.getStatus());
             list.add(tmp);
         }
@@ -431,8 +453,7 @@ public class ChatServiceImpl implements ChatService {
         res.setSenderId(message.getSenderId());
         res.setContent(message.getContent());
         res.setUsername(message.getUserName());
-        ////todo change res
-        res.setAvatar("http://192.168.1.143:9090/vavatar/" + message.getAvatar() + "?time=" + "time");
+        res.setAvatar(fileProperties.getAvatarPath() + message.getAvatar() + "?time=" + "time");
         res.setDate(message.getDate());
         res.setTimestamp(message.getTimestamp());
         res.setSystem(chatInfo.getSystem());
@@ -444,7 +465,7 @@ public class ChatServiceImpl implements ChatService {
         res.setDisableActions(chatInfo.getDisableActions());
         res.setDisableReactions(chatInfo.getDisableReactions());
         res.setMessageFile(message.getMessageFile());
-        res.setReactions(message.getReactions());
+        res.setReactions(message.getReactionMap());
 
         if (message.getReplayMessage() == null) {
             res.setReplyMessage(null);
@@ -481,8 +502,7 @@ public class ChatServiceImpl implements ChatService {
         if (roomId == null) {
             Query userQuery = new Query(Criteria.where("userId").is(userId));
             User user = mongoTemplate.findOne(userQuery, User.class, UserServiceImpl.USER_COLLECTION);
-            ////todo change this
-            String avatar = "http://192.168.1.143:9090/vavatar/" + user.getUserId() + "?time=" + "time";
+            String avatar = fileProperties.getAvatarPath() + user.getUserId() + "?time=" + "time";
             RoomUser roomUser = new RoomUser(user.getUserId(), user.getUserName(), avatar, null);
             allUser.removeIf(u -> u.get_id() == userId);
             userAlreadyInRoomList.add(roomUser);
@@ -544,6 +564,7 @@ public class ChatServiceImpl implements ChatService {
         String d = dateFormat.format(date);
         String timeStamp = timeFormat.format(date);
 
+        Map<String, List> reactionMap = new HashMap<>();
         Message message = new Message(
                 null,
                 getNextMessageId(roomId),
@@ -556,7 +577,7 @@ public class ChatServiceImpl implements ChatService {
                 timeStamp,
                 null,
                 null,
-                new Reactions(null, null),
+                reactionMap,
                 null);
         mongoTemplate.save(message, MESSAGE_COLLECTION);
 
@@ -569,7 +590,6 @@ public class ChatServiceImpl implements ChatService {
         ChatInfo chatInfo = new ChatInfo(null, roomId, message.getMessageId(), null, true, true, true, true, false, false, true, true);
         Room room = getRoom(roomId);
         for (Long roomUserId : room.getUserList()) {
-            ////todo
             ChatInfo tmp = new ChatInfo(null, roomId, message.getMessageId(), roomUserId, true, true, true, true, false, false, true, true);
             mongoTemplate.save(tmp, CHATINFO_COLLECTION);
             updateRoomSeq(roomId, roomUserId);
@@ -593,7 +613,13 @@ public class ChatServiceImpl implements ChatService {
             update.set("userList", newUserList);
             mongoTemplate.findAndModify(query, update, Room.class, ROOM_COLLECTION);
             for (Long newUser : addedUser) {
-                RoomInfo roomInfo = new RoomInfo(null, roomId, newUser, 0L, new Date().getTime(), room.getNextMessageId(), false);
+                long index = 0;
+                if (roomId != 1L) {
+                    index = new Date().getTime();
+                } else {
+                    index = Long.MAX_VALUE;
+                }
+                RoomInfo roomInfo = new RoomInfo(null, roomId, newUser, 0L, index, room.getNextMessageId(), false);
                 mongoTemplate.save(roomInfo, ROOMINFO_COLLECTION);
             }
         }
@@ -610,8 +636,20 @@ public class ChatServiceImpl implements ChatService {
         Query query = new Query();
         query.addCriteria(Criteria.where("roomId").is(roomInfo.getRoomId()));
         Room room = mongoTemplate.findOne(query, Room.class, ROOM_COLLECTION);
-        RoomDTO tmp = roomToDTO(room, roomInfo, userId, roomInfo.getUnread());
-        return tmp;
+        RoomDTO res = roomToDTO(room, roomInfo, userId, roomInfo.getUnread());
+
+        if (room.getUserList().size() == 2) {
+            RoomUser roomUser = res.getUsers().get(0);
+            if (roomUser.get_id() != userId) {
+                res.setRoomName(roomUser.getUsername());
+            } else {
+                res.setRoomName(res.getUsers().get(1).getUsername());
+            }
+        } else if (room.getUserList().size() == 1) {
+            res.setRoomName("注意：该房间无除你以外的其他人");
+        }
+
+        return res;
     }
 
     @Override
@@ -627,7 +665,7 @@ public class ChatServiceImpl implements ChatService {
             if (i < userList.size() - 1) {
                 sb.append(", ");
             } else {
-                sb.append("加入");
+                sb.append("加入该房间");
             }
         }
         return sb.toString();
@@ -727,6 +765,70 @@ public class ChatServiceImpl implements ChatService {
         MessageDTO res = getMessageDTO(message, chatInfo);
         return res;
 
+    }
+
+    @Override
+    public List<Long> roomNameChanged(Long roomId, String newName) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("roomId").is(roomId));
+        Room room = mongoTemplate.findOne(query, Room.class, ChatServiceImpl.ROOM_COLLECTION);
+        Update update = new Update();
+        update.set("roomName", newName);
+        mongoTemplate.findAndModify(query, update, Room.class, ROOM_COLLECTION);
+        return room.getUserList();
+    }
+
+    @Override
+    public Map<String, List> sendReaction(Long roomId, Long userId, Long messageId, String reaction, Boolean isRemove) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("roomId").is(roomId));
+        query.addCriteria(Criteria.where("messageId").is(messageId));
+        Message message = mongoTemplate.findOne(query, Message.class, MESSAGE_COLLECTION);
+        Map<String, List> reactionMap = message.getReactionMap();
+        List<Long> userIdList = new ArrayList<>();
+        Update update = new Update();
+
+        if (reactionMap != null) {
+
+            if (!isRemove) {
+                for (List list : reactionMap.values()) {
+                    if (list.contains(userId)) {
+                        list.remove(userId);
+                    }
+                }
+                if (!reactionMap.containsKey(reaction)) {
+                    userIdList.add(userId);
+                    reactionMap.put(reaction, userIdList);
+                } else {
+                    userIdList = reactionMap.get(reaction);
+                    userIdList.add(userId);
+                    reactionMap.put(reaction, userIdList);
+                }
+            } else {
+                try {
+                    userIdList = reactionMap.get(reaction);
+                    userIdList.remove(userId);
+                    if (userIdList.size() == 0) {
+                        reactionMap.remove(reaction);
+                    } else {
+                        reactionMap.put(reaction, userIdList);
+                    }
+
+                } catch (Exception e) {
+                    System.out.println(e);
+                }
+            }
+
+        } else {
+            reactionMap = new HashMap<>();
+            userIdList.add(userId);
+            reactionMap.put(reaction, userIdList);
+        }
+
+        update.set("reactionMap", reactionMap);
+        mongoTemplate.findAndModify(query, update, Message.class, MESSAGE_COLLECTION);
+
+        return reactionMap;
     }
 
 

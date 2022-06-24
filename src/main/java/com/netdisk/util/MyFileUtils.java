@@ -202,7 +202,7 @@ public final class MyFileUtils {
 //            byte[] bytes = FileUtils.readFileToByteArray(desFile);
 //            desFile.delete();
 //            return Base64.getEncoder().encodeToString(bytes);
-            return resizeImageTo50K(getBase64(srcFile));
+            return resizeImageTo50K(getBase64(srcFile), desPath);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -210,15 +210,37 @@ public final class MyFileUtils {
     }
 
 
-    public static String resizeImageTo50K(String base64Img) {
+    public static String resizeImageTo50K(String base64Img, String desFilePath) {
         try {
             BufferedImage src = base64String2BufferedImage(base64Img);
-            BufferedImage output = Thumbnails.of(src).size(src.getWidth() / 5, src.getHeight() / 5).asBufferedImage();
-            String base64 = imageToBase64(output);
-            if (base64.length() - base64.length() / 8 * 2 > 200000) {
-                output = Thumbnails.of(output).scale(1f).asBufferedImage();
-                base64 = imageToBase64(output);
+            int tmp = 0;
+            if (src.getWidth() > 350 && src.getWidth() > src.getHeight()) {
+                tmp = src.getWidth() / 350;
+            } else if (src.getHeight() > 350 && src.getHeight() > src.getWidth()) {
+                tmp = src.getWidth() / 350;
             }
+
+            BufferedImage output = null;
+            if (tmp != 0) {
+                Thumbnails.of(src).size(src.getWidth() / 5, src.getHeight() / 5).toFile(desFilePath);
+            } else {
+                Thumbnails.of(src).toFile(desFilePath);
+            }
+
+            File desFile = new File(desFilePath);
+
+            if (desFile.length() > 100 * 1024) {
+                commpressPicCycle(desFilePath, 100, 0.7);
+            }
+
+            desFile = new File(desFilePath);
+            String base64 = getBase64(desFile);
+            desFile.delete();
+
+//            if (base64.length() - base64.length() / 8 * 2 > 200000) {
+//                output = Thumbnails.of(output).scale(1f).asBufferedImage();
+//                base64 = imageToBase64(output);
+//            }
             System.out.println("压缩后" + imageSize(base64));
             return base64;
         } catch (Exception e) {
@@ -274,13 +296,13 @@ public final class MyFileUtils {
             byte[] bytes1 = decoder.decode(base64string);
             stream = new ByteArrayInputStream(bytes1);
         } catch (Exception e) {
-            // TODO: handle exception
+            System.out.println(e);
         }
         return stream;
     }
 
 
-    public String getBase64(File file) {
+    public static String getBase64(File file) {
         ByteArrayOutputStream os1 = new ByteArrayOutputStream();
         InputStream file1 = null;
         try {
@@ -332,12 +354,12 @@ public final class MyFileUtils {
         return os1.toString();
     }
 
-    public void commpressPicCycle(String desPath, long desFileSize,
-                                  double accuracy) throws IOException {
+    public static void commpressPicCycle(String desPath, long desFileSize,
+                                         double accuracy) throws IOException {
         File imgFile = new File(desPath);
         long fileSize = imgFile.length();
         //判断大小,如果小于500k,不压缩,如果大于等于500k,压缩
-        if (fileSize <= desFileSize * 500) {
+        if (fileSize <= desFileSize * 1024) {
             return;
         }
         //计算宽高
@@ -617,9 +639,9 @@ public final class MyFileUtils {
         return sb.toString();
     }
 
-    public List<Long> IntegerToLong(List<Integer> list){
+    public List<Long> IntegerToLong(List<Integer> list) {
         List<Long> res = new ArrayList<>();
-        for(Integer a: list){
+        for (Integer a : list) {
             res.add((long) a);
         }
         return res;

@@ -380,12 +380,13 @@ public class FileServiceImpl implements FileService {
     public ParamDTO queryShared(Long userId) {
         List<Share> shares = nodeRepository.getShareSubTree(userId, 1L, 0L).get(0).getDescendants();
         List<FileDTO> fileNodeList = new ArrayList<>();
-        for(Share share : shares){
+        for (Share share : shares) {
             Query query = new Query();
             query.addCriteria(Criteria.where("userId").is(share.getUserId()));
             query.addCriteria(Criteria.where("nodeId").is(share.getNodeId()));
             FileNode fileNode = mongoTemplate.findOne(query, FileNode.class, FILE_COLLECTION);
             FileDTO fileDTO = new FileDTO(fileNode);
+            fileDTO.setFileSizeInUnit(myFileUtils.getPrintSize(fileNode.getFileSize()));
             fileNodeList.add(fileDTO);
         }
         Collections.sort(fileNodeList, typeComparator);
@@ -474,9 +475,9 @@ public class FileServiceImpl implements FileService {
         }
 
         String fileName = null;
-        if(fileNode.isFolder()){
+        if (fileNode.isFolder()) {
             fileName = myFileUtils.availableFolderName(userId, newParentNodeId, fileNode.getFileName());
-        }else{
+        } else {
             fileName = myFileUtils.availableFileName(userId, newParentNodeId, fileNode.getFileName());
         }
         if (queryFolderByNameId(fileNode.getUserId(), newParentNodeId, fileNode.getFileName()) != null) {

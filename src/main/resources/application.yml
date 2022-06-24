@@ -4,15 +4,22 @@ server:
 spring:
   data:
     mongodb:
-      uri: mongodb://localhost:27017/netdisk
+#      uri: mongodb://localhost:27017/netdisk
 
-#      host: 172.17.0.1 #(for real server)
+        host: 172.17.0.1 #(for real server)
 
-#      host: 192.168.1.169 #(for test server)
-#      database: vnetdisk
-#      username: user1
-#      password: '123456'
-#      authentication-database: admin
+  #      host: 192.168.1.169 #(for test server)
+        database: vnetdisk
+        username: user1
+        password: '123456'
+        authentication-database: admin
+
+#        host: aijiangsb.com
+#        database: vnetdisk
+#        username: user1
+#        password: '123456'
+#        authentication-database: admin
+
   autoconfigure:
     exclude: org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
   mvc:

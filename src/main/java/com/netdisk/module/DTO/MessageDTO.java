@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -47,7 +48,7 @@ public class MessageDTO {
 
     MessageFile messageFile;
 
-    Reactions reactions;
+    Map<String, List> reactions;
 
     ReplyMessage replyMessage;
 

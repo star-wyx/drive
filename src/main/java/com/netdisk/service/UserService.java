@@ -42,6 +42,11 @@ public interface UserService {
     boolean uploadPicture(MultipartFile file, Long userId);
 
     /**
+     * 上传Room头像
+     */
+    boolean uploadRoomPicture(MultipartFile file, Long roomId);
+
+    /**
      * 修改密码
      */
     int updatePwd(Long userId, String newPwd, String oldPwd);
@@ -71,4 +76,9 @@ public interface UserService {
      * 返回所有分享文件的用户
      */
     List querySharedUser(long querySharedUser);
+
+    /**
+     * 在main聊天室中添加用户
+     */
+    void addUserToMainRoom(long userId);
 }

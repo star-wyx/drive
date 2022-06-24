@@ -20,6 +20,8 @@ public class Md5ServiceImpl implements Md5Service {
 
     public static final String Md5_COLLECTION = "md5";
 
+    public static final boolean mutex = false;
+
     @Override
     public long getIndex(String md5) {
         Query query = new Query();
@@ -36,7 +38,7 @@ public class Md5ServiceImpl implements Md5Service {
     }
 
     @Override
-    public void increaseIndex(String md5) {
+    public synchronized void increaseIndex(String md5) {
         Query query = new Query();
         query.addCriteria(Criteria.where("md5").is(md5));
         Md5Record md5Record = mongoTemplate.findOne(query, Md5Record.class, Md5_COLLECTION);
@@ -51,7 +53,7 @@ public class Md5ServiceImpl implements Md5Service {
     }
 
     @Override
-    public long decreaseIndex(String md5) {
+    public synchronized long decreaseIndex(String md5) {
         Query query = new Query();
         query.addCriteria(Criteria.where("md5").is(md5));
         Md5Record md5Record = mongoTemplate.findOne(query, Md5Record.class, Md5_COLLECTION);

@@ -4,15 +4,19 @@ import com.netdisk.config.FileProperties;
 import com.netdisk.module.FileNode;
 import com.netdisk.module.Share;
 import com.netdisk.module.User;
+import com.netdisk.module.chat.Room;
+import com.netdisk.module.chat.RoomInfo;
 import com.netdisk.repository.NodeRepository;
 import com.netdisk.service.Md5Service;
 import com.netdisk.service.SharedService;
+import com.netdisk.service.impl.ChatServiceImpl;
 import com.netdisk.service.impl.FileServiceImpl;
 import com.netdisk.service.impl.SharedServiceImpl;
 import com.netdisk.service.impl.UserServiceImpl;
 import com.netdisk.util.AssemblyResponse;
 import com.netdisk.util.Response;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -25,7 +29,10 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 @Slf4j
 @Controller
@@ -51,12 +58,13 @@ public class UpdateInitial {
     @ResponseBody
     public Response update() {
         AssemblyResponse<String> assembly = new AssemblyResponse<>();
-        setUserIsShared();
-        setShared();
-        setMd5();
-        setShareRootNode();
-        setFolderSize();
-        changeFileSystem();
+//        setUserIsShared();
+//        setShared();
+//        setMd5();
+//        setShareRootNode();
+//        setFolderSize();
+//        setRoom();
+//        changeFileSystem();
         return assembly.success(null);
     }
 
@@ -86,11 +94,12 @@ public class UpdateInitial {
                 } else {
                     String fileName = fileNode.getFileName();
                     String suffix = fileName.substring(fileName.lastIndexOf(".") + 1);
+                    suffix = suffix.toLowerCase(Locale.ROOT);
                     File src = new File(fileProperties.getRootDir() + fileNode.getStorePath());
                     File des = new File(fileProperties.getRootDir() + rootNode.getFilePath()
                             + File.separator + fileNode.getMd5() + "."
                             + suffix);
-                    if (des.exists()) {
+                    if (!des.exists()) {
                         try {
                             Files.move(src.toPath(), des.toPath());
                         } catch (IOException e) {
@@ -104,7 +113,7 @@ public class UpdateInitial {
                         }
                     }
                     Update update = new Update();
-                    update.set("storePath", rootNode.getFilePath() + File.separator + fileNode.getMd5() + "." + suffix);
+                    update.set(" ", rootNode.getFilePath() + File.separator + fileNode.getMd5() + "." + suffix);
                     mongoTemplate.findAndModify(q, update, FileNode.class, FileServiceImpl.FILE_COLLECTION);
                 }
             }
@@ -203,6 +212,32 @@ public class UpdateInitial {
             sharedService.createUserRoot(user.getUserId(), user.getUserName());
         }
         log.info("===============setShareRootNode END=================");
+    }
+
+    public void setRoom() {
+        List<User> userList = mongoTemplate.findAll(User.class, UserServiceImpl.USER_COLLECTION);
+        List<Long> userIdList = new ArrayList<>();
+        for (User user : userList) {
+            userIdList.add(user.getUserId());
+        }
+
+        Room room = new Room(
+                null,
+                1L,
+                "大咕咕澡堂",
+                "Main_Room_Image",
+                null,
+                userIdList,
+                null,
+                1L);
+
+        mongoTemplate.save(room, ChatServiceImpl.ROOM_COLLECTION);
+
+        for (Long i : userIdList) {
+            RoomInfo roomInfo = new RoomInfo(null, room.getRoomId(), i, 0L, new Date().getTime(), 0L, false);
+            mongoTemplate.save(roomInfo, ChatServiceImpl.ROOMINFO_COLLECTION);
+        }
+
     }
 
 }

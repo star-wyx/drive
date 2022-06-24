@@ -8,6 +8,7 @@ import com.netdisk.module.User;
 import com.netdisk.module.chat.*;
 
 import java.util.List;
+import java.util.Map;
 
 public interface ChatService {
 
@@ -23,6 +24,8 @@ public interface ChatService {
     long getNextMessageId(long roomId);
 
     List<RoomUser> getRoomUser(long roomId, boolean needStatus);
+
+    RoomUser getRoomUser(long userId);
 
     ParamDTO fetchmessages(long userId, long roomId, long messageId);
 
@@ -73,4 +76,8 @@ public interface ChatService {
     void deleteMessage(Long roomId, Long messageId);
 
     MessageDTO editMessage(Long roomId, Long messageId, String newContent, List<Long> replyMessage, List<Long> usersTag, Long senderId);
+
+    List<Long> roomNameChanged(Long roomId, String newName);
+
+    Map<String, List> sendReaction(Long roomId, Long userId, Long messageId, String reaction, Boolean isRemove);
 }

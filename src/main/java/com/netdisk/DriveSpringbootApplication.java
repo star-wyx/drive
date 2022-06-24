@@ -49,19 +49,25 @@ public class DriveSpringbootApplication {
 
     /**
      * 注册netty-socketio服务端
-     * @author liangxifeng 2018-07-07
+     *
      * @return
+     * @author liangxifeng 2018-07-07
      */
     @Bean
     public SocketIOServer socketIOServer() {
         com.corundumstudio.socketio.Configuration config = new com.corundumstudio.socketio.Configuration();
 
         String os = System.getProperty("os.name");
-        if(os.equals("Mac OS X")){   //在本地window环境测试时用localhost
+        if (os.equals("Mac OS X")) {   //在本地window环境测试时用localhost
             System.out.println("this is Mac OS X");
             config.setHostname("192.168.1.143");
         } else {
-            config.setHostname("192.168.9.209");
+//            config.setHostname("172.17.0.1");
+//            config.setHostname("aijiangsb.com");
+//            config.setHostname("www.aijiangsb.com");
+//            config.setHostname("192.168.5.130");
+//            config.setHostname("127.0.0.1");
+            config.setHostname("0.0.0.0");
         }
         config.setPort(27000);
 
@@ -82,6 +88,7 @@ public class DriveSpringbootApplication {
 
     /**
      * tomcat启动时候，扫码socket服务器并注册
+     *
      * @param socketServer
      * @return
      */

@@ -3,6 +3,8 @@ package com.netdisk.service.impl;
 import com.netdisk.config.FileProperties;
 import com.netdisk.module.DTO.UserDTO;
 import com.netdisk.module.User;
+import com.netdisk.module.chat.Room;
+import com.netdisk.service.ChatService;
 import com.netdisk.service.SeqService;
 import com.netdisk.service.UserService;
 import com.netdisk.util.AssemblyResponse;
@@ -41,6 +43,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private FileProperties fileProperties;
+
+    @Autowired
+    ChatService chatService;
 
     @Autowired
     private MyFileUtils myFileUtils;
@@ -157,6 +162,40 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public boolean uploadRoomPicture(MultipartFile file, Long roomId) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("roomId").is(roomId));
+        Room room = mongoTemplate.findOne(query, Room.class, ChatServiceImpl.ROOM_COLLECTION);
+        File folder = new File(fileProperties.getProfileDir());
+        String suffix = file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf("."));
+        if (!folder.exists()) {
+            folder.mkdirs();
+        }
+
+        File picture = new File(fileProperties.getProfileDir() + File.separator + "Room_" + roomId + ".png");
+        if (picture.exists()) {
+            picture.delete();
+        }
+        InputStream is = null;
+        try {
+            is = file.getInputStream();
+            RenderedImage bufferedImage = ImageIO.read(is);
+            ImageIO.write(bufferedImage, "png", picture);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (is != null) {
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return true;
+    }
+
+    @Override
     public int updatePwd(Long userId, String newPwd, String oldPwd) {
         Query query = new Query();
         query.addCriteria(Criteria.where("userId").is(userId));
@@ -225,5 +264,17 @@ public class UserServiceImpl implements UserService {
             res.add(tmp);
         }
         return res;
+    }
+
+    @Override
+    public void addUserToMainRoom(long userId) {
+        Query query = new Query();
+        query.addCriteria(Criteria.where("roomId").is(1L));
+        Room room = mongoTemplate.findOne(query, Room.class, ChatServiceImpl.ROOM_COLLECTION);
+        List<Long> userList = room.getUserList();
+        userList.add(userId);
+        List<Long> addedList = new ArrayList<>();
+        addedList.add(userId);
+        chatService.addUserToRoom(1L, userList, addedList);
     }
 }

@@ -190,6 +190,7 @@ public class SharedServiceImpl implements SharedService {
             fileNode.setNodeId(seqService.getNextSeqId(newUser.getUserName()));
             fileNode.setParentId(folderId);
             fileNode.setShared(false);
+            fileNode.setFavorites(false);
             fileNode.setFilePath(folder.getFilePath() + "/" + fileNode.getFileName());
             mongoTemplate.save(fileNode, FileServiceImpl.FILE_COLLECTION);
             md5Service.increaseIndex(fileNode.getMd5());
@@ -214,6 +215,7 @@ public class SharedServiceImpl implements SharedService {
         fileNode.setFilePath(folder.getFilePath() + "/" + fileNode.getFileName());
         fileNode.setParentId(folderId);
         fileNode.setShared(false);
+        fileNode.setFavorites(false);
         mongoTemplate.save(fileNode, FileServiceImpl.FILE_COLLECTION);
 
         for (FileNode f : fileNodeList) {
@@ -224,6 +226,7 @@ public class SharedServiceImpl implements SharedService {
                 f.setFilePath(fileNode.getFilePath() + "/" + fileNode.getFileName());
                 f.setParentId(fileNode.getNodeId());
                 f.setShared(false);
+                fileNode.setFavorites(false);
                 mongoTemplate.save(f);
                 md5Service.increaseIndex(f.getMd5());
             } else {

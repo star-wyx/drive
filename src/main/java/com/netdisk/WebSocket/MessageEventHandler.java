@@ -13,6 +13,7 @@ import com.netdisk.module.User;
 import com.netdisk.module.chat.Room;
 import com.netdisk.module.chat.RoomInfo;
 import com.netdisk.module.chat.RoomUser;
+import com.netdisk.module.chat.Status;
 import com.netdisk.service.ChatService;
 import com.netdisk.service.MusicService;
 import com.netdisk.service.impl.ChatServiceImpl;
@@ -30,6 +31,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
 
 
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -98,15 +100,22 @@ public class MessageEventHandler {
 
         List<SocketIOClient> list = id_client.get(userId);
         list.remove(client);
-        if (list == null) {
+        if (list == null || list.size() == 0) {
             id_client.remove(userId);
             Query userQuery = new Query(Criteria.where("userId").is(userId));
-            User user = mongoTemplate.findOne(userQuery, User.class, UserServiceImpl.USER_COLLECTION);
+//            User user = mongoTemplate.findOne(userQuery, User.class, UserServiceImpl.USER_COLLECTION);
             Update update = new Update();
-            user.getStatus().setState("offline");
-            user.getStatus().setLastChanged(new Date().toString());
-            update.set("status", user.getStatus());
+            SimpleDateFormat format = new SimpleDateFormat("yyyy 年 MM 月 dd 日 E HH 点 mm 分");
+            Status newStatue = new Status("offline", format.format(new Date()));
+//            user.setStatus(newStatue);
+            update.set("status", newStatue);
             mongoTemplate.findAndModify(userQuery, update, User.class, UserServiceImpl.USER_COLLECTION);
+
+            RoomUser roomUser = chatService.getRoomUser(userId);
+            for (SocketIOClient socket : client_id.keySet()) {
+                socket.sendEvent("userStatusChanged", roomUser);
+            }
+
         } else {
             id_client.put(userId, list);
         }
@@ -128,7 +137,7 @@ public class MessageEventHandler {
         client_id.put(client, userId);
 
         List<SocketIOClient> list = id_client.get(userId);
-        if (list == null) {
+        if (list == null || list.size() == 0) {
             list = new ArrayList<SocketIOClient>();
             Query userQuery = new Query(Criteria.where("userId").is(user_id));
             User user = mongoTemplate.findOne(userQuery, User.class, UserServiceImpl.USER_COLLECTION);
@@ -136,6 +145,12 @@ public class MessageEventHandler {
             user.getStatus().setState("online");
             update.set("status", user.getStatus());
             mongoTemplate.findAndModify(userQuery, update, User.class, UserServiceImpl.USER_COLLECTION);
+
+            RoomUser roomUser = chatService.getRoomUser(userId);
+            for (SocketIOClient socket : client_id.keySet()) {
+                socket.sendEvent("userStatusChanged", roomUser);
+            }
+
         }
         if (!list.contains(client)) {
             list.add(client);
@@ -279,6 +294,9 @@ public class MessageEventHandler {
 
         List<SocketIOClient> senderSocket = id_client.get(senderId);
         for (SocketIOClient socketIOClient : senderSocket) {
+            if (socket_inRoom.get(socketIOClient) == null) {
+                continue;
+            }
             if (socketIOClient != client && socket_inRoom.get(socketIOClient) == messageDTO.getRoomId()) {
                 socketIOClient.sendEvent("senderNewMessageAdded", messageDTO);
             } else if (socket_inRoom.get(socketIOClient) == messageDTO.getRoomId()) {
@@ -390,8 +408,17 @@ public class MessageEventHandler {
     public void removeUserFromRoom(SocketIOClient client, AckRequest request, Long roomId) {
         long userId = client_id.get(client);
         List<Long> userList = chatService.removeUserFromUser(roomId, userId);
-        MessageDTO messageDTO = chatService.sendSysMessage(roomId, "user " + userId + "退出");
+        Query query = new Query();
+        query.addCriteria(Criteria.where("userId").is(userId));
+        User user = mongoTemplate.findOne(query, User.class, UserServiceImpl.USER_COLLECTION);
+        MessageDTO messageDTO = chatService.sendSysMessage(roomId, "通知: " + user.getUserName() + "已退出该房间");
         for (Long uId : userList) {
+            RoomDTO roomDTO = chatService.getRoomDTO(uId, roomId);
+            ChatParamDTO res = new ChatParamDTO();
+            res.setRoomId(roomDTO.getRoomId());
+            res.setNewRoomName(roomDTO.getRoomName());
+            res.setUsers(roomDTO.getUsers());
+
             List<SocketIOClient> sockets = id_client.get(uId);
             if (sockets != null && sockets.size() != 0) {
                 for (SocketIOClient socket : sockets) {
@@ -402,6 +429,7 @@ public class MessageEventHandler {
                         long unread = chatService.incRoomInfoUnread(roomId, uId);
                         socket.sendEvent("unreadUpdate", chatService.getUnreadDTO(roomId, unread, uId));
                     }
+                    socket.sendEvent("roomInfoChange", res);
                 }
             }
         }
@@ -421,10 +449,11 @@ public class MessageEventHandler {
         Long newRoomId = chatService.addUserToRoom(roomId, newUserList, addedUser);
         if (roomId == 0L) {
             for (Long userId : newUserList) {
+                RoomDTO roomDTO = chatService.getRoomDTO(userId, newRoomId);
                 List<SocketIOClient> sockets = id_client.get(userId);
                 if (sockets != null && sockets.size() != 0) {
                     for (SocketIOClient socket : sockets) {
-                        socket.sendEvent("newRoomAdded", chatService.getRoomDTO(userId, newRoomId));
+                        socket.sendEvent("newRoomAdded", roomDTO);
                     }
                 }
             }
@@ -432,6 +461,11 @@ public class MessageEventHandler {
             MessageDTO messageDTO = chatService.sendSysMessage(roomId, chatService.welcoming(addedUser));
 
             for (Long userId : oldUserList) {
+                RoomDTO roomDTO = chatService.getRoomDTO(userId, roomId);
+                ChatParamDTO res = new ChatParamDTO();
+                res.setRoomId(roomDTO.getRoomId());
+                res.setNewRoomName(roomDTO.getRoomName());
+                res.setUsers(roomDTO.getUsers());
                 List<SocketIOClient> sockets = id_client.get(userId);
                 if (sockets != null && sockets.size() != 0) {
                     for (SocketIOClient socket : sockets) {
@@ -442,11 +476,17 @@ public class MessageEventHandler {
                             long unread = chatService.incRoomInfoUnread(roomId, userId);
                             socket.sendEvent("unreadUpdate", chatService.getUnreadDTO(roomId, unread, userId));
                         }
+                        socket.sendEvent("roomInfoChange", res);
                     }
                 }
             }
 
             for (Long userId : addedUser) {
+                RoomDTO roomDTO = chatService.getRoomDTO(userId, roomId);
+                ChatParamDTO res = new ChatParamDTO();
+                res.setRoomId(roomDTO.getRoomId());
+                res.setNewRoomName(roomDTO.getRoomName());
+                res.setUsers(roomDTO.getUsers());
                 List<SocketIOClient> sockets = id_client.get(userId);
                 if (sockets != null && sockets.size() != 0) {
                     for (SocketIOClient socket : sockets) {
@@ -458,6 +498,7 @@ public class MessageEventHandler {
                             long unread = chatService.incRoomInfoUnread(roomId, userId);
                             socket.sendEvent("unreadUpdate", chatService.getUnreadDTO(roomId, unread, userId));
                         }
+                        socket.sendEvent("roomInfoChange", res);
                     }
                 }
             }
@@ -503,20 +544,53 @@ public class MessageEventHandler {
                         socket.sendEvent("attedMe", true);
                         socket.sendEvent("editAtYou", roomId);
                     }
-
                     if (socket_inRoom.get(socket) == messageDTO.getRoomId()) {
                         socket.sendEvent("messageEdited", messageDTO);
-//                        socket.sendEvent("unreadUpdate", chatService.getUnreadDTO(roomId, 0, userId));
-                    } else {
-//                        long unread = chatService.incRoomInfoUnread(roomId, userId);
-//                        socket.sendEvent("unreadUpdate", chatService.getUnreadDTO(roomId, unread, userId));
                     }
                 }
-            } else {
-//                long unread = chatService.incRoomInfoUnread(roomId, userId);
             }
         }
     }
 
+    @OnEvent("roomNameChanged")
+    public void roomNameChanged(SocketIOClient client, Long roomId, String name) {
+        List<Long> userList = chatService.roomNameChanged(roomId, name);
+        for (Long userId : userList) {
+            RoomDTO roomDTO = chatService.getRoomDTO(userId, roomId);
+            ChatParamDTO res = new ChatParamDTO();
+            res.setRoomId(roomDTO.getRoomId());
+            res.setRoomName(roomDTO.getRoomName());
+            List<SocketIOClient> sockets = id_client.get(userId);
+            if (sockets != null && sockets.size() != 0) {
+                for (SocketIOClient socket : sockets) {
+                    socket.sendEvent("changedRoomName", res);
+                }
+            }
+        }
+    }
+
+    @OnEvent("sendReaction")
+    public void sendReaction(SocketIOClient client, Long roomId, Long messageId, String reaction, Boolean isRemove) {
+        Long userId = client_id.get(client);
+        Map<String, List> reactions = chatService.sendReaction(roomId, userId, messageId, reaction, isRemove);
+        ChatParamDTO res = new ChatParamDTO();
+        res.setMessageId(messageId);
+        res.setReactions(reactions);
+        Query query = new Query();
+        query.addCriteria(Criteria.where("roomId").is(roomId));
+        Room room = mongoTemplate.findOne(query, Room.class, ChatServiceImpl.ROOM_COLLECTION);
+
+        List<Long> userList = room.getUserList();
+        for (Long uId : userList) {
+            List<SocketIOClient> sockets = id_client.get(uId);
+            if (sockets != null && sockets.size() != 0) {
+                for (SocketIOClient socket : sockets) {
+                    if (socket_inRoom.get(socket) == roomId) {
+                        socket.sendEvent("reactionAdded", res);
+                    }
+                }
+            }
+        }
+    }
 
 }

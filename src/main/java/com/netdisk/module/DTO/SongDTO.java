@@ -29,8 +29,9 @@ public class SongDTO {
     private String cover;
 
     public SongDTO(Song song, String token) {
-        ////todo change this
-        this.source = "http://192.168.1.143:9090/vopen/" + song.getMd5() + "?token=" + token + "&fullfilename=" + song.getFileName();
+        ////todo change avatar
+        this.source = "https://aijiangsb.com:9070/api/vavatar/" + song.getMd5() + "?token=" + token + "&fullfilename=" + song.getFileName();
+//        this.source = "http://192.168.1.143:9090/vavatar/" + song.getMd5() + "?token=" + token + "&fullfilename=" + song.getFileName();
         this.name = song.getName();
         this.shared = song.isShared();
         this.favorited = song.isFavorites();

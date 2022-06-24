@@ -37,11 +37,11 @@ import java.util.List;
 @Slf4j
 @Controller
 @RequestMapping("/user")
-//@CrossOrigin(origins = {"http://172.17.0.1", "http://172.17.0.1:9070", "http://www.aijiangsb.com" ,"http://aijiangsb.com:9070",
-//        "https://172.17.0.1", "https://172.17.0.1:9070", "https://www.aijiangsb.com" ,"https://aijiangsb.com:9070",
-//        "https://www.aijiangsb.com:9070","http://www.aijiangsb.com:9070"}
-//        , allowCredentials = "true")
-@CrossOrigin(origins = "http://192.168.1.169:9070", allowCredentials = "true")
+@CrossOrigin(origins = {"http://172.17.0.1", "http://172.17.0.1:9070", "http://www.aijiangsb.com" ,"http://aijiangsb.com:9070",
+        "https://172.17.0.1", "https://172.17.0.1:9070", "https://www.aijiangsb.com" ,"https://aijiangsb.com:9070",
+        "https://www.aijiangsb.com:9070","http://www.aijiangsb.com:9070"}
+        , allowCredentials = "true")
+//@CrossOrigin(origins = "http://192.168.1.169:9070", allowCredentials = "true")
 public class UserController {
     @Autowired
     private UserService userService;
@@ -103,12 +103,13 @@ public class UserController {
             fileService.createUserFile(user);
             File defaultAvatar = new File(fileProperties.getProfileDir() + File.separator + "default.png");
 //            File defaultAvatar = new File("classpath:/resources/default.png");
-            File newAvatar = new File(fileProperties.getProfileDir() + File.separator + user.getUserId() +".png");
+            File newAvatar = new File(fileProperties.getProfileDir() + File.separator + user.getUserId() + ".png");
             try {
-                FileUtils.copyFile(defaultAvatar,newAvatar);
+                FileUtils.copyFile(defaultAvatar, newAvatar);
             } catch (IOException e) {
                 e.printStackTrace();
             }
+            userService.addUserToMainRoom(user.getUserId());
         }
         return response;
     }
@@ -123,6 +124,22 @@ public class UserController {
         AssemblyResponse<ParamDTO> assembly = new AssemblyResponse();
 //        ParamDTO paramDTO = new ParamDTO();
         if (userService.uploadPicture(file, userId)) {
+            return assembly.success(null);
+        } else {
+            return assembly.fail(400, null);
+        }
+    }
+
+    /**
+     * 上传Room头像
+     */
+    @PostMapping("/updateRoomPhoto")
+    @ResponseBody
+    public Response updateRoomPhoto(@RequestParam("file") MultipartFile file,
+                                    @RequestParam("roomId") Long roomId) {
+        AssemblyResponse<ParamDTO> assembly = new AssemblyResponse();
+//        ParamDTO paramDTO = new ParamDTO();
+        if (userService.uploadRoomPicture(file, roomId)) {
             return assembly.success(null);
         } else {
             return assembly.fail(400, null);
@@ -172,7 +189,7 @@ public class UserController {
             }
         }
         remain = userService.availableSpace(user.getUserId());
-        userService.setAvailableSpace(user.getUserId(),filmSize + musicSize + pictureSize + others);
+        userService.setAvailableSpace(user.getUserId(), filmSize + musicSize + pictureSize + others);
         Profile profile = new Profile(
                 user.getUserEmail(),
                 myFileUtils.getPrintSize(remain),
@@ -211,7 +228,7 @@ public class UserController {
 
     @PostMapping("/availableSpace")
     @ResponseBody
-    public Response availableSpace(@RequestBody ParamDTO paramDTO){
+    public Response availableSpace(@RequestBody ParamDTO paramDTO) {
         AssemblyResponse assembly = new AssemblyResponse();
         ParamDTO res = new ParamDTO();
         User user = userService.getUserById(paramDTO.getUserId());
@@ -220,7 +237,7 @@ public class UserController {
         List<Long> longs = new ArrayList<>();
         longs.add(usedSize);
         longs.add(availableSize);
-        List<String> percents = myFileUtils.getPercentValue(longs,2);
+        List<String> percents = myFileUtils.getPercentValue(longs, 2);
         res.setPercentage(percents.get(0));
         res.setSize(myFileUtils.getPrintSize(usedSize));
         return assembly.success(res);

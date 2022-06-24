@@ -38,4 +38,6 @@ public class FileProperties {
     private String ffprobePath;
 
     private String isUpdate;
+
+    private String avatarPath;
 }

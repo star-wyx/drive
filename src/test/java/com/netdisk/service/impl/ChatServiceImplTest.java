@@ -56,30 +56,30 @@ class ChatServiceImplTest {
 //        }
 //    }
 
-    @Test
-    public void mongoTest() {
-        System.out.println(chatService.fetchmessages(3L, 1L, 10));
-    }
-
-
-    @Test
-    public void newRoom() {
-        List<Long> userList = new ArrayList<>();
-        userList.add(1L);
-        userList.add(2L);
-        userList.add(3L);
-        chatService.addRoom(userList, "main");
-    }
-
-    @Test
-    public void setLastMessageId() {
-        Date date = new Date();
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd");
-        SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm");
-        String d = dateFormat.format(date);
-        String timeStamp = timeFormat.format(date);
-        System.out.println(d);
-        System.out.println(timeStamp);
-    }
+//    @Test
+//    public void mongoTest() {
+//        System.out.println(chatService.fetchmessages(3L, 1L, 10));
+//    }
+//
+//
+//    @Test
+//    public void newRoom() {
+//        List<Long> userList = new ArrayList<>();
+//        userList.add(1L);
+//        userList.add(2L);
+//        userList.add(3L);
+//        chatService.addRoom(userList, "main");
+//    }
+//
+//    @Test
+//    public void setLastMessageId() {
+//        Date date = new Date();
+//        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd");
+//        SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm");
+//        String d = dateFormat.format(date);
+//        String timeStamp = timeFormat.format(date);
+//        System.out.println(d);
+//        System.out.println(timeStamp);
+//    }
 
 }
