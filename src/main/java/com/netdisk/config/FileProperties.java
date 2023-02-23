@@ -9,6 +9,10 @@ import org.springframework.stereotype.Component;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * 读取file.properties文件中的配置
+ */
+
 @Data
 @Component
 @PropertySource(value = "classpath:file.properties")

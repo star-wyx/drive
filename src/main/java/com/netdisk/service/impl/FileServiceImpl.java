@@ -75,6 +75,7 @@ public class FileServiceImpl implements FileService {
         this.nodeRepository = nodeRepository;
     }
 
+    // 返回当前用户所在的所有父目录
     @Override
     public List queryBrowsePath(User user, List content) {
         List<ParamDTO> res = new ArrayList<>();
@@ -82,6 +83,7 @@ public class FileServiceImpl implements FileService {
         for (int i = 0; i < content.size(); i++) {
             ParamDTO paramDTO = new ParamDTO();
             if (i == 0) {
+                // 返回用户的根目录
                 paramDTO.setFilename(user.getUserName());
                 paramDTO.setNodeId(1L);
                 paramDTO.setFilePath("/" + user.getUserName());
@@ -182,6 +184,7 @@ public class FileServiceImpl implements FileService {
         updateFolderSize(user.getUserId(), fileNode.getParentId(), fileNode.getFileSize());
     }
 
+    // 从nodeId开始，返回以maxDepth为层数的所有下层文件
     @Override
     public List<FileNode> sub(Long userId, Long nodeId, Long maxDepth) {
         return nodeRepository.getSubTree(userId, nodeId, maxDepth);
@@ -328,6 +331,7 @@ public class FileServiceImpl implements FileService {
         return mongoTemplate.findOne(query, FileNode.class, FILE_COLLECTION);
     }
 
+    // 返回user下的所有目录和文件
     @Override
     public ParamDTO queryAll(Long userId, String contentType) {
         Query query = new Query(Criteria.where("userId").is(userId));
@@ -348,6 +352,7 @@ public class FileServiceImpl implements FileService {
         return paramDTO;
     }
 
+    // 对文件星标
     @Override
     public int favoriteFile(Long userId, Long nodeId, Boolean isFavorites) {
         Query query = new Query(Criteria.where("userId").is(userId));
@@ -358,6 +363,7 @@ public class FileServiceImpl implements FileService {
         return 0;
     }
 
+    // 返回所有星标文件
     @Override
     public ParamDTO queryFavorites(Long userId) {
         Query query = new Query(Criteria.where("userId").is(userId));
@@ -376,6 +382,7 @@ public class FileServiceImpl implements FileService {
         return paramDTO;
     }
 
+    // 返回所有分享文件
     @Override
     public ParamDTO queryShared(Long userId) {
         List<Share> shares = nodeRepository.getShareSubTree(userId, 1L, 0L).get(0).getDescendants();
@@ -397,6 +404,7 @@ public class FileServiceImpl implements FileService {
     }
 
 
+    // 返回用户所有的文件夹节点
     @Override
     public ParamDTO queryAllFolder(User user, Long nodeId) {
         ParamDTO paramDTO = new ParamDTO();
@@ -408,6 +416,7 @@ public class FileServiceImpl implements FileService {
             fileDTO.setFileName(fileNode.getFileName());
             fileDTO.setFilePath(fileNode.getFilePath());
             if (queryFolderContent(user, fileNode.getNodeId()).get(0).size() == 0) {
+                // 确定目录叶子节点
                 fileDTO.setIsLeaf(true);
             } else {
                 fileDTO.setIsLeaf(false);
@@ -622,6 +631,7 @@ public class FileServiceImpl implements FileService {
         return mongoTemplate.find(query, FileNode.class, FILE_COLLECTION);
     }
 
+    // 修改名字
     @Override
     public boolean chName(FileNode fileNode, String newName) {
         Query query = new Query();

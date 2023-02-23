@@ -71,6 +71,7 @@ public class UserServiceImpl implements UserService {
         return assembly.success(user);
     }
 
+    // 注册新用户
     @Override
     public Response add(UserDTO userDTO) {
         String userName = userDTO.getUserName() != null ? userDTO.getUserName() : userDTO.getUser();
@@ -115,6 +116,7 @@ public class UserServiceImpl implements UserService {
         return mongoTemplate.findOne(query, User.class, USER_COLLECTION);
     }
 
+    // 上传头像
     @Override
     public boolean uploadPicture(MultipartFile file, Long userId) {
         Query query = new Query();
@@ -240,6 +242,7 @@ public class UserServiceImpl implements UserService {
         mongoTemplate.findAndModify(query, update, User.class, USER_COLLECTION);
     }
 
+    // 标注该用户是否有分享文件
     @Override
     public void setHaveShared(long userId, boolean isShared) {
         Query query = new Query();
@@ -249,6 +252,7 @@ public class UserServiceImpl implements UserService {
         mongoTemplate.updateFirst(query, update, User.class, USER_COLLECTION);
     }
 
+    // 返回所有正在分享文件的用户
     @Override
     public List querySharedUser(long userId) {
         List<UserDTO> res = new ArrayList<>();
@@ -266,6 +270,7 @@ public class UserServiceImpl implements UserService {
         return res;
     }
 
+    // 将新用户添加到根聊天室
     @Override
     public void addUserToMainRoom(long userId) {
         Query query = new Query();

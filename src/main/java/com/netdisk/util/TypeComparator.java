@@ -11,6 +11,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 
+// 文件类型的comparator
 @Component
 public class TypeComparator<T> implements Comparator<T> {
 
@@ -32,6 +33,7 @@ public class TypeComparator<T> implements Comparator<T> {
         }
     }
 
+    // 文件显示次序 folder, film, music, picture, others
     public int ContentTypeRank(String type1, String type2) {
         Map<String, Integer> map = new HashMap<>();
         map.put(fileProperties.getIcon().get("folder"), 5);

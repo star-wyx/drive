@@ -18,6 +18,7 @@ public class SeqServiceImpl implements SeqService {
     @Autowired
     MongoTemplate mongoTemplate;
 
+    // 生成一个有效的seq id
     @Override
     public long getNextSeqId(String collName) {
         Query query = new Query(Criteria.where("collName").is(collName));
@@ -37,6 +38,7 @@ public class SeqServiceImpl implements SeqService {
         mongoTemplate.save(seqInfo,SEQ_COLLECTION);
     }
 
+    // 生成一个新的有效的user id
     @Override
     public long getNextUserId() {
         Query query = new Query(Criteria.where("collName").is("user@id"));
@@ -52,6 +54,7 @@ public class SeqServiceImpl implements SeqService {
         return seqInfo.getSeqId();
     }
 
+    // 生成一个新的room id
     @Override
     public long getNextRoomId() {
         Query query = new Query(Criteria.where("collName").is("room@id"));

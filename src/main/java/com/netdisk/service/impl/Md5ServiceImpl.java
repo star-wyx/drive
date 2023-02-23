@@ -37,6 +37,7 @@ public class Md5ServiceImpl implements Md5Service {
         mongoTemplate.remove(query, Md5Record.class, Md5_COLLECTION);
     }
 
+    // 用户保存了该md5对应的文件
     @Override
     public synchronized void increaseIndex(String md5) {
         Query query = new Query();
@@ -52,6 +53,7 @@ public class Md5ServiceImpl implements Md5Service {
         }
     }
 
+    // 用户删除了该md5对应的文件
     @Override
     public synchronized long decreaseIndex(String md5) {
         Query query = new Query();

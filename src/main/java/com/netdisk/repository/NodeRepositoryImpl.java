@@ -70,6 +70,7 @@ public class NodeRepositoryImpl implements NodeGraphLookupRepository{
         return mongoTemplate.aggregate(aggregation, FileServiceImpl.FILE_COLLECTION, FileNode.class).getMappedResults();
     }
 
+    // 返回用户分享的文件节点
     @Override
     public List<Share> getShareSubTree(Long userId, Long nodeId, Long maxDepth) {
         final Criteria byNodeId = new Criteria("nodeId").is(nodeId);

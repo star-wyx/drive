@@ -159,6 +159,7 @@ public class SharedServiceImpl implements SharedService {
         if (!fileNode.isFolder()) {
             mongoTemplate.updateFirst(query, update, FileNode.class, FileServiceImpl.FILE_COLLECTION);
         } else {
+            // 将文件夹下的所有文件取消分享
             List<FileNode> list = nodeRepository.getSubTree(userId, nodeId, null).get(0).getDescendants();
             for (FileNode f : list) {
                 Query q = new Query();
@@ -173,6 +174,7 @@ public class SharedServiceImpl implements SharedService {
         return 0;
     }
 
+    // 转存分享文件
     @Override
     public int saveSharedFile(long userId, User newUser, FileNode fileNode, Long folderId) {
         if (!fileNode.isShared()) {
@@ -200,6 +202,7 @@ public class SharedServiceImpl implements SharedService {
         return 200;
     }
 
+    // 转存分享文件夹
     @Override
     public int saveSharedFolder(long userId, User newUser, FileNode fileNode, Long folderId) {
         List<FileNode> fileNodeList = nodeRepository.getSubTree(userId, fileNode.getNodeId(), 0L).get(0).getDescendants();
@@ -270,6 +273,7 @@ public class SharedServiceImpl implements SharedService {
         return res;
     }
 
+    // 查询该用户下的所有分享文件
     @Override
     public ParamDTO queryAll(long userId, long realUserId, String contentType) {
         Query query = new Query();

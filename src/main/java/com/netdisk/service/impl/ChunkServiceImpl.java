@@ -78,6 +78,7 @@ public class ChunkServiceImpl implements ChunkService {
         return mongoTemplate.findOne(query, Chunk.class, CHUNK_COLLECTION);
     }
 
+    // 删除所有分片
     @Override
     public void abortAll(Long userId) {
         Query query = new Query();
@@ -93,6 +94,7 @@ public class ChunkServiceImpl implements ChunkService {
         mongoTemplate.findAllAndRemove(query, Chunk.class, CHUNK_COLLECTION);
     }
 
+    // 创建任务
     @Override
     public Long createTask(String md5, String uuid, Long userId, Long nodeId, String fileName) {
         log.info(md5);
@@ -141,7 +143,7 @@ public class ChunkServiceImpl implements ChunkService {
 //            return 454;
 //        }
 
-        //实现并行
+        //实现并行， 将MultipartFile存储到分片文件中
         File newFile = new File(chunk.getStorePath(), serialNo + ".tmp");
         try {
             file.transferTo(newFile);
@@ -156,6 +158,7 @@ public class ChunkServiceImpl implements ChunkService {
 
     }
 
+    // 将所有接受到的分片文件整合
     @Override
     public int merge(String uuid, String md5) {
         Query query = new Query();
@@ -170,6 +173,7 @@ public class ChunkServiceImpl implements ChunkService {
         User user = userService.getUserById(chunk.getUserId());
 //        String availableFileName = availableFileName(user, chunk.getNodeId(), chunk.getFileName());
 //        File newFile = new File(fileProperties.getRootDir() + folder.getFilePath(), chunk.getFileName());
+        // 获取文件后缀名
         String suffix = chunk.getFileName().substring(chunk.getFileName().lastIndexOf(".") + 1);
         suffix = suffix.toLowerCase(Locale.ROOT);
         File newFile = new File(fileProperties.getRootDir() + "/" + user.getUserName() + "/" + md5 + "." + suffix);
@@ -191,6 +195,7 @@ public class ChunkServiceImpl implements ChunkService {
                     in = new FileInputStream(new File(chunk.getStorePath(), i + ".tmp"));
                     while ((len = in.read(byt)) != -1) {
 //                    System.out.println("------" + len);
+                        // 将分片写入最终的文件
                         out.write(byt, 0, len);
                     }
                 }
@@ -204,12 +209,14 @@ public class ChunkServiceImpl implements ChunkService {
         }
 
         try {
+            // 删除分片文件所在的目录
             FileUtils.deleteDirectory(new File(chunk.getStorePath()));
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         String newFileMd5 = null;
+        // 获取md5
         if (chunk.getSerialNo() <= 100) {
             newFileMd5 = myFileUtils.getPartMd5ByStream(newFile);
             log.info("getMd5ByStream new file md5: " + newFileMd5);
@@ -218,6 +225,7 @@ public class ChunkServiceImpl implements ChunkService {
             log.info("new file md5: " + newFileMd5);
         }
 
+        // 对比传输前后的md5
         if (newFileMd5 == null || !newFileMd5.toLowerCase(Locale.ROOT).equals(md5)) {
             System.out.println(newFileMd5);
             newFile.delete();
@@ -357,6 +365,7 @@ public class ChunkServiceImpl implements ChunkService {
         }
     }
 
+    // 根据url下载
     @Override
     public void vDownload(HttpServletRequest request, HttpServletResponse response) {
         String url = null;
@@ -421,6 +430,7 @@ public class ChunkServiceImpl implements ChunkService {
         }
     }
 
+    // 在线阅览
     @Override
     public void vOpen(HttpServletRequest request, HttpServletResponse response) {
         String range = request.getHeader("Range");
@@ -490,6 +500,7 @@ public class ChunkServiceImpl implements ChunkService {
             }
         }
 
+        // 将包大小进行限定
         long contentLength = endByte - startByte + 1;
         if (contentLength > 2097152) {
             contentLength = 2097152;

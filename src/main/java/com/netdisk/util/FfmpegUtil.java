@@ -283,7 +283,7 @@ public class FfmpegUtil {
 
     }
 
-    //  ffmpeg能解析的格式：（asx，asf，mpg，wmv，3gp，mp4，mov，avi，flv等）
+    //  获取ffmpeg能解析的格式：（asx，asf，mpg，wmv，3gp，mp4，mov，avi，flv等）
     private String processFLV(String inputPath) {
         List<String> commend = new java.util.ArrayList<String>();
 

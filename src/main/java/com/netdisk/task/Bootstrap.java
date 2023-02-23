@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+// 每次项目启动时执行一次
 @Component
 public class Bootstrap implements ApplicationRunner {
 
@@ -48,6 +49,7 @@ public class Bootstrap implements ApplicationRunner {
         File mp4Dir = new File(fileProperties.getMp4Dir());
         File tmpPath = new File(fileProperties.getTmpPath());
 
+        // 新建对应的目录
         if (!root.exists()) {
             root.mkdirs();
         }
@@ -78,6 +80,7 @@ public class Bootstrap implements ApplicationRunner {
         System.out.println("finish boot check");
     }
 
+    // 检查是否有根目录
     public void fileDocumentCheck() {
         Query query = new Query();
         query.addCriteria(Criteria.where("nodeId").is(0));
@@ -105,6 +108,7 @@ public class Bootstrap implements ApplicationRunner {
         }
     }
 
+    // 检查是否有根聊天室
     public void roomCheck() {
         Query query = new Query();
         query.addCriteria(Criteria.where("roomId").is(1));
@@ -135,6 +139,7 @@ public class Bootstrap implements ApplicationRunner {
         }
     }
 
+    // 检查各个用户是否有对应的seq
     public void seqCheck() {
         Query userQuery = new Query(Criteria.where("collName").is("user@id"));
         SeqInfo userInfo = mongoTemplate.findOne(userQuery, SeqInfo.class, SeqServiceImpl.SEQ_COLLECTION);
@@ -151,6 +156,7 @@ public class Bootstrap implements ApplicationRunner {
         }
     }
 
+    // 检查根用户是否存在
     public void userCheck() {
         Query query = new Query();
         query.addCriteria(Criteria.where("userName").is("root"));

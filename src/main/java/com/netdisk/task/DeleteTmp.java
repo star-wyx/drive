@@ -26,8 +26,7 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * @author riemann
- * @date 2019/06/23 18:15
+ * 定时删除对应的cache文件
  */
 @Component
 @Slf4j

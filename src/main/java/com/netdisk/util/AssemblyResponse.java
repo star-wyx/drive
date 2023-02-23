@@ -1,5 +1,6 @@
 package com.netdisk.util;
 
+// http response的组装类
 public class AssemblyResponse<T> {
 
     private Response<T> response;

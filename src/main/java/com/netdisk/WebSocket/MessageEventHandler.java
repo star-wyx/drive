@@ -138,6 +138,7 @@ public class MessageEventHandler {
         Long userId = Long.valueOf(user_id);
         client_id.put(client, userId);
 
+        // 获取userId下的所有socket client， 如果这是user当前第一个在线的client，更新用户status
         List<SocketIOClient> list = id_client.get(userId);
         if (list == null || list.size() == 0) {
             list = new ArrayList<SocketIOClient>();
@@ -164,6 +165,7 @@ public class MessageEventHandler {
         client.sendEvent("songList", musicService.getSongList(userId, token));
     }
 
+    // 添加一首新歌
     @OnEvent(value = "addNewSong")
     public void addNewSong(SocketIOClient client, AckRequest request, Long nodeId, String token, Long song_userId) {
         Long list_userId = client_id.get(client);
@@ -181,6 +183,7 @@ public class MessageEventHandler {
         }
     }
 
+    // 添加多个新歌
     @OnEvent(value = "addNewSongs")
     public void addNewSongs(SocketIOClient client, AckRequest request, List<Integer> nodeIds, String token, Long userId) {
         Long list_userId = client_id.get(client);
@@ -203,6 +206,7 @@ public class MessageEventHandler {
         }
     }
 
+    // 新增分享歌曲
     @OnEvent(value = "addNewSongsShared")
     public void addNewSongsShared(SocketIOClient client, AckRequest request, List nodeIds, String token) {
         Long list_userId = client_id.get(client);
@@ -226,6 +230,7 @@ public class MessageEventHandler {
         }
     }
 
+    // 删除歌曲
     @OnEvent(value = "deleteSong")
     public void deleteSong(SocketIOClient client, AckRequest request, Long nodeId, Long userId) {
         long list_userId = client_id.get(client);
@@ -240,6 +245,7 @@ public class MessageEventHandler {
         }
     }
 
+    // 更改分享状态
     @OnEvent(value = "changeShare")
     public void changeShare(SocketIOClient client, AckRequest request, Long nodeId, Long userId, Boolean isShared) {
         long list_userId = client_id.get(client);
@@ -256,6 +262,7 @@ public class MessageEventHandler {
         mongoTemplate.findAndModify(query, update, Song.class, MusicServiceImpl.MUSIC_COLLECTION);
     }
 
+    // 更改喜爱状态
     @OnEvent(value = "changeFav")
     public void changeFav(SocketIOClient client, AckRequest request, Long nodeId, Long userId, Boolean isFav) {
         long list_userId = client_id.get(client);
@@ -279,6 +286,7 @@ public class MessageEventHandler {
     }
 
 
+    // 新增聊天室
     @OnEvent(value = "initialRoomBegin")
     public void initialRoomBegin(SocketIOClient client, AckRequest request) {
         client.sendEvent("initialRoom", chatService.getAllRoom(client_id.get(client)));
@@ -287,6 +295,7 @@ public class MessageEventHandler {
         }
     }
 
+    // 发送message
     @OnEvent(value = "sendMessage")
     public void sendMessage(SocketIOClient client, AckRequest request, Long roomId, String content, byte[] files,
                             List<Integer> _replyMessage, List<Integer> _usersTag, Long senderId, Long dummyId) {
@@ -294,6 +303,7 @@ public class MessageEventHandler {
         List<Long> usersTag = myFileUtils.IntegerToLong(_usersTag);
         MessageDTO messageDTO = chatService.addMessageToRoom(roomId, content, null, replyMessage, usersTag, senderId);
 
+        // 获得sender的所有client
         List<SocketIOClient> senderSocket = id_client.get(senderId);
         for (SocketIOClient socketIOClient : senderSocket) {
             if (socket_inRoom.get(socketIOClient) == null) {
@@ -311,6 +321,7 @@ public class MessageEventHandler {
             }
         }
 
+        // 获得聊天室的所有user
         List<RoomUser> roomUsers = chatService.getRoomUser(roomId, true);
         messageDTO.setDistributed(true);
         for (RoomUser roomUser : roomUsers) {
@@ -319,23 +330,28 @@ public class MessageEventHandler {
                 continue;
             }
             if (roomUser.get_id() != senderId) {
+                // 非发送方
                 boolean isAt = chatService.checkAtMe(roomUser.get_id());
                 for (SocketIOClient socketIOClient : tmp) {
+                    // 如果用户正在该房间
                     if (socket_inRoom.get(socketIOClient) != null && socket_inRoom.get(socketIOClient) == messageDTO.getRoomId()) {
                         socketIOClient.sendEvent("newMessageAdded", messageDTO);
                         socketIOClient.sendEvent("unreadUpdate", chatService.getUnreadDTO(roomId, 0, roomUser.get_id()));
                         chatService.changeIsAt(roomUser.get_id(), roomId, false);
                     } else {
+                        // 如果用户不在该房间
                         long unread = chatService.incRoomInfoUnread(roomId, roomUser.get_id());
                         socketIOClient.sendEvent("unreadUpdate", chatService.getUnreadDTO(roomId, unread, roomUser.get_id()));
                     }
 
+                    // 如果被at
                     if (isAt) {
                         socketIOClient.sendEvent("attedMe", true);
                     }
 
                 }
             } else {
+                // 发送方
                 for (SocketIOClient socketIOClient : tmp) {
                     socketIOClient.sendEvent("unreadUpdate", chatService.getUnreadDTO(roomId, 0, roomUser.get_id()));
                     chatService.changeIsAt(roomUser.get_id(), roomId, false);
@@ -374,6 +390,7 @@ public class MessageEventHandler {
         }
     }
 
+    // 用户进入一个room
     @OnEvent(value = "rightNowRoom")
     public void rightNowRoom(SocketIOClient client, AckRequest request, Long roomId) {
         log.info("rightNowRoom");
@@ -383,11 +400,13 @@ public class MessageEventHandler {
         }
     }
 
+    // 新建room时的用户列表
     @OnEvent(value = "newRoomUserList")
     public void newRoomUserList(SocketIOClient client, AckRequest request) {
         client.sendEvent("userListAccessed", chatService.splitRoomUser(null, client_id.get(client)));
     }
 
+    // 向room邀请用户
     @OnEvent(value = "inviteUserList")
     public void inviteUserList(SocketIOClient client, AckRequest request, Long roomId) {
         client.sendEvent("userListAccessed", chatService.splitRoomUser(roomId, client_id.get(client)));

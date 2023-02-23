@@ -6,8 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import com.netdisk.task.DeleteTmp;
 
 /**
- * @author riemann
- * @date 2019/06/23 18:21
+ * 定时删除执行类
  */
 @Configuration
 public class TaskConfig {

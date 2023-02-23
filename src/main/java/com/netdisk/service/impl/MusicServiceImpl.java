@@ -87,6 +87,7 @@ public class MusicServiceImpl implements MusicService {
             }
         }
 
+        // audioFileIO 获取对应的music文件信息
         File file = new File(fileProperties.getRootDir() + File.separator + fileNode.getStorePath());
         if (!file.exists()) {
             System.out.println("music file not exist");
