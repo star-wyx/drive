@@ -10,8 +10,8 @@ spring:
 
   #      host: 192.168.1.169 #(for test server)
         database: vnetdisk
-        username: user1
-        password: '123456'
+        username: vanislord
+        password: 'vanislord778'
         authentication-database: admin
 
 #        host: aijiangsb.com
@@ -32,9 +32,6 @@ spring:
     multipart:
       max-file-size: 2000MB
       max-request-size: 2000MB
-  web:
-    resources:
-      static-locations: file:/Users/star_wyx/Desktop/File
 
 
 
@@ -42,4 +39,6 @@ logging:
   config: classpath:logback-spring.xml
   file:
     path: /usr/local/netdisk/log
-#    path: /Users/star_wyx/coding/drive_springboot/log
+
+
+name: Yixing WU

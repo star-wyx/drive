@@ -6,7 +6,7 @@ FROM adoptopenjdk/openjdk11:jre-11.0.14.1_1-ubuntu
 RUN apt-get update \
     && apt-get install -y curl vim net-tools  \
 #    && apt-get install -y mongodb \
-#    && apt-get install -y ffmpeg \
+    && apt-get install -y ffmpeg \
     && apt-get clean \
     &&  rm -rf /var/lib/apt/lists/*
 
@@ -20,8 +20,8 @@ RUN apt-get update \
 
 VOLUME /tmp
 
-COPY ./target/*.jar /app.jar
-#COPY ./*.jar /app.jar
+#COPY ./target/*.jar /app.jar
+COPY ./*.jar /app.jar
 
 CMD ["--server.port=9090"]
 
